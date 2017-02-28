@@ -1,1 +1,3 @@
 # thegame
+
+This is a repo for The Game. We'll see what happens...
