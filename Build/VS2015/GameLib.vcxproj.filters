@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="..\..\Src\FileSystem.h" />
+    <ClInclude Include="..\..\Src\Gui\stb_rect_pack.h">
+      <Filter>Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Src\Gui\stb_truetype.h">
+      <Filter>Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Src\Gui\TextPrinter.h">
+      <Filter>Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Src\SpriteBatchHelper.h" />
+    <ClInclude Include="..\..\Src\GameMain.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\Src\Build.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Gui">
+      <UniqueIdentifier>{0aec37b1-b5a8-445e-b022-3b2ad5196fcd}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

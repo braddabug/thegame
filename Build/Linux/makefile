@@ -1,0 +1,8 @@
+EXECUTABLE=game
+
+$(EXECUTABLE): 
+	$(CXX) -g --std=c++11 -I. -I../../Libs/Nxna  `pkg-config --cflags sdl2` ../../Src/Build.cpp `pkg-config --libs sdl2` -lGL -o $@
+
+clean:
+	rm $(EXECUTABLE)
+

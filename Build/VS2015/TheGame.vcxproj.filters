@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\Src\Build.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\Src\MyNxna2.h" />
+    <ClInclude Include="..\..\Src\Common.h" />
+    <ClInclude Include="..\..\Src\Gui\TextPrinter.h">
+      <Filter>Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Src\GameLibLoader.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Gui">
+      <UniqueIdentifier>{b24eece2-1d35-41bc-a9f6-5fccf9d2afa2}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
