@@ -149,6 +149,9 @@ public:
 
 	static void Destroy(SpriteBatchData* data)
 	{
+		if (data->Device == nullptr)
+			return;
+
 		data->Device->SetShaderPipeline(nullptr);
 
 		data->Device->DestroyVertexBuffer(data->VertexBuffer);

@@ -24,6 +24,7 @@ namespace Gui
 		uint32 numCharacters = (uint32)strlen(text);
 
 		auto pfont = data->DefaultFont;
+		if (pfont == nullptr) return;
 
 		Nxna::Graphics::SpriteBatchSprite* sprites = sb->AddSprites(numCharacters);
 		memset(sprites, 0, sizeof(Nxna::Graphics::SpriteBatchSprite) * numCharacters);
