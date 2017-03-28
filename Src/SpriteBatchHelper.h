@@ -4,6 +4,7 @@
 #include "MyNxna2.h"
 #include "Common.h"
 #include <vector>
+#include <cstdio>
 
 struct SpriteBatchData
 {

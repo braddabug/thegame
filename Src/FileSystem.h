@@ -12,7 +12,7 @@ struct File
 	void* Handle;
 	void* Mapping;
 #else
-#error TODO
+	int Handle;
 #endif
 };
 

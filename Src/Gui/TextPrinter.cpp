@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include "TextPrinter.h"
 #include "stb_truetype.h"
 #include "stb_rect_pack.h"
