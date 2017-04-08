@@ -12,6 +12,10 @@
 #include "FileSystem.cpp"
 #include "SpriteBatchHelper.cpp"
 #include "Gui/TextPrinter.cpp"
+#include "Graphics/Model.cpp"
+
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "Graphics/tiny_obj_loader.h"
 
 #endif
 
