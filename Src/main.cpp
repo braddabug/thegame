@@ -75,8 +75,11 @@ int main(int argc, char* argv[])
 	WindowInfo wi;
 	wi.ScreenWidth = 640;
 	wi.ScreenHeight = 480;
-	LocalInit(&device, &wi, &sbd, &td);
-	
+	if (LocalInit(&device, &wi, &sbd, &td) != 0)
+	{
+		printf("Unable to initialize. Exiting...\n");
+		return -1;
+	}
 
 	while (true)
 	{

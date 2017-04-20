@@ -25,7 +25,7 @@ namespace Graphics
 		}
 
 		// count the total number of vertices
-		uint32 numVertices;
+		uint32 numVertices = 0;
 		for (size_t s = 0; s < shapes.size(); s++)
 		{
 			for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++)
@@ -45,7 +45,7 @@ namespace Graphics
 		};
 		Vertex* vertices = new Vertex[numVertices];
 
-		result->NumMeshes = shapes.size();
+		result->NumMeshes = (uint32)shapes.size();
 		result->Meshes = new ModelMesh[shapes.size()];
 
 		// Loop over shapes
@@ -56,7 +56,7 @@ namespace Graphics
 			result->Meshes[s].FirstIndex = vertexCursor;
 
 			// Loop over faces(polygon)
-			size_t index_offset = 0;
+			uint32 index_offset = 0;
 			for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++)
 			{
 				int fv = shapes[s].mesh.num_face_vertices[f];
@@ -175,7 +175,7 @@ namespace Graphics
 		if (device->CreateConstantBuffer(&cbDesc, &result->Constants) != Nxna::NxnaResult::Success)
 		{
 			printf("Unable to create constant buffer\n");
-			return -1;
+			return false;
 		}
 
 		Nxna::Graphics::RasterizerStateDesc rsDesc = NXNA_RASTERIZERSTATEDESC_DEFAULT;
@@ -183,7 +183,7 @@ namespace Graphics
 		if (device->CreateRasterizerState(&rsDesc, &result->RasterState) != Nxna::NxnaResult::Success)
 		{
 			printf("Unable to create rasterizer state\n");
-			return -1;
+			return false;
 		}
 
 	
@@ -206,7 +206,7 @@ namespace Graphics
 			device->UpdateConstantBuffer(models[i].Constants, modelview->C, 16 * sizeof(float));
 			device->SetConstantBuffer(models[i].Constants, 0);
 
-			for (uint j = 0; j < models[i].NumMeshes; j++)
+			for (uint32 j = 0; j < models[i].NumMeshes; j++)
 			{
 				device->DrawPrimitives(Nxna::Graphics::PrimitiveType::TriangleList, models[i].Meshes[j].FirstIndex, models[i].Meshes[j].NumTriangles);
 			}
