@@ -22,34 +22,37 @@ struct SpriteBatchData
 
 class SpriteBatchHelper
 {
-	SpriteBatchData* m_data;
+	static SpriteBatchData* m_data;
 	std::vector<Nxna::Graphics::SpriteBatchSprite> m_sprites;
 
 	static const int BATCH_SIZE = 256;
 public:
 
-	static int Init(SpriteBatchData* data, SpriteBatchHelper* result)
+	static void SetGlobalData(SpriteBatchData** data)
 	{
-		result->m_data = data;
+		if (*data == nullptr)
+			*data = new SpriteBatchData();
 
-		return 0;
+		m_data = *data;
 	}
 
-	static int Init(Nxna::Graphics::GraphicsDevice* device, SpriteBatchData* result)
+	static int Init(Nxna::Graphics::GraphicsDevice* device)
 	{
-		result->Device = device;
+		if (m_data == nullptr) return -1;
 
-		result->Stride;
+		m_data->Device = device;
+
+		m_data->Stride;
 		Nxna::Graphics::InputElement elements[3];
-		Nxna::Graphics::SpriteBatch::SetupVertexElements(elements, &result->Stride);
+		Nxna::Graphics::SpriteBatch::SetupVertexElements(elements, &m_data->Stride);
 
 		// create the vertex buffer
 		Nxna::Graphics::VertexBufferDesc vbDesc = {};
 		vbDesc.BufferUsage = Nxna::Graphics::Usage::Dynamic;
-		vbDesc.ByteLength = result->Stride * BATCH_SIZE * 4;
+		vbDesc.ByteLength = m_data->Stride * BATCH_SIZE * 4;
 		vbDesc.InitialData = nullptr;
 		vbDesc.InitialDataByteCount = 0;
-		if (device->CreateVertexBuffer(&vbDesc, &result->VertexBuffer) != Nxna::NxnaResult::Success)
+		if (device->CreateVertexBuffer(&vbDesc, &m_data->VertexBuffer) != Nxna::NxnaResult::Success)
 		{
 			printf("Unable to create vertex buffer\n");
 			return -1;
@@ -63,7 +66,7 @@ public:
 		ibDesc.InitialData = indices;
 		ibDesc.InitialDataByteCount = sizeof(unsigned short) * BATCH_SIZE * 6;
 		ibDesc.NumElements = BATCH_SIZE * 6;
-		if (device->CreateIndexBuffer(&ibDesc, &result->IndexBuffer) != Nxna::NxnaResult::Success)
+		if (device->CreateIndexBuffer(&ibDesc, &m_data->IndexBuffer) != Nxna::NxnaResult::Success)
 		{
 			printf("Unable to create index buffer\n");
 			return -1;
@@ -92,7 +95,7 @@ public:
 		spDesc.VertexShaderBytecode = vertexShaderBytecode;
 		spDesc.VertexElements = elements;
 		spDesc.NumElements = 3;
-		if (device->CreateShaderPipeline(&spDesc, &result->ShaderPipeline) != Nxna::NxnaResult::Success)
+		if (device->CreateShaderPipeline(&spDesc, &m_data->ShaderPipeline) != Nxna::NxnaResult::Success)
 		{
 			printf("Unable to create shader pipeline\n");
 			return -1;
@@ -104,7 +107,7 @@ public:
 		Nxna::Graphics::ConstantBufferDesc cbDesc = {};
 		cbDesc.InitialData = constantBufferData;
 		cbDesc.ByteCount = sizeof(float) * 16;
-		if (device->CreateConstantBuffer(&cbDesc, &result->ConstantBuffer) != Nxna::NxnaResult::Success)
+		if (device->CreateConstantBuffer(&cbDesc, &m_data->ConstantBuffer) != Nxna::NxnaResult::Success)
 		{
 			printf("Unable to create constant buffer\n");
 			return -1;
@@ -114,7 +117,7 @@ public:
 		Nxna::Graphics::BlendStateDesc bd;
 		bd.IndependentBlendEnabled = false;
 		bd.RenderTarget[0] = NXNA_RENDERTARGETBLENDSTATEDESC_ALPHABLEND;
-		if (device->CreateBlendState(&bd, &result->BlendState) != Nxna::NxnaResult::Success)
+		if (device->CreateBlendState(&bd, &m_data->BlendState) != Nxna::NxnaResult::Success)
 		{
 			printf("Unable to create blend state\n");
 			return -1;
@@ -122,7 +125,7 @@ public:
 
 		// create a rasterization state using default no-culling
 		Nxna::Graphics::RasterizerStateDesc rd = NXNA_RASTERIZERSTATEDESC_CULLNONE;
-		if (device->CreateRasterizerState(&rd, &result->RasterState) != Nxna::NxnaResult::Success)
+		if (device->CreateRasterizerState(&rd, &m_data->RasterState) != Nxna::NxnaResult::Success)
 		{
 			printf("Unable to create rasterizer state\n");
 			return -1;
@@ -130,7 +133,7 @@ public:
 
 		// create a depth/stencil state using read-only
 		Nxna::Graphics::DepthStencilStateDesc dd = NXNA_DEPTHSTENCIL_DEPTHREAD;
-		if (device->CreateDepthStencilState(&dd, &result->DepthState) != Nxna::NxnaResult::Success)
+		if (device->CreateDepthStencilState(&dd, &m_data->DepthState) != Nxna::NxnaResult::Success)
 		{
 			printf("Unable to create depth/stencil state\n");
 			return -1;
@@ -138,7 +141,7 @@ public:
 
 		// create a point-filtering sampler state
 		Nxna::Graphics::SamplerStateDesc sd = NXNA_SAMPLERSTATEDESC_POINTCLAMP;
-		if (device->CreateSamplerState(&sd, &result->SamplerState) != Nxna::NxnaResult::Success)
+		if (device->CreateSamplerState(&sd, &m_data->SamplerState) != Nxna::NxnaResult::Success)
 		{
 			printf("Unable to create sampler state\n");
 			return -1;
@@ -148,21 +151,21 @@ public:
 		return 0;
 	}
 
-	static void Destroy(SpriteBatchData* data)
+	static void Destroy()
 	{
-		if (data->Device == nullptr)
+		if (m_data == nullptr || m_data->Device == nullptr)
 			return;
 
-		data->Device->SetShaderPipeline(nullptr);
+		m_data->Device->SetShaderPipeline(nullptr);
 
-		data->Device->DestroyVertexBuffer(data->VertexBuffer);
-		data->Device->DestroyIndexBuffer(data->IndexBuffer);
-		data->Device->DestroyConstantBuffer(&data->ConstantBuffer);
-		data->Device->DestroyShaderPipeline(&data->ShaderPipeline);
-		data->Device->DestroySamplerState(&data->SamplerState);
-		data->Device->DestroyDepthStencilState(&data->DepthState);
-		data->Device->DestroyRasterizerState(&data->RasterState);
-		data->Device->DestroyBlendState(&data->BlendState);
+		m_data->Device->DestroyVertexBuffer(m_data->VertexBuffer);
+		m_data->Device->DestroyIndexBuffer(m_data->IndexBuffer);
+		m_data->Device->DestroyConstantBuffer(&m_data->ConstantBuffer);
+		m_data->Device->DestroyShaderPipeline(&m_data->ShaderPipeline);
+		m_data->Device->DestroySamplerState(&m_data->SamplerState);
+		m_data->Device->DestroyDepthStencilState(&m_data->DepthState);
+		m_data->Device->DestroyRasterizerState(&m_data->RasterState);
+		m_data->Device->DestroyBlendState(&m_data->BlendState);
 	}
 
 	void Begin()

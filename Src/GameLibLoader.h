@@ -4,17 +4,18 @@
 #include "GameMain.h"
 #include "Gui/TextPrinter.h"
 
-struct SpriteBatchData;
+struct GlobalData;
 
 struct GameLib
 {
-	int(*Init)(Nxna::Graphics::GraphicsDevice* device, WindowInfo* window, SpriteBatchData* sbd, Gui::TextPrinterData* tpd);
-	void(*Loaded)(void* data, bool initial);
-	void(*ContentLoaded)(void* data);
-	void(*Tick)(Nxna::Graphics::GraphicsDevice* device, SpriteBatchData* sbd, Gui::TextPrinterData* tpd);
-	void(*Shutdown)(Nxna::Graphics::GraphicsDevice* device, SpriteBatchData* sbd, Gui::TextPrinterData* tpd);
-	void(*Unloading)(void* data);
-	void(*HandleExternalEvent)(void* data, ExternalEvent e);
+	// LibLoaded() is called when the game lib is loaded, and also when it's reloaded.
+	void(*LibLoaded)(GlobalData* data, bool initial);
+	int(*Init)(WindowInfo* window);
+	void(*ContentLoaded)();
+	void(*Tick)();
+	void(*Shutdown)();
+	void(*Unloading)();
+	void(*HandleExternalEvent)(ExternalEvent e);
 
 #ifdef _WIN32
 	void* Lib;

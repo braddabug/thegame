@@ -10,21 +10,32 @@
 
 namespace Gui
 {
-	bool TextPrinter::Init(Nxna::Graphics::GraphicsDevice* device, TextPrinterData* result)
+	TextPrinterData* TextPrinter::m_data = nullptr;
+
+	void TextPrinter::SetGlobalData(TextPrinterData** data)
 	{
-		return createFont(device, result, "Content/Fonts/DroidSans.ttf", 36, &result->DefaultFont);
+		if (*data == nullptr)
+			*data = new TextPrinterData();
+		
+		m_data = *data;
 	}
 
-	void TextPrinter::Shutdown(TextPrinterData* data)
+	bool TextPrinter::Init(Nxna::Graphics::GraphicsDevice* device)
 	{
-		free(data->DefaultFont);
+		return createFont(device, "Content/Fonts/DroidSans.ttf", 36, &m_data->DefaultFont);
 	}
 
-	void TextPrinter::PrintScreen(SpriteBatchHelper* sb, TextPrinterData* data, float x, float y, FontType font, const char* text)
+	void TextPrinter::Shutdown()
+	{
+		free(m_data->DefaultFont);
+		delete m_data;
+	}
+
+	void TextPrinter::PrintScreen(SpriteBatchHelper* sb, float x, float y, FontType font, const char* text)
 	{
 		uint32 numCharacters = (uint32)strlen(text);
 
-		auto pfont = data->DefaultFont;
+		auto pfont = m_data->DefaultFont;
 		if (pfont == nullptr) return;
 
 		Nxna::Graphics::SpriteBatchSprite* sprites = sb->AddSprites(numCharacters);
@@ -78,7 +89,7 @@ namespace Gui
 
 			sprites[i].SpriteColor = white;
 
-			sprites[i].Texture = data->Texture;
+			sprites[i].Texture = m_data->Texture;
 			sprites[i].TextureWidth = 256;
 			sprites[i].TextureHeight = 256;
 
@@ -86,7 +97,7 @@ namespace Gui
 		}
 	}
 
-	bool TextPrinter::createFont(Nxna::Graphics::GraphicsDevice* device, TextPrinterData* data, const char* path, float size, Font** result)
+	bool TextPrinter::createFont(Nxna::Graphics::GraphicsDevice* device, const char* path, float size, Font** result)
 	{
 		const int firstCharacter = 32;
 		const int lastCharacter = 127;
@@ -96,14 +107,8 @@ namespace Gui
 		uint8 pixels[textureSize * textureSize];
 
 		File f;
-		if (FileSystem::Open(path, &f) == false)
+		if (FileSystem::OpenAndMap(path, &f) == nullptr)
 			return false;
-
-		if (FileSystem::MapFile(&f) == nullptr)
-		{
-			FileSystem::Close(&f);
-			return false;
-		}
 
 		stbtt_pack_context c;
 		stbtt_PackBegin(&c, pixels, textureSize, textureSize, 0, 1, nullptr);
@@ -137,7 +142,7 @@ namespace Gui
 		Nxna::Graphics::SubresourceData srdata = {};
 		srdata.Data = rgbaPixels;
 		srdata.DataPitch = textureSize * 4;
-		if (device->CreateTexture2D(&desc, &srdata, &data->Texture) != Nxna::NxnaResult::Success)
+		if (device->CreateTexture2D(&desc, &srdata, &m_data->Texture) != Nxna::NxnaResult::Success)
 		{
 			delete[] r.chardata_for_range;
 			return false;

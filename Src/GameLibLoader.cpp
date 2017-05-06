@@ -26,7 +26,7 @@ bool LoadGameLib(GameLib* result)
 		return false;
 
 	LOAD(result->Init, result->Lib, "Init");
-	LOAD(result->Loaded, result->Lib, "Loaded");
+	LOAD(result->LibLoaded, result->Lib, "LibLoaded");
 	LOAD(result->ContentLoaded, result->Lib, "ContentLoaded");
 	LOAD(result->Tick, result->Lib, "Tick");
 	LOAD(result->Shutdown, result->Lib, "Shutdown");
@@ -34,8 +34,8 @@ bool LoadGameLib(GameLib* result)
 	LOAD(result->HandleExternalEvent, result->Lib, "HandleExternalEvent");
 
 	if (result->Init == nullptr ||
-	//	result->Loaded == nullptr ||
-	//	result->ContentLoaded == nullptr ||
+		result->LibLoaded == nullptr ||
+		//result->ContentLoaded == nullptr ||
 		result->Tick == nullptr ||
 		result->Shutdown == nullptr //||
 	//	result->Unloading == nullptr ||

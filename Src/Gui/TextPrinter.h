@@ -36,14 +36,17 @@ namespace Gui
 
 	class TextPrinter
 	{
-	public:
-		static bool Init(Nxna::Graphics::GraphicsDevice* device, TextPrinterData* result);
-		static void Shutdown(TextPrinterData* data);
+		static TextPrinterData* m_data;
 
-		static void PrintScreen(SpriteBatchHelper* sb, TextPrinterData* data, float x, float y, FontType font, const char* text);
+	public:
+		static void SetGlobalData(TextPrinterData** m_data);
+		static bool Init(Nxna::Graphics::GraphicsDevice* device);
+		static void Shutdown();
+
+		static void PrintScreen(SpriteBatchHelper* sb, float x, float y, FontType font, const char* text);
 
 	private:
-		static bool createFont(Nxna::Graphics::GraphicsDevice* device, TextPrinterData* data, const char* path, float size, Font** result);
+		static bool createFont(Nxna::Graphics::GraphicsDevice* device, const char* path, float size, Font** result);
 	};
 }
 

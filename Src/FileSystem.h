@@ -25,6 +25,20 @@ public:
 
 	static void* MapFile(File* file);
 	static void UnmapFile(File* file);
+
+	static void* OpenAndMap(const char* path, File* file)
+	{
+		if (FileSystem::Open(path, file) == false)
+			return nullptr;
+
+		if (FileSystem::MapFile(file) == nullptr)
+		{
+			FileSystem::Close(file);
+			return nullptr;
+		}
+
+		return file->Memory;
+	}
 };
 
 #endif // FILESYSTEM_H

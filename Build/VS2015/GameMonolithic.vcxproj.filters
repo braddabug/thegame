@@ -15,10 +15,18 @@
       <Filter>Gui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Src\FileSystem.h" />
+    <ClInclude Include="..\..\Src\Graphics\Model.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Src\MyNxna2.h" />
+    <ClInclude Include="..\..\src\GlobalData.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Gui">
       <UniqueIdentifier>{e28f7f6c-f622-4414-84bd-2f8947819b53}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics">
+      <UniqueIdentifier>{909ee247-b941-4e6e-a702-f4451007d813}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -52,7 +52,6 @@ namespace Graphics
 		uint32 vertexCursor = 0;
 		for (size_t s = 0; s < shapes.size(); s++)
 		{
-			
 			result->Meshes[s].FirstIndex = vertexCursor;
 
 			// Loop over faces(polygon)
@@ -97,8 +96,10 @@ namespace Graphics
 		vbDesc.InitialDataByteCount = numVertices * sizeof(Vertex);
 		if (device->CreateVertexBuffer(&vbDesc, &result->Vertices) != Nxna::NxnaResult::Success)
 		{
+			delete[] vertices;
 			return false;
 		}
+		delete[] vertices;
 
 		result->VertexStride = sizeof(Vertex);
 

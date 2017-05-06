@@ -62,14 +62,19 @@ extern "C"
 #define MG_EXPORT
 #endif
 
-MG_EXPORT
-int Init(Nxna::Graphics::GraphicsDevice* device, WindowInfo* window, SpriteBatchData* sbd, Gui::TextPrinterData* tpd);
+struct GlobalData;
 
 MG_EXPORT
-void Shutdown(Nxna::Graphics::GraphicsDevice* device, SpriteBatchData* sbd, Gui::TextPrinterData* tpd);
+void LibLoaded(GlobalData* data, bool initial);
 
 MG_EXPORT
-void Tick(Nxna::Graphics::GraphicsDevice* device, SpriteBatchData* sbd, Gui::TextPrinterData* tpd);
+int Init(WindowInfo* window);
+
+MG_EXPORT
+void Shutdown();
+
+MG_EXPORT
+void Tick();
 
 #ifdef GAME_ENABLE_HOTLOAD
 }
