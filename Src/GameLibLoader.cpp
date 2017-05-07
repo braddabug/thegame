@@ -37,9 +37,9 @@ bool LoadGameLib(GameLib* result)
 		result->LibLoaded == nullptr ||
 		//result->ContentLoaded == nullptr ||
 		result->Tick == nullptr ||
-		result->Shutdown == nullptr //||
+		result->Shutdown == nullptr ||
 	//	result->Unloading == nullptr ||
-	//	result->HandleExternalEvent == nullptr
+		result->HandleExternalEvent == nullptr
 		)
 		return false;
 

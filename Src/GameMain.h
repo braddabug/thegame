@@ -5,6 +5,7 @@
 
 enum class ExternalEventType
 {
+	FrameStart,
 	MouseMove,
 	MouseWheel,
 	MouseButtonDown,
@@ -75,6 +76,9 @@ void Shutdown();
 
 MG_EXPORT
 void Tick();
+
+MG_EXPORT
+void HandleExternalEvent(ExternalEvent e);
 
 #ifdef GAME_ENABLE_HOTLOAD
 }

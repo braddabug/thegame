@@ -33,6 +33,11 @@ void LocalTick(Nxna::Graphics::GraphicsDevice* device, SpriteBatchData* sbd, Gui
 	GAME_LIB_CALL(Tick)();
 }
 
+void LocalHandleEvent(ExternalEvent e)
+{
+	GAME_LIB_CALL(HandleExternalEvent)(e);
+}
+
 int main(int argc, char* argv[])
 {
 	memset(&gd, 0, sizeof(GlobalData));
@@ -75,6 +80,10 @@ int main(int argc, char* argv[])
 	if (context == nullptr)
 		return -1;
 
+	// enable vsync
+	if (SDL_GL_SetSwapInterval(-1) != 0)
+		SDL_GL_SetSwapInterval(1);
+
 	Gui::TextPrinterData td = {};
 	SpriteBatchData sbd = {};
 
@@ -90,6 +99,12 @@ int main(int argc, char* argv[])
 
 	while (true)
 	{
+		{
+			ExternalEvent ee = {};
+			ee.Type = ExternalEventType::FrameStart;
+			LocalHandleEvent(ee);
+		}
+
 		SDL_Event e;
 		while (SDL_PollEvent(&e))
 		{
@@ -98,9 +113,56 @@ int main(int argc, char* argv[])
 			case SDL_QUIT:
 				goto end;
 			case SDL_MOUSEMOTION:
+			{
+				ExternalEvent ee = {};
+				ee.Type = ExternalEventType::MouseMove;
+				ee.MouseMove.X = e.motion.x;
+				ee.MouseMove.Y = e.motion.y;
+				LocalHandleEvent(ee);
+			}
+				break;
+			case SDL_MOUSEBUTTONDOWN:
+			{
+				ExternalEvent ee = {};
+				ee.Type = ExternalEventType::MouseButtonDown;
+				ee.MouseButton.Button = e.button.button;
+				LocalHandleEvent(ee);
+			}
+				break;
+			case SDL_MOUSEBUTTONUP:
+			{
+				ExternalEvent ee = {};
+				ee.Type = ExternalEventType::MouseButtonDown;
+				ee.MouseButton.Button = e.button.button;
+				LocalHandleEvent(ee);
+			}
+				break;
+			case SDL_MOUSEWHEEL:
+			{
+				ExternalEvent ee = {};
+				ee.Type = ExternalEventType::MouseWheel;
+				ee.MouseWheel.Delta = e.wheel.y;
+				LocalHandleEvent(ee);
+			}
 				break;
 			case SDL_KEYDOWN:
+			{
+				ExternalEvent ee = {};
+				ee.Type = ExternalEventType::KeyboardButtonDown;
+				ee.KeyboardButton.PlatformKey = e.key.keysym.scancode;
+				ee.KeyboardButton.ConvertedKey = e.key.keysym.sym;
+				LocalHandleEvent(ee);
+			}
 				break;
+			case SDL_KEYUP:
+			{
+				ExternalEvent ee = {};
+				ee.Type = ExternalEventType::KeyboardButtonUp;
+				ee.KeyboardButton.PlatformKey = e.key.keysym.scancode;
+				ee.KeyboardButton.ConvertedKey = e.key.keysym.sym;
+				LocalHandleEvent(ee);
+			}
+			break;
 			}
 		}
 

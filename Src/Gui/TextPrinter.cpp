@@ -22,7 +22,7 @@ namespace Gui
 
 	bool TextPrinter::Init(Nxna::Graphics::GraphicsDevice* device)
 	{
-		return createFont(device, "Content/Fonts/DroidSans.ttf", 36, &m_data->DefaultFont);
+		return createFont(device, "Content/Fonts/DroidSans.ttf", 20, &m_data->DefaultFont);
 	}
 
 	void TextPrinter::Shutdown()
