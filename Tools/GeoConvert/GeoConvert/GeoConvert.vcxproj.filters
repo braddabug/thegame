@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Geometry.cpp" />
+    <ClCompile Include="SdkMeshLoader.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Geometry.h" />
+    <ClInclude Include="SdkMeshLoader.h" />
+    <ClInclude Include="optionparser.h" />
+  </ItemGroup>
+</Project>
