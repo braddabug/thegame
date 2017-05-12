@@ -20,6 +20,12 @@
     </ClInclude>
     <ClInclude Include="..\..\Src\MyNxna2.h" />
     <ClInclude Include="..\..\src\GlobalData.h" />
+    <ClInclude Include="..\..\src\Content\ContentManager.h">
+      <Filter>Content</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Graphics\TextureLoader.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Gui">
@@ -27,6 +33,9 @@
     </Filter>
     <Filter Include="Graphics">
       <UniqueIdentifier>{909ee247-b941-4e6e-a702-f4451007d813}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Content">
+      <UniqueIdentifier>{651207a5-bae6-44a7-b92e-a2bd1a3f667d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

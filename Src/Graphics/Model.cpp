@@ -4,24 +4,65 @@
 
 namespace Graphics
 {
-	bool Model::LoadObj(Nxna::Graphics::GraphicsDevice* device, uint8* data, uint32 length, Model* result)
+	ModelData* Model::m_data = nullptr;
+
+	void Model::SetGlobalData(ModelData** data)
 	{
-		std::string s((char*)data, length);
-		std::stringstream ss(s);
+		if (*data == nullptr)
+		{
+			*data = new ModelData();
+			(*data)->Initialized = false;
+		}
+
+		m_data = *data;
+	}
+
+	int Model::LoadObj(Content::ContentManager* content, const char* filename, Model* result, void* device)
+	{
+		Nxna::Graphics::GraphicsDevice* gd = (Nxna::Graphics::GraphicsDevice*)device;
+
+		if (m_data->Initialized == false)
+		{
+			Nxna::Graphics::ConstantBufferDesc cbDesc = {};
+			cbDesc.InitialData = nullptr;
+			cbDesc.ByteCount = sizeof(float) * 16;
+			if (gd->CreateConstantBuffer(&cbDesc, &m_data->Constants) != Nxna::NxnaResult::Success)
+			{
+				printf("Unable to create constant buffer\n");
+				return -1;
+			}
+
+			Nxna::Graphics::SamplerStateDesc ssDesc = NXNA_SAMPLERSTATEDESC_LINEARWRAP;
+			if (gd->CreateSamplerState(&ssDesc, &m_data->SamplerState) != Nxna::NxnaResult::Success)
+			{
+				printf("Unable to create sampler state\n");
+				return -1;
+			}
+		}
+
+
+		File f;
+		if (FileSystem::OpenAndMap(filename, &f) == nullptr)
+			return false;
+
+		std::string str((char*)f.Memory, f.FileSize);
+		std::stringstream ss(str);
 
 		tinyobj::attrib_t attrib;
 		std::vector<tinyobj::shape_t> shapes;
 		std::vector<tinyobj::material_t> materials;
-		  
+
+		tinyobj::MaterialFileReader mr("Content/Models/");
+
 		std::string err;
-		bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, &ss);
+		bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, &ss, &mr);
 
 		if (!err.empty()) { // `err` may contain warning message.
 			// TODO: log the error
 		}
 
 		if (!ret) {
-		  exit(1);
+			exit(1);
 		}
 
 		// count the total number of vertices
@@ -58,12 +99,8 @@ namespace Graphics
 			uint32 index_offset = 0;
 			for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++)
 			{
-				int fv = shapes[s].mesh.num_face_vertices[f];
-				if (fv != 3)
-					return false; // model must be triangulated
-
 				// Loop over vertices in the face.
-				for (size_t v = 0; v < fv; v++)
+				for (size_t v = 0; v < 3; v++)
 				{
 					Vertex vtx;
 
@@ -76,27 +113,28 @@ namespace Graphics
 					//float ny = attrib.normals[3*idx.normal_index+1];
 					//float nz = attrib.normals[3*idx.normal_index+2];
 					vtx.U = attrib.texcoords[2*idx.texcoord_index+0];
-					vtx.V = attrib.texcoords[2*idx.texcoord_index+1];
+					vtx.V = 1.0f - attrib.texcoords[2*idx.texcoord_index+1];
 
 					vertices[vertexCursor++] = vtx;
 				}
 
-				index_offset += fv;
+				index_offset += 3;
 
 				// per-face material
-				shapes[s].mesh.material_ids[f];
+				result->Meshes[s].TextureIndex = shapes[s].mesh.material_ids[f];
 			}
 
-			result->Meshes[s].NumTriangles = index_offset;
+			result->Meshes[s].NumTriangles = (uint32)shapes[s].mesh.num_face_vertices.size();
 		}
 
 		Nxna::Graphics::VertexBufferDesc vbDesc = {};
 		vbDesc.ByteLength = numVertices * sizeof(Vertex);
 		vbDesc.InitialData = vertices;
 		vbDesc.InitialDataByteCount = numVertices * sizeof(Vertex);
-		if (device->CreateVertexBuffer(&vbDesc, &result->Vertices) != Nxna::NxnaResult::Success)
+		if (gd->CreateVertexBuffer(&vbDesc, &result->Vertices) != Nxna::NxnaResult::Success)
 		{
 			delete[] vertices;
+			delete[] result->Meshes;
 			return false;
 		}
 		delete[] vertices;
@@ -130,7 +168,7 @@ namespace Graphics
 			void main()
 			{
 				float v = o_diffuseCoords.x;
-				outputColor = texture(Diffuse, o_diffuseCoords) + vec4(1.0, 1.0, 1.0, 1.0);
+				outputColor = texture(Diffuse, o_diffuseCoords);
 			}
 		)";
 
@@ -146,15 +184,17 @@ namespace Graphics
 		pixelShaderBytecode.BytecodeLength = sizeof(glsl_frag);
 
 		Nxna::Graphics::Shader vs, ps;
-		if (device->CreateShader(Nxna::Graphics::ShaderType::Vertex, vertexShaderBytecode.Bytecode, vertexShaderBytecode.BytecodeLength, &vs) != Nxna::NxnaResult::Success)
+		if (gd->CreateShader(Nxna::Graphics::ShaderType::Vertex, vertexShaderBytecode.Bytecode, vertexShaderBytecode.BytecodeLength, &vs) != Nxna::NxnaResult::Success)
 		{
 			printf("Unable to create vertex shader\n");
-			return false;
+			delete[] result->Meshes;
+			return -1;
 		}
-		if (device->CreateShader(Nxna::Graphics::ShaderType::Pixel, pixelShaderBytecode.Bytecode, pixelShaderBytecode.BytecodeLength, &ps) != Nxna::NxnaResult::Success)
+		if (gd->CreateShader(Nxna::Graphics::ShaderType::Pixel, pixelShaderBytecode.Bytecode, pixelShaderBytecode.BytecodeLength, &ps) != Nxna::NxnaResult::Success)
 		{
 			printf("Unable to create pixel shader\n");
-			return false;
+			delete[] result->Meshes;
+			return -1;
 		}
 
 		// now that the shaders have been created, put them into a ShaderPipeline
@@ -164,32 +204,39 @@ namespace Graphics
 		spDesc.VertexShaderBytecode = vertexShaderBytecode;
 		spDesc.VertexElements = inputElements;
 		spDesc.NumElements = 2;
-		if (device->CreateShaderPipeline(&spDesc, &result->Pipeline) != Nxna::NxnaResult::Success)
+		if (gd->CreateShaderPipeline(&spDesc, &result->Pipeline) != Nxna::NxnaResult::Success)
 		{
 			printf("Unable to create shader pipeline\n");
-			return false;
-		}
-
-		Nxna::Graphics::ConstantBufferDesc cbDesc = {};
-		cbDesc.InitialData = nullptr;
-		cbDesc.ByteCount = sizeof(float) * 16;
-		if (device->CreateConstantBuffer(&cbDesc, &result->Constants) != Nxna::NxnaResult::Success)
-		{
-			printf("Unable to create constant buffer\n");
-			return false;
+			delete[] result->Meshes;
+			return -1;
 		}
 
 		Nxna::Graphics::RasterizerStateDesc rsDesc = NXNA_RASTERIZERSTATEDESC_DEFAULT;
 		rsDesc.FrontCounterClockwise = true;
-		if (device->CreateRasterizerState(&rsDesc, &result->RasterState) != Nxna::NxnaResult::Success)
+		if (gd->CreateRasterizerState(&rsDesc, &result->RasterState) != Nxna::NxnaResult::Success)
 		{
 			printf("Unable to create rasterizer state\n");
-			return false;
+			delete[] result->Meshes;
+			return -1;
 		}
 
+		// load the textures
+		result->NumTextures = (uint32)materials.size();
+		result->Textures = new Nxna::Graphics::Texture2D[result->NumTextures];
+		for (size_t i = 0; i < materials.size(); i++)
+		{
+			Content::ContentState r;
+			if (content == nullptr)
+				r = Content::ContentManager::Load(materials[i].diffuse_texname.c_str(), Content::LoaderType::Texture2D, &result->Textures[i], "Content/Models/");
+			else
+				r = content->LoadTracked(materials[i].diffuse_texname.c_str(), Content::LoaderType::Texture2D, &result->Textures[i], "Content/Models/");
+
+			if (r != Content::ContentState::Loaded)
+				printf("Error while loading %s\n", materials[i].diffuse_texname.c_str());
+		}
 	
 		printf("Model loaded\n");
-		return true;
+		return 0;
 	}
 
 	void Model::Render(Nxna::Graphics::GraphicsDevice* device, Nxna::Matrix* modelview, Model* models, uint32 numModels)
@@ -197,6 +244,10 @@ namespace Graphics
 		
 		device->SetBlendState(nullptr);
 		device->SetDepthStencilState(nullptr);
+		device->SetSamplerState(0, &m_data->SamplerState);
+		
+		device->UpdateConstantBuffer(m_data->Constants, modelview->C, 16 * sizeof(float));
+		device->SetConstantBuffer(m_data->Constants, 0);
 
 		for (uint32 i = 0; i < numModels; i++)
 		{
@@ -204,11 +255,9 @@ namespace Graphics
 			device->SetVertexBuffer(&models[i].Vertices, 0, models[i].VertexStride);
 			device->SetShaderPipeline(&models[i].Pipeline);
 
-			device->UpdateConstantBuffer(models[i].Constants, modelview->C, 16 * sizeof(float));
-			device->SetConstantBuffer(models[i].Constants, 0);
-
 			for (uint32 j = 0; j < models[i].NumMeshes; j++)
 			{
+				device->BindTexture(&models[i].Textures[models[i].Meshes[j].TextureIndex], 0);
 				device->DrawPrimitives(Nxna::Graphics::PrimitiveType::TriangleList, models[i].Meshes[j].FirstIndex, models[i].Meshes[j].NumTriangles);
 			}
 		}

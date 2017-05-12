@@ -13,9 +13,13 @@
 #include "SpriteBatchHelper.cpp"
 #include "Gui/TextPrinter.cpp"
 #include "Graphics/Model.cpp"
+#include "Content/ContentManager.cpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "Graphics/tiny_obj_loader.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "Graphics/stb_image.h"
 
 #endif
 

@@ -22,10 +22,12 @@
     <ClCompile Include="..\..\Src\Build.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\Content\ContentManager.h" />
     <ClInclude Include="..\..\Src\FileSystem.h" />
     <ClInclude Include="..\..\Src\GameMain.h" />
     <ClInclude Include="..\..\src\GlobalData.h" />
     <ClInclude Include="..\..\Src\Graphics\Model.h" />
+    <ClInclude Include="..\..\src\Graphics\TextureLoader.h" />
     <ClInclude Include="..\..\Src\Gui\stb_rect_pack.h" />
     <ClInclude Include="..\..\Src\Gui\stb_truetype.h" />
     <ClInclude Include="..\..\Src\Gui\TextPrinter.h" />

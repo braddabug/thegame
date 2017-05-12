@@ -8,6 +8,16 @@ namespace Gui
 	struct TextPrinterData;
 }
 
+namespace Content
+{
+	struct ContentManagerData;
+}
+
+namespace Graphics
+{
+	struct ModelData;
+}
+
 namespace Nxna
 {
 namespace Graphics
@@ -26,6 +36,8 @@ struct GlobalData
 	Nxna::Input::InputState* Input;
 	SpriteBatchData* SpriteBatch;
 	Gui::TextPrinterData* TextPrinter;
+	Content::ContentManagerData* ContentData;
+	Graphics::ModelData* ModelData;
 };
 
 #endif // GLOBALDATA_H

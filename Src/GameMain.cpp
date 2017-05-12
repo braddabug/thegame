@@ -4,11 +4,13 @@
 #include "Gui/TextPrinter.h"
 #include "FileSystem.h"
 #include "Graphics/Model.h"
+#include "Content/ContentManager.h"
 
 Graphics::Model m;
 
 Nxna::Graphics::GraphicsDevice* g_device;
 Nxna::Input::InputState* g_inputState;
+Content::ContentManager g_content;
 
 void msg(Nxna::Graphics::GraphicsDeviceDebugMessage m)
 {
@@ -39,6 +41,8 @@ void LibLoaded(GlobalData* data, bool initial)
 
 	SpriteBatchHelper::SetGlobalData(&data->SpriteBatch);
 	Gui::TextPrinter::SetGlobalData(&data->TextPrinter);
+	Content::ContentManager::SetGlobalData(&data->ContentData, g_device);
+	Graphics::Model::SetGlobalData(&data->ModelData);
 }
 
 int Init(WindowInfo* window)
@@ -60,19 +64,9 @@ int Init(WindowInfo* window)
 
 	SpriteBatchHelper::Init(g_device);
 
-
-	File f;
-	if (FileSystem::OpenAndMap("Content/Models/Shark.obj", &f) == nullptr)
-	{
-		printf("Unable to laod shark\n");
+	auto c = Content::ContentManager::Load("Content/Models/Shark.obj", Content::LoaderType::ModelObj, &m);
+	if (c != Content::ContentState::Loaded)
 		return -1;
-	}
-	if (Graphics::Model::LoadObj(g_device, (uint8*)f.Memory, f.FileSize, &m) == false)
-	{
-		FileSystem::Close(&f);
-		return -1;
-	}
-	FileSystem::Close(&f);
 
 	return 0;
 }
