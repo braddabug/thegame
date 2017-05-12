@@ -1,6 +1,8 @@
 #ifndef GLOBALDATA_H
 #define GLOBALDATA_H
 
+#include "Common.h"
+
 struct SpriteBatchData;
 
 namespace Gui
@@ -30,8 +32,11 @@ namespace Input
 }
 }
 
+struct LogData;
+
 struct GlobalData
 {
+	LogData* Log;
 	Nxna::Graphics::GraphicsDevice* Device;
 	Nxna::Input::InputState* Input;
 	SpriteBatchData* SpriteBatch;
@@ -39,5 +44,6 @@ struct GlobalData
 	Content::ContentManagerData* ContentData;
 	Graphics::ModelData* ModelData;
 };
+
 
 #endif // GLOBALDATA_H

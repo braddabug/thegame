@@ -4,6 +4,7 @@
 #include <atomic>
 #include <vector>
 #include "../Common.h"
+#include "../Logging.h"
 #include "../MyNxna2.h"
 
 namespace Content
@@ -75,6 +76,8 @@ namespace Content
 		template<typename T>
 		static ContentState Load(const char* filename, LoaderType type, T* destination, const char* folder = nullptr)
 		{
+			LOG_DEBUG("Loading %s (untracked)", filename);
+
 			// we're never really using ContentGeneric directly. It's just storage for Content<T>.
 			static_assert(sizeof(ContentGeneric) == sizeof(Content<T>), "ContentGeneric is incorrect size");
 			static_assert(alignof(ContentGeneric) == alignof(Content<T>), "ContentGeneric is incorrect alignment");

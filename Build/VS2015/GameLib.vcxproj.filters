@@ -13,6 +13,9 @@
     </ClInclude>
     <ClInclude Include="..\..\Src\SpriteBatchHelper.h" />
     <ClInclude Include="..\..\Src\GameMain.h" />
+    <ClInclude Include="..\..\Src\Graphics\Model.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\Src\Build.cpp" />
@@ -20,6 +23,9 @@
   <ItemGroup>
     <Filter Include="Gui">
       <UniqueIdentifier>{0aec37b1-b5a8-445e-b022-3b2ad5196fcd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics">
+      <UniqueIdentifier>{b569ecc5-e53b-44f1-8c9b-4db54ddc296e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

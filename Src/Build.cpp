@@ -9,6 +9,7 @@
 // monolithic and game lib files
 
 #include "GameMain.cpp"
+#include "Logging.cpp"
 #include "FileSystem.cpp"
 #include "SpriteBatchHelper.cpp"
 #include "Gui/TextPrinter.cpp"

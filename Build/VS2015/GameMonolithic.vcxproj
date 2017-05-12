@@ -28,9 +28,11 @@
     <ClInclude Include="..\..\src\GlobalData.h" />
     <ClInclude Include="..\..\Src\Graphics\Model.h" />
     <ClInclude Include="..\..\src\Graphics\TextureLoader.h" />
+    <ClInclude Include="..\..\Src\Gui\Console.h" />
     <ClInclude Include="..\..\Src\Gui\stb_rect_pack.h" />
     <ClInclude Include="..\..\Src\Gui\stb_truetype.h" />
     <ClInclude Include="..\..\Src\Gui\TextPrinter.h" />
+    <ClInclude Include="..\..\Src\Logging.h" />
     <ClInclude Include="..\..\Src\MyNxna2.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

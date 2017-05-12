@@ -26,6 +26,10 @@
     <ClInclude Include="..\..\src\Graphics\TextureLoader.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Src\Gui\Console.h">
+      <Filter>Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Src\Logging.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Gui">

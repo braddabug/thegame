@@ -129,6 +129,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\Src\FileSystem.h" />
     <ClInclude Include="..\..\Src\GameMain.h" />
+    <ClInclude Include="..\..\Src\Graphics\Model.h" />
     <ClInclude Include="..\..\Src\Gui\stb_rect_pack.h" />
     <ClInclude Include="..\..\Src\Gui\stb_truetype.h" />
     <ClInclude Include="..\..\Src\Gui\TextPrinter.h" />

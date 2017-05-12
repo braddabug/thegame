@@ -1,5 +1,6 @@
 #include "GameMain.h"
 #include "GlobalData.h"
+#include "Logging.h"
 #include "SpriteBatchHelper.h"
 #include "Gui/TextPrinter.h"
 #include "FileSystem.h"
@@ -11,6 +12,7 @@ Graphics::Model m;
 Nxna::Graphics::GraphicsDevice* g_device;
 Nxna::Input::InputState* g_inputState;
 Content::ContentManager g_content;
+extern LogData* g_log;
 
 void msg(Nxna::Graphics::GraphicsDeviceDebugMessage m)
 {
@@ -37,6 +39,20 @@ void LibLoaded(GlobalData* data, bool initial)
 	else
 	{
 		g_inputState = data->Input;
+	}
+
+	if (data->Log == nullptr)
+	{
+		g_log = new LogData();
+		data->Log = g_log;
+
+		memset(g_log, 0, sizeof(LogData));
+		for (uint32 i = 0; i < LogData::NumLinePages; i++)
+			g_log->LineDataPages[i] = new char[LogData::LineDataSize];
+	}
+	else
+	{
+		g_log = data->Log;
 	}
 
 	SpriteBatchHelper::SetGlobalData(&data->SpriteBatch);
