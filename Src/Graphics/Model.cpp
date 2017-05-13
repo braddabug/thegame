@@ -232,7 +232,10 @@ namespace Graphics
 				r = content->LoadTracked(materials[i].diffuse_texname.c_str(), Content::LoaderType::Texture2D, &result->Textures[i], "Content/Models/");
 
 			if (r != Content::ContentState::Loaded)
+			{
 				printf("Error while loading %s\n", materials[i].diffuse_texname.c_str());
+				result->Textures[i] = TextureLoader::GetErrorTexture(true);
+			}
 		}
 	
 		printf("Model loaded\n");

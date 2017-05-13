@@ -5,6 +5,7 @@
 #include "Gui/TextPrinter.h"
 #include "FileSystem.h"
 #include "Graphics/Model.h"
+#include "Graphics/TextureLoader.h"
 #include "Content/ContentManager.h"
 
 Graphics::Model m;
@@ -48,6 +49,7 @@ void LibLoaded(GlobalData* data, bool initial)
 	Gui::TextPrinter::SetGlobalData(&data->TextPrinter);
 	Content::ContentManager::SetGlobalData(&data->ContentData, g_device);
 	Graphics::Model::SetGlobalData(&data->ModelData);
+	Graphics::TextureLoader::SetGlobalData(&data->TextureLoaderData, g_device);
 }
 
 int Init(WindowInfo* window)

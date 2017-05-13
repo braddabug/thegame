@@ -16,6 +16,7 @@
 #include "SpriteBatchHelper.cpp"
 #include "Gui/TextPrinter.cpp"
 #include "Graphics/Model.cpp"
+#include "Graphics/TextureLoader.cpp"
 #include "Content/ContentManager.cpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION

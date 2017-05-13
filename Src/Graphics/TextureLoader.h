@@ -7,35 +7,28 @@
 
 namespace Graphics
 {
+	struct TextureLoaderData
+	{
+		Nxna::Graphics::GraphicsDevice* Device;
+		Nxna::Graphics::Texture2D ErrorTexture;
+		bool Initialized;
+	};
+
 	class TextureLoader
 	{
+		static TextureLoaderData* m_data;
+
 	public:
-		static int Load(Content::ContentManager* content, const char* filename, Nxna::Graphics::Texture2D* destination, void* device)
-		{
-			Nxna::Graphics::GraphicsDevice* gd = (Nxna::Graphics::GraphicsDevice*)device;
 
-			int w, h, d;
-			auto img = stbi_load(filename, &w, &h, &d, 4);
-			if (img == nullptr)
-			{
-				return -1;
-			}
+		static void SetGlobalData(TextureLoaderData** data, Nxna::Graphics::GraphicsDevice* device);
 
-			Nxna::Graphics::TextureCreationDesc desc = {};
-			desc.Width = w;
-			desc.Height = h;
-			desc.ArraySize = 1;
-			Nxna::Graphics::SubresourceData srd = {};
-			srd.Data = img;
-			srd.DataPitch = w * 4;
-			if (gd->CreateTexture2D(&desc, &srd, destination) != Nxna::NxnaResult::Success)
-			{
-				stbi_image_free(img);
-				return -1;
-			}
+		static Nxna::Graphics::Texture2D GetErrorTexture(bool needOwnership);
 
-			return 0;
-		}
+		static int Load(Content::ContentManager* content, const char* filename, Nxna::Graphics::Texture2D* destination, void* data);
+
+	private:
+
+		static bool generateErrorTexture(Nxna::Graphics::Texture2D* result);
 	};
 }
 

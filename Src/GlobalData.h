@@ -18,6 +18,7 @@ namespace Content
 namespace Graphics
 {
 	struct ModelData;
+	struct TextureLoaderData;
 }
 
 namespace Nxna
@@ -43,6 +44,7 @@ struct GlobalData
 	Gui::TextPrinterData* TextPrinter;
 	Content::ContentManagerData* ContentData;
 	Graphics::ModelData* ModelData;
+	Graphics::TextureLoaderData* TextureLoaderData;
 };
 
 
