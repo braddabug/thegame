@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <vector>
+#include <string.h>
 #include "../Common.h"
 #include "../Logging.h"
 #include "../MyNxna2.h"
@@ -178,7 +179,7 @@ namespace Content
 #ifdef _WIN32
 					_stricmp(m_content[i].Filename, filename) == 0)
 #else
-#error "TODO"
+					strcasecmp(m_content[i].Filename, filename) == 0)
 #endif
 				{
 					*destination = (T*)m_content[i].Data;
