@@ -29,7 +29,7 @@ struct LogEntry
 	LogSeverityType Severity;
 	LogChannelType Channel;
 	uint32 TextPageIndex;
-	uint32 TextStartOffset;
+	const char* TextStart;
 };
 
 struct LogData

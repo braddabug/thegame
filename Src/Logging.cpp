@@ -24,7 +24,22 @@ void WriteLog(LogSeverityType severity, LogChannelType channel, const char* form
 
 	if (g_log->CurrentLinePageSize + len + 1 > LogData::LineDataSize)
 	{
+		uint32 pageToRetire = (g_log->CurrentLinePageIndex + 1) % LogData::NumLinePages;
+
 		// retire the old page and use that
+		while(g_log->NumLines > 0)
+		{
+			if (g_log->Lines[g_log->FirstLineIndex].TextPageIndex == pageToRetire)
+			{
+				g_log->FirstLineIndex = (g_log->FirstLineIndex + 1) % LogData::MaxLines;
+				g_log->NumLines--;
+			}
+			else
+			{
+				break;
+			}
+		}
+
 		g_log->CurrentLinePageIndex = (g_log->CurrentLinePageIndex + 1) % LogData::NumLinePages;
 		g_log->CurrentLinePageSize = 0;
 	}
@@ -40,14 +55,14 @@ void WriteLog(LogSeverityType severity, LogChannelType channel, const char* form
 	}
 	else
 	{
-		newLineIndex = g_log->NumLines;
+		newLineIndex = (g_log->FirstLineIndex + g_log->NumLines) % LogData::MaxLines;
 		g_log->NumLines++;
 	}
 
 	g_log->Lines[newLineIndex].Severity = severity;
 	g_log->Lines[newLineIndex].Channel = channel;
 	g_log->Lines[newLineIndex].TextPageIndex = g_log->CurrentLinePageIndex;
-	g_log->Lines[newLineIndex].TextStartOffset = g_log->CurrentLinePageSize;
+	g_log->Lines[newLineIndex].TextStart = g_log->LineDataPages[g_log->CurrentLinePageIndex] + g_log->CurrentLinePageSize;
 
 	memcpy(g_log->LineDataPages[g_log->CurrentLinePageIndex] + g_log->CurrentLinePageSize, buffer, len + 1);
 	g_log->CurrentLinePageSize += len + 1;
