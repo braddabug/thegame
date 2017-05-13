@@ -76,7 +76,7 @@ namespace Content
 		template<typename T>
 		static ContentState Load(const char* filename, LoaderType type, T* destination, const char* folder = nullptr)
 		{
-			LOG_DEBUG("Loading %s (untracked)", filename);
+			WriteLog(nullptr, LogSeverityType::Info, LogChannelType::Content, "Loading %s (untracked)...", filename);
 
 			// we're never really using ContentGeneric directly. It's just storage for Content<T>.
 			static_assert(sizeof(ContentGeneric) == sizeof(Content<T>), "ContentGeneric is incorrect size");
@@ -87,6 +87,7 @@ namespace Content
 			auto loader = findLoader(type);
 			if (loader == nullptr)
 			{
+				WriteLog(nullptr, LogSeverityType::Error, LogChannelType::Content, "No loader found for %s (type %d)", filename, (int)type);
 				return ContentState::NoLoader;
 			}
 
@@ -105,8 +106,12 @@ namespace Content
 
 			typedef int(*StrongLoaderType)(ContentManager*, const char*, T*, void*);
 			if (((StrongLoaderType)(loader->Loader))(nullptr, filename, destination, loader->LoaderParam) == 0)
+			{
+				WriteLog(nullptr, LogSeverityType::Info, LogChannelType::Content, "Loaded %s (untracked)", filename);
 				return ContentState::Loaded;
+			}
 
+			WriteLog(nullptr, LogSeverityType::Error, LogChannelType::Content, "Error when loading %s (untracked)...", filename);
 			return ContentState::UnknownError;
 		}
 

@@ -4,8 +4,11 @@
 
 LogData* g_log;
 
-void WriteLog(LogSeverityType severity, LogChannelType channel, const char* format, ...)
+void WriteLog(LogData* log, LogSeverityType severity, LogChannelType channel, const char* format, ...)
 {
+	if (log == nullptr)
+		log = g_log;
+
 	// build the string
 	va_list l;
 	va_start(l, format);
@@ -22,17 +25,17 @@ void WriteLog(LogSeverityType severity, LogChannelType channel, const char* form
 
 	uint32 len = (uint32)strlen(buffer); // TODO: support UTF8
 
-	if (g_log->CurrentLinePageSize + len + 1 > LogData::LineDataSize)
+	if (log->CurrentLinePageSize + len + 1 > LogData::LineDataSize)
 	{
-		uint32 pageToRetire = (g_log->CurrentLinePageIndex + 1) % LogData::NumLinePages;
+		uint32 pageToRetire = (log->CurrentLinePageIndex + 1) % LogData::NumLinePages;
 
 		// retire the old page and use that
-		while(g_log->NumLines > 0)
+		while(log->NumLines > 0)
 		{
-			if (g_log->Lines[g_log->FirstLineIndex].TextPageIndex == pageToRetire)
+			if (log->Lines[log->FirstLineIndex].TextPageIndex == pageToRetire)
 			{
-				g_log->FirstLineIndex = (g_log->FirstLineIndex + 1) % LogData::MaxLines;
-				g_log->NumLines--;
+				log->FirstLineIndex = (log->FirstLineIndex + 1) % LogData::MaxLines;
+				log->NumLines--;
 			}
 			else
 			{
@@ -40,32 +43,32 @@ void WriteLog(LogSeverityType severity, LogChannelType channel, const char* form
 			}
 		}
 
-		g_log->CurrentLinePageIndex = (g_log->CurrentLinePageIndex + 1) % LogData::NumLinePages;
-		g_log->CurrentLinePageSize = 0;
+		log->CurrentLinePageIndex = (log->CurrentLinePageIndex + 1) % LogData::NumLinePages;
+		log->CurrentLinePageSize = 0;
 	}
 
 	// figure out which line to put this
 	uint32 newLineIndex;
-	if (g_log->NumLines == LogData::MaxLines)
+	if (log->NumLines == LogData::MaxLines)
 	{
-		newLineIndex = g_log->FirstLineIndex;
-		g_log->FirstLineIndex++;
-		if (g_log->FirstLineIndex >= LogData::MaxLines)
-			g_log->FirstLineIndex = 0;
+		newLineIndex = log->FirstLineIndex;
+		log->FirstLineIndex++;
+		if (log->FirstLineIndex >= LogData::MaxLines)
+			log->FirstLineIndex = 0;
 	}
 	else
 	{
-		newLineIndex = (g_log->FirstLineIndex + g_log->NumLines) % LogData::MaxLines;
-		g_log->NumLines++;
+		newLineIndex = (log->FirstLineIndex + log->NumLines) % LogData::MaxLines;
+		log->NumLines++;
 	}
 
-	g_log->Lines[newLineIndex].Severity = severity;
-	g_log->Lines[newLineIndex].Channel = channel;
-	g_log->Lines[newLineIndex].TextPageIndex = g_log->CurrentLinePageIndex;
-	g_log->Lines[newLineIndex].TextStart = g_log->LineDataPages[g_log->CurrentLinePageIndex] + g_log->CurrentLinePageSize;
+	log->Lines[newLineIndex].Severity = severity;
+	log->Lines[newLineIndex].Channel = channel;
+	log->Lines[newLineIndex].TextPageIndex = log->CurrentLinePageIndex;
+	log->Lines[newLineIndex].TextStart = log->LineDataPages[log->CurrentLinePageIndex] + log->CurrentLinePageSize;
 
-	memcpy(g_log->LineDataPages[g_log->CurrentLinePageIndex] + g_log->CurrentLinePageSize, buffer, len + 1);
-	g_log->CurrentLinePageSize += len + 1;
+	memcpy(log->LineDataPages[log->CurrentLinePageIndex] + log->CurrentLinePageSize, buffer, len + 1);
+	log->CurrentLinePageSize += len + 1;
 
 	printf(buffer);
 	printf("\n");

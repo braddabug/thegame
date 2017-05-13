@@ -2,6 +2,8 @@
 // loader-only files
 
 #include "GameLibLoader.cpp"
+#include "Logging.cpp"
+
 #endif
 
 
@@ -28,6 +30,5 @@
 // loader and monolithic
 
 #include "main.cpp"
-
 
 #endif

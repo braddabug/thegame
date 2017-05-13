@@ -41,19 +41,8 @@ void LibLoaded(GlobalData* data, bool initial)
 		g_inputState = data->Input;
 	}
 
-	if (data->Log == nullptr)
-	{
-		g_log = new LogData();
-		data->Log = g_log;
-
-		memset(g_log, 0, sizeof(LogData));
-		for (uint32 i = 0; i < LogData::NumLinePages; i++)
-			g_log->LineDataPages[i] = new char[LogData::LineDataSize];
-	}
-	else
-	{
-		g_log = data->Log;
-	}
+	// we always expect the log data to be created
+	g_log = data->Log;
 
 	SpriteBatchHelper::SetGlobalData(&data->SpriteBatch);
 	Gui::TextPrinter::SetGlobalData(&data->TextPrinter);

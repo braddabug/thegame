@@ -47,9 +47,9 @@ struct LogData
 	uint32 FirstLineIndex;
 };
 
-#define LOG_DEBUG(f, ...) WriteLog(LogSeverityType::Debug, LogChannelType::Unknown, f, __VA_ARGS__)
-#define LOG(f, ...) WriteLog(LogSeverityType::Normal, LogChannelType::Unknown, f, __VA_ARGS__)
+#define LOG_DEBUG(f, ...) WriteLog(nullptr, LogSeverityType::Debug, LogChannelType::Unknown, f, __VA_ARGS__)
+#define LOG(f, ...) WriteLog(nullptr, LogSeverityType::Normal, LogChannelType::Unknown, f, __VA_ARGS__)
 
-void WriteLog(LogSeverityType severity, LogChannelType channel, const char* format, ...);
+void WriteLog(LogData* log, LogSeverityType severity, LogChannelType channel, const char* format, ...);
 
 #endif // LOGGING_H

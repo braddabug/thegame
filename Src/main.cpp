@@ -6,6 +6,7 @@
 
 #include "GameMain.h"
 #include "GlobalData.h"
+#include "Logging.h"
 
 #ifdef GAME_ENABLE_HOTLOAD
 #include "GameLibLoader.h"
@@ -42,12 +43,23 @@ int main(int argc, char* argv[])
 {
 	memset(&gd, 0, sizeof(GlobalData));
 
+	// create the log data
+	gd.Log = new LogData();
+	memset(gd.Log, 0, sizeof(LogData));
+	for (uint32 i = 0; i < LogData::NumLinePages; i++)
+		gd.Log->LineDataPages[i] = new char[LogData::LineDataSize];
+
+	WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Welcome to The Game!");
+	WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Built %s %s", __DATE__, __TIME__);
+
 #ifdef GAME_ENABLE_HOTLOAD
+	WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Loading game library...");
 	if (LoadGameLib(&g_lib) == false)
 	{
-		printf("Unable to load game library\n");
+		WriteLog(gd.Log, LogSeverityType::Error, LogChannelType::Unknown, "Unable to load game library");
 		return -1;
 	}
+	WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Game library loaded");
 #endif
 
 	GAME_LIB_CALL(LibLoaded)(&gd, true);
@@ -60,12 +72,17 @@ int main(int argc, char* argv[])
 	const char* title = "The Game (monolithic)";
 #endif
 
-	auto window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_OPENGL);
+	int screenWidth = 640;
+	int screenHeight = 480;
+
+	WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Creating window...");
+	auto window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 	if (window == nullptr)
 	{
-		printf("Unable to create SDL window\n");
+		WriteLog(gd.Log, LogSeverityType::Error, LogChannelType::Unknown, "Unable to create SDL window");
 		return -1;
 	}
+	WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Window created. Size: %d x %d", screenWidth, screenHeight);
 
 	SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
@@ -78,22 +95,34 @@ int main(int argc, char* argv[])
 
 	auto context = SDL_GL_CreateContext(window);
 	if (context == nullptr)
+	{
+		WriteLog(gd.Log, LogSeverityType::Error, LogChannelType::Unknown, "Unable to create OpenGL context");
 		return -1;
+	}
 
 	// enable vsync
 	if (SDL_GL_SetSwapInterval(-1) != 0)
-		SDL_GL_SetSwapInterval(1);
+	{
+		if (SDL_GL_SetSwapInterval(1) != 0)
+			WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Unable to enable vsync");
+		else
+			WriteLog(gd.Log, LogSeverityType::Error, LogChannelType::Unknown, "Vsync enabled");
+	}
+	else
+	{
+		WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Adaptive vsync enabled");
+	}
 
 	Gui::TextPrinterData td = {};
 	SpriteBatchData sbd = {};
 
 	Nxna::Graphics::GraphicsDevice device;
 	WindowInfo wi;
-	wi.ScreenWidth = 640;
-	wi.ScreenHeight = 480;
+	wi.ScreenWidth = screenWidth;
+	wi.ScreenHeight = screenHeight;
 	if (LocalInit(&device, &wi, &sbd, &td) != 0)
 	{
-		printf("Unable to initialize. Exiting...\n");
+		WriteLog(gd.Log, LogSeverityType::Error, LogChannelType::Unknown, "Unable to initialize. Exiting...");
 		return -1;
 	}
 
@@ -172,11 +201,14 @@ int main(int argc, char* argv[])
 	}
 
 end:
+	WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Shutting down...");
 
 	LocalShutdown(&device, &sbd, &td);
 
 	SDL_DestroyWindow(window);
 	SDL_Quit();
+
+	WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Bye! Hope you had fun!");
 
 	return 0;
 }
