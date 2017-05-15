@@ -7,6 +7,7 @@
 #include "Graphics/Model.h"
 #include "Graphics/TextureLoader.h"
 #include "Content/ContentManager.h"
+#include "Audio/AudioEngine.h"
 
 Graphics::Model m;
 
@@ -45,6 +46,7 @@ void LibLoaded(GlobalData* data, bool initial)
 	// we always expect the log data to be created
 	g_log = data->Log;
 
+	Audio::AudioEngine::SetGlobalData(&data->Audio);
 	SpriteBatchHelper::SetGlobalData(&data->SpriteBatch);
 	Gui::TextPrinter::SetGlobalData(&data->TextPrinter);
 	Content::ContentManager::SetGlobalData(&data->ContentData, g_device);
@@ -71,6 +73,9 @@ int Init(WindowInfo* window)
 
 	SpriteBatchHelper::Init(g_device);
 
+	if (Audio::AudioEngine::Init() == false)
+		return -1;
+
 	auto c = Content::ContentManager::Load("Content/Models/Shark.obj", Content::LoaderType::ModelObj, &m);
 	if (c != Content::ContentState::Loaded)
 		return -1;
@@ -90,6 +95,8 @@ int Unload()
 
 void Shutdown()
 {
+	Audio::AudioEngine::Shutdown();
+
 	Gui::TextPrinter::Shutdown();
 
 	SpriteBatchHelper::Destroy();

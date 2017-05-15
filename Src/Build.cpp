@@ -18,6 +18,7 @@
 #include "Graphics/Model.cpp"
 #include "Graphics/TextureLoader.cpp"
 #include "Content/ContentManager.cpp"
+#include "Audio/AudioEngine.cpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "Graphics/tiny_obj_loader.h"
