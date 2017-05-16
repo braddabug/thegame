@@ -34,10 +34,12 @@ namespace Input
 }
 
 struct LogData;
+struct JobQueueData;
 
 struct GlobalData
 {
 	LogData* Log;
+	JobQueueData* JobQueue;
 	Nxna::Graphics::GraphicsDevice* Device;
 	Nxna::Input::InputState* Input;
 	SpriteBatchData* SpriteBatch;

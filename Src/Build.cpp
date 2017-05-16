@@ -14,6 +14,8 @@
 #include "Logging.cpp"
 #include "FileSystem.cpp"
 #include "SpriteBatchHelper.cpp"
+#include "WaitManager.cpp"
+#include "JobQueue.cpp"
 #include "Gui/TextPrinter.cpp"
 #include "Graphics/Model.cpp"
 #include "Graphics/TextureLoader.cpp"

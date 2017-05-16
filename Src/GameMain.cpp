@@ -45,6 +45,7 @@ void LibLoaded(GlobalData* data, bool initial)
 	// we always expect the log data to be created
 	g_log = data->Log;
 
+	JobQueue::SetGlobalData(&data->JobQueue);
 	SpriteBatchHelper::SetGlobalData(&data->SpriteBatch);
 	Gui::TextPrinter::SetGlobalData(&data->TextPrinter);
 	Content::ContentManager::SetGlobalData(&data->ContentData, g_device);
@@ -90,6 +91,8 @@ int Unload()
 
 void Shutdown()
 {
+	JobQueue::Shutdown(true);
+
 	Gui::TextPrinter::Shutdown();
 
 	SpriteBatchHelper::Destroy();
@@ -100,6 +103,8 @@ void Shutdown()
 float rotation = 0;
 void Tick()
 {
+	JobQueue::Tick();
+
 	g_device->ClearColor(0, 0, 0, 0);
 	g_device->ClearDepthStencil(true, true, 1.0f, 0);
 
