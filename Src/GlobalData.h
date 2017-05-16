@@ -21,6 +21,11 @@ namespace Graphics
 	struct TextureLoaderData;
 }
 
+namespace Audio
+{
+	struct AudioEngineData;
+}
+
 namespace Nxna
 {
 namespace Graphics
@@ -42,6 +47,7 @@ struct GlobalData
 	JobQueueData* JobQueue;
 	Nxna::Graphics::GraphicsDevice* Device;
 	Nxna::Input::InputState* Input;
+	Audio::AudioEngineData* Audio;
 	SpriteBatchData* SpriteBatch;
 	Gui::TextPrinterData* TextPrinter;
 	Content::ContentManagerData* ContentData;
