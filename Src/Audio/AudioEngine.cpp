@@ -6,11 +6,6 @@
 
 namespace Audio
 {
-	struct Buffer
-	{
-		ALuint ALBuffer;
-	};
-
 	struct Source
 	{
 		ALuint ALSource;

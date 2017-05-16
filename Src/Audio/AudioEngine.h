@@ -20,7 +20,11 @@ namespace Audio
 		uint32 DataByteLength;
 	};
 
-	struct Buffer;
+	struct Buffer
+	{
+		uint32 ALBuffer;
+	};
+
 	struct Source;
 	struct AudioEngineData;
 
@@ -33,15 +37,15 @@ namespace Audio
 		static bool Init();
 		static void Shutdown();
 
-		bool CreateBuffer(const BufferDesc* desc, Buffer* buffer);
-		void DestroyBuffer(Buffer* buffer);
+		static bool CreateBuffer(const BufferDesc* desc, Buffer* buffer);
+		static void DestroyBuffer(Buffer* buffer);
 
-		Source* GetFreeSource(Channel channel, bool streaming);
-		void ReleaseSource(Source* source);
-		void ReleaseSourceWhenFinishedPlaying(Source* source);
+		static Source* GetFreeSource(Channel channel, bool streaming);
+		static void ReleaseSource(Source* source);
+		static void ReleaseSourceWhenFinishedPlaying(Source* source);
 
-		void SetBuffer(Source* source, Buffer* buffer);
-		void StreamBuffer(Source* source, Buffer* buffer);
+		static void SetBuffer(Source* source, Buffer* buffer);
+		static void StreamBuffer(Source* source, Buffer* buffer);
 
 		void SetPosition(Source* source, float x, float y, float z);
 		void SetPosition(Source* source, float* position3f);
@@ -49,7 +53,7 @@ namespace Audio
 		void SetPositionRel(Source* source, float x, float y, float z);
 		void SetPositionRel(Source* source, float* position3f);
 
-		void Play(Source* source);
+		static void Play(Source* source);
 		void Pause(Source* source);
 		void Stop(Source* stop);
 	};
