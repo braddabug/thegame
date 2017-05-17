@@ -4,26 +4,11 @@
 
 LogData* g_log;
 
-void WriteLog(LogData* log, LogSeverityType severity, LogChannelType channel, const char* format, ...)
+void WriteLogRaw(LogData* log, LogSeverityType severity, LogChannelType channel, const char* text)
 {
-	if (log == nullptr)
-		log = g_log;
+	uint32 len = (uint32)strlen(text); // TODO: support UTF8
 
-	// build the string
-	va_list l;
-	va_start(l, format);
-
-	char buffer[512];
-#ifdef NXNA_PLATFORM_WIN32
-	vsnprintf_s(buffer, 512, format, l);
-#else
-	vsnprintf(buffer, 512, format, l);
-#endif
-	va_end(l);
-
-	buffer[511] = 0;
-
-	uint32 len = (uint32)strlen(buffer); // TODO: support UTF8
+	while (log->Lock.test_and_set());
 
 	if (log->CurrentLinePageSize + len + 1 > LogData::LineDataSize)
 	{
@@ -67,9 +52,51 @@ void WriteLog(LogData* log, LogSeverityType severity, LogChannelType channel, co
 	log->Lines[newLineIndex].TextPageIndex = log->CurrentLinePageIndex;
 	log->Lines[newLineIndex].TextStart = log->LineDataPages[log->CurrentLinePageIndex] + log->CurrentLinePageSize;
 
-	memcpy(log->LineDataPages[log->CurrentLinePageIndex] + log->CurrentLinePageSize, buffer, len + 1);
+	memcpy(log->LineDataPages[log->CurrentLinePageIndex] + log->CurrentLinePageSize, text, len + 1);
 	log->CurrentLinePageSize += len + 1;
 
-	printf(buffer);
+	log->Lock.clear();
+
+	printf(text);
 	printf("\n");
+}
+
+void WriteLog(LogSeverityType severity, LogChannelType channel, const char* format, ...)
+{
+	assert(g_log != nullptr && "g_log cannot be null");
+
+	// build the string
+	va_list l;
+	va_start(l, format);
+
+	char buffer[512];
+#ifdef NXNA_PLATFORM_WIN32
+	vsnprintf_s(buffer, 512, format, l);
+#else
+	vsnprintf(buffer, 512, format, l);
+#endif
+	va_end(l);
+
+	buffer[511] = 0;
+
+	WriteLogRaw(g_log, severity, channel, buffer);
+}
+
+void WriteLog(LogData* log, LogSeverityType severity, LogChannelType channel, const char* format, ...)
+{
+	// build the string
+	va_list l;
+	va_start(l, format);
+
+	char buffer[512];
+#ifdef NXNA_PLATFORM_WIN32
+	vsnprintf_s(buffer, 512, format, l);
+#else
+	vsnprintf(buffer, 512, format, l);
+#endif
+	va_end(l);
+
+	buffer[511] = 0;
+
+	WriteLogRaw(log, severity, channel, buffer);
 }

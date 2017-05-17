@@ -3,6 +3,7 @@
 
 #include "Common.h"
 #include <cstdarg>
+#include <atomic>
 
 enum class LogSeverityType
 {
@@ -45,12 +46,15 @@ struct LogData
 
 	uint32 NumLines;
 	uint32 FirstLineIndex;
+
+	std::atomic_flag Lock;
 };
 
-#define LOG_DEBUG(f, ...) WriteLog(nullptr, LogSeverityType::Debug, LogChannelType::Unknown, f, __VA_ARGS__)
-#define LOG_ERROR(f, ...) WriteLog(nullptr, LogSeverityType::Error, LogChannelType::Unknown, f, __VA_ARGS__)
-#define LOG(f, ...) WriteLog(nullptr, LogSeverityType::Normal, LogChannelType::Unknown, f, __VA_ARGS__)
+#define LOG_DEBUG(f, ...) WriteLog(LogSeverityType::Debug, LogChannelType::Unknown, f, __VA_ARGS__)
+#define LOG_ERROR(f, ...) WriteLog(LogSeverityType::Error, LogChannelType::Unknown, f, __VA_ARGS__)
+#define LOG(f, ...) WriteLog(LogSeverityType::Normal, LogChannelType::Unknown, f, __VA_ARGS__)
 
+void WriteLog(LogSeverityType severity, LogChannelType channel, const char* format, ...);
 void WriteLog(LogData* log, LogSeverityType severity, LogChannelType channel, const char* format, ...);
 
 #endif // LOGGING_H
