@@ -14,7 +14,7 @@ namespace Audio
 			File f;
 			if (FileSystem::OpenAndMap(params->Filename, &f) == nullptr)
 			{
-				params->ContentState = Content::ContentState::NotFound;
+				params->State = Content::ContentState::NotFound;
 				return false;
 			}
 

@@ -49,7 +49,7 @@ namespace Content
 
 		// output
 		void* Destination;
-		ContentState ContentState;
+		ContentState State;
 	};
 
 	struct ContentLoaderData;

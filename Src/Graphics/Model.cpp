@@ -36,7 +36,7 @@ namespace Graphics
 			StringManager::Release(params->Filename);
 			params->Filename = nullptr;
 
-			params->ContentState = Content::ContentState::NotFound;
+			params->State = Content::ContentState::NotFound;
 			return false;
 		}
 		StringManager::Release(params->Filename);
@@ -59,7 +59,7 @@ namespace Graphics
 		}
 
 		if (!ret) {
-			params->ContentState = Content::ContentState::UnknownError;
+			params->State = Content::ContentState::UnknownError;
 			return false;
 		}
 
@@ -72,7 +72,7 @@ namespace Graphics
 				int fv = shapes[s].mesh.num_face_vertices[f];
 				if (fv != 3)
 				{
-					params->ContentState = Content::ContentState::InvalidFormat;
+					params->State = Content::ContentState::InvalidFormat;
 					return false; // model must be triangulated
 				}
 
@@ -184,7 +184,7 @@ namespace Graphics
 			if (gd->CreateConstantBuffer(&cbDesc, &m_data->Constants) != Nxna::NxnaResult::Success)
 			{
 				printf("Unable to create constant buffer\n");
-				params->ContentState = Content::ContentState::UnknownError;
+				params->State = Content::ContentState::UnknownError;
 				return false;
 			}
 
@@ -192,7 +192,7 @@ namespace Graphics
 			if (gd->CreateSamplerState(&ssDesc, &m_data->SamplerState) != Nxna::NxnaResult::Success)
 			{
 				printf("Unable to create sampler state\n");
-				params->ContentState = Content::ContentState::UnknownError;
+				params->State = Content::ContentState::UnknownError;
 				return false;
 			}
 		}
@@ -207,7 +207,7 @@ namespace Graphics
 		{
 			delete[] storage->Vertices;
 			delete[] result->Meshes;
-			params->ContentState = Content::ContentState::UnknownError;
+			params->State = Content::ContentState::UnknownError;
 			return false;
 		}
 		delete[] storage->Vertices;
@@ -261,7 +261,7 @@ namespace Graphics
 		{
 			printf("Unable to create vertex shader\n");
 			delete[] result->Meshes;
-			params->ContentState = Content::ContentState::UnknownError;
+			params->State = Content::ContentState::UnknownError;
 			return false;
 		}
 		if (gd->CreateShader(Nxna::Graphics::ShaderType::Pixel, pixelShaderBytecode.Bytecode, pixelShaderBytecode.BytecodeLength, &ps) != Nxna::NxnaResult::Success)

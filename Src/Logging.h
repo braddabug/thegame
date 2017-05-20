@@ -50,9 +50,15 @@ struct LogData
 	std::atomic_flag Lock;
 };
 
+#ifdef _WIN32
 #define LOG_DEBUG(f, ...) WriteLog(LogSeverityType::Debug, LogChannelType::Unknown, f, __VA_ARGS__)
 #define LOG_ERROR(f, ...) WriteLog(LogSeverityType::Error, LogChannelType::Unknown, f, __VA_ARGS__)
 #define LOG(f, ...) WriteLog(LogSeverityType::Normal, LogChannelType::Unknown, f, __VA_ARGS__)
+#else
+#define LOG_DEBUG(f, ...) WriteLog(LogSeverityType::Debug, LogChannelType::Unknown, f, ##__VA_ARGS__)
+#define LOG_ERROR(f, ...) WriteLog(LogSeverityType::Error, LogChannelType::Unknown, f, ##__VA_ARGS__)
+#define LOG(f, ...) WriteLog(LogSeverityType::Normal, LogChannelType::Unknown, f, ##__VA_ARGS__)
+#endif
 
 void WriteLog(LogSeverityType severity, LogChannelType channel, const char* format, ...);
 void WriteLog(LogData* log, LogSeverityType severity, LogChannelType channel, const char* format, ...);

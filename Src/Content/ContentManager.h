@@ -77,142 +77,15 @@ namespace Content
 
 		*/
 
-		template<typename T>
-		static ContentState Load(const char* filename, LoaderType type, T* destination, const char* folder = nullptr)
-		{
-			WriteLog(LogSeverityType::Info, LogChannelType::Content, "Loading %s (untracked)...", filename);
-
-			// we're never really using ContentGeneric directly. It's just storage for Content<T>.
-			static_assert(sizeof(ContentGeneric) == sizeof(Content<T>), "ContentGeneric is incorrect size");
-			static_assert(alignof(ContentGeneric) == alignof(Content<T>), "ContentGeneric is incorrect alignment");
-
-			if (filename == nullptr || destination == nullptr) return ContentState::UnknownError;
-
-
-			char buffer[256];
-			if (folder != nullptr)
-			{
-#ifdef _WIN32
-				strcpy_s(buffer, folder);
-				strcat_s(buffer, filename);
-#else
-				strncpy(buffer, folder, 256);
-				strncat(buffer, filename, 256);
-#endif
-				filename = buffer;
-			}
-
-			return ContentLoader::Load(filename, type, destination);
-		}
 
 		template<typename T>
-		static ContentState BeginLoad(PersistantString filename, LoaderType type, T* destination, volatile JobResult* result);
-
-
-		template<typename T>
-		ContentState LoadTracked(const char* filename, LoaderType type, T* destination, const char* folder = nullptr)
-		{
-			if (filename == nullptr || destination == nullptr) return ContentState::UnknownError;
-
-			auto r = Get(filename, type, &destination);
-			if (r == ContentState::NotLoaded)
-			{
-				for (uint32 i = 0; i < m_maxContent; i++)
-				{
-					if (m_content[i].State == ContentState::Inactive)
-					{
-						m_content[i].State = ContentState::Incomplete;
-#ifdef _WIN32
-						strncpy_s(m_content[i].Filename, filename, 256);
-#else
-						strncpy(m_content[i].Filename, filename, 256);
-#endif
-						
-						auto loader = findLoader(type);
-						if (loader == nullptr)
-						{
-							m_content[i].State = ContentState::NoLoader;
-							return ContentState::NoLoader;
-						}
-
-						ContentLoaderParams p = {};
-						p.Destination = destination;
-						p.Filename = filename;
-						p.LoaderParam = loader->LoaderParam;
-
-						if (loader->AsyncLoader(&p) == true && (loader->MainThreadLoader == nullptr || loader->MainThreadLoader(&p)))
-							return ContentState::Loaded;
-						else
-						{
-							WriteLog(LogSeverityType::Error, LogChannelType::Content, "Error when loading %s (untracked)...", filename);
-							return ContentState::UnknownError;
-						}
-					}
-				}
-			}
-			else if (r == ContentState::Incomplete)
-			{
-				// the resource is being loaded, so wait for it.
-				// TODO: we could probably do something fancy, like steal the job and work it in this thread instead of spinning
-				while (r == ContentState::Incomplete)
-					Tick();
-
-				// TODO
-			}
-			else
-			{
-				// there was probably an error
-				return r;
-			}
-		}
+		ContentState Load(const char* filename, LoaderType type, T* destination, const char* folder = nullptr);
 
 		template<typename T>
-		int BeginLoad(const char* filename, LoaderType type, T* destination)
-		{
-			auto r = Get(filename, type, &destination);
-			if (r == ContentState::NotLoaded)
-			{
-				for (uint32 i = 0; i < m_maxContent; i++)
-				{
-					if (m_content[i].State == ContentState::Inactive)
-					{
-						m_content[i].State = ContentState::Incomplete;
-#ifdef _WIN32
-						strncpy_s(m_content[i].Filename, filename, 256);
-#else
-						strncpy(m_content[i].Filename, filename, 256);
-#endif
-
-						auto loader = findLoader(type);
-						if (loader == nullptr)
-						{
-							m_content[i].State = ContentState::NoLoader;
-							return ContentState::NoLoader;
-						}
-
-						JobQueue::AddJob(loader->Loader, nullptr, nullptr);
-
-						return ContentState::Incomplete;
-					}
-				}
-			}
-
-			return r;
-		}
+		int BeginLoad(const char* filename, LoaderType type, T* destination);
 
 		template<typename T>
-		ContentState WaitForLoad(int content)
-		{
-			if (content < 0 || content > m_maxContent)
-				return ContentState::NotLoaded;
-
-			while (m_content[content].State == ContentState::Incomplete)
-			{
-				JobQueue::Tick();
-			}
-
-			return m_content[content].State;
-		}
+		ContentState WaitForLoad(int content);
 
 		template<typename T>
 		ContentState Get(const char* filename, LoaderType type, T** destination)

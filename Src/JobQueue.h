@@ -7,7 +7,7 @@
 #ifdef _WIN32
 #include "CleanWindows.h"
 #else
-#error TODO
+#include <pthread.h>
 #endif
 
 typedef bool(*JobFunc)(void*);
@@ -56,9 +56,11 @@ struct JobQueueData
 #ifdef _WIN32
 	HANDLE Threads[MaxThreads];
 	CONDITION_VARIABLE Signal;
-	CRITICAL_SECTION CS;
+	CRITICAL_SECTION Lock;
 #else
-#error TODO
+	pthread_t Threads[MaxThreads];
+	pthread_cond_t Signal;
+	pthread_mutex_t Lock;
 #endif
 
 	static const uint32 MaxJobs = 100;
@@ -89,6 +91,8 @@ public:
 private:
 #ifdef _WIN32
 	static DWORD WINAPI threadProc(void* param);
+#else
+	static void* threadProc(void* param);
 #endif
 
 	static inline void cleanupJob(uint32 index, JobState state);

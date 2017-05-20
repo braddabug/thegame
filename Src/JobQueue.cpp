@@ -2,6 +2,14 @@
 
 JobQueueData* JobQueue::m_data;
 
+#ifdef _WIN32
+#define CRITICALSECTION_LOCK(lock) EnterCriticalSection(lock)
+#define CRITICALSECTION_UNLOCK(lock) LeaveCriticalSection(lock)
+#else
+#define CRITICALSECTION_LOCK(lock) pthread_mutex_lock(lock)
+#define CRITICALSECTION_UNLOCK(lock) pthread_mutex_unlock(lock)
+#endif
+
 void JobQueue::SetGlobalData(JobQueueData** data)
 {
 	if (*data == nullptr)
@@ -10,8 +18,11 @@ void JobQueue::SetGlobalData(JobQueueData** data)
 		memset(*data, 0, sizeof(JobQueueData));
 
 #ifdef _WIN32
-		InitializeCriticalSection(&(*data)->CS);
+		InitializeCriticalSection(&(*data)->Lock);
 		InitializeConditionVariable(&(*data)->Signal);
+#else
+		(*data)->Signal = PTHREAD_COND_INITIALIZER;
+		(*data)->Lock = PTHREAD_MUTEX_INITIALIZER;
 #endif
 	}
 
@@ -19,12 +30,17 @@ void JobQueue::SetGlobalData(JobQueueData** data)
 	m_data->Active = true;
 
 	// create the threads
-#ifdef _WIN32
 	for (uint32 i = 0; i < JobQueueData::MaxThreads; i++)
 	{
+#ifdef _WIN32
 		m_data->Threads[i] = CreateThread(nullptr, 0, threadProc, nullptr, 0, nullptr);
-	}
+#else
+		if (pthread_create(&m_data->Threads[i], nullptr, threadProc, nullptr) != 0)
+		{
+			// TODO: report the error
+		}
 #endif
+	}
 }
 
 void JobQueue::Shutdown(bool complete)
@@ -33,6 +49,8 @@ void JobQueue::Shutdown(bool complete)
 
 #ifdef _WIN32
 	WakeAllConditionVariable(&m_data->Signal);
+#else
+	pthread_cond_broadcast(&m_data->Signal);
 #endif
 	// wait until all jobs are done
 	bool waiting = true;
@@ -57,13 +75,22 @@ void JobQueue::Shutdown(bool complete)
 
 #ifdef _WIN32
 	WaitForMultipleObjects(JobQueueData::MaxThreads, m_data->Threads, TRUE, INFINITE);
+#else
+	for (uint32 i = 0; i < JobQueueData::MaxThreads; i++)
+	{
+		pthread_join(m_data->Threads[i], nullptr);
+	}
+#endif
 
 	for (uint32 i = 0; i < JobQueueData::MaxThreads; i++)
 	{
+#ifdef _WIN32
 		CloseHandle(m_data->Threads[i]);
 		m_data->Threads[i] = INVALID_HANDLE_VALUE;
-	}
+#else
+		// nothing
 #endif
+	}
 
 	if (complete)
 		delete m_data;
@@ -89,8 +116,7 @@ uint32 JobQueue::AddDependantJob(uint32 parentJobHandle, JobFunc asyncFunc, JobF
 		return invalidJob;
 	}
 
-#ifdef _WIN32
-	EnterCriticalSection(&m_data->CS);
+	CRITICALSECTION_LOCK(&m_data->Lock);
 
 	uint32 r = invalidJob;
 	for (uint32 i = 0; i < JobQueueData::MaxJobs; i++)
@@ -122,17 +148,18 @@ uint32 JobQueue::AddDependantJob(uint32 parentJobHandle, JobFunc asyncFunc, JobF
 		}
 	}
 
-	LeaveCriticalSection(&m_data->CS);
+	CRITICALSECTION_UNLOCK(&m_data->Lock);
 
 	if (r != invalidJob)
+#ifdef _WIN32
 		WakeConditionVariable(&m_data->Signal);
+#else
+		pthread_cond_signal(&m_data->Signal);
+#endif
 	else
 		if (result) (*result).Result = JobResult::Error;
 
 	return r;
-#else
-#error TODO
-#endif
 }
 
 void JobQueue::WaitForJob(volatile JobResult* result)
@@ -148,7 +175,6 @@ void JobQueue::Tick()
 {
 	// remember, only call this function from the main thread!
 
-#ifdef _WIN32
 	for (uint32 i = 0; i < JobQueueData::MaxJobs; i++)
 	{
 		if (m_data->JobStates[i] == JobState::WaitingForMainThreadPickup)
@@ -169,22 +195,27 @@ void JobQueue::Tick()
 			cleanupJob(i, JobState::Inactive);
 		}
 	}
-#endif
 }
 
 
 #ifdef _WIN32
 DWORD WINAPI JobQueue::threadProc(void* param)
+#else
+void* JobQueue::threadProc(void* param)
 #endif
 {
-#ifdef _WIN32
+
 	while (m_data->Active)
 	{
-		EnterCriticalSection(&m_data->CS);
+		CRITICALSECTION_LOCK(&m_data->Lock);
 
 		while (m_data->NumJobs == 0 && m_data->Active)
 		{
-			SleepConditionVariableCS(&m_data->Signal, &m_data->CS, 1000);
+#ifdef _WIN32
+			SleepConditionVariableCS(&m_data->Signal, &m_data->Lock, 1000);
+#else
+			pthread_cond_wait(&m_data->Signal, &m_data->Lock);
+#endif
 		}
 
 		const uint32 invalidJob = (uint32)-1;
@@ -200,7 +231,7 @@ DWORD WINAPI JobQueue::threadProc(void* param)
 			}
 		}
 
-		LeaveCriticalSection(&m_data->CS);
+		CRITICALSECTION_UNLOCK(&m_data->Lock);
 
 		// now we have a job to do
 		if (jobIndex != invalidJob)
@@ -213,7 +244,7 @@ DWORD WINAPI JobQueue::threadProc(void* param)
 				{
 					if (m_data->Jobs[jobIndex].ParentIndex != (uint32)-1)
 					{
-						EnterCriticalSection(&m_data->CS);
+						CRITICALSECTION_LOCK(&m_data->Lock);
 
 						m_data->DependantJobCount[m_data->Jobs[jobIndex].ParentIndex]--;
 						assert(m_data->DependantJobCount[m_data->Jobs[jobIndex].ParentIndex] >= 0);
@@ -222,7 +253,7 @@ DWORD WINAPI JobQueue::threadProc(void* param)
 							m_data->JobStates[m_data->Jobs[jobIndex].ParentIndex] == JobState::DoneWaitingOnChildren)
 							cleanupJob(m_data->Jobs[jobIndex].ParentIndex, JobState::Inactive);
 
-						LeaveCriticalSection(&m_data->CS);
+						CRITICALSECTION_UNLOCK(&m_data->Lock);
 					}
 					
 					if (m_data->DependantJobCount[jobIndex] == 0)
@@ -243,9 +274,6 @@ DWORD WINAPI JobQueue::threadProc(void* param)
 	}
 
 	return 0;
-#else
-#error TODO
-#endif
 
 }
 
@@ -269,7 +297,7 @@ void JobQueue::cleanupJob(uint32 index, JobState state)
 
 		(*m_data->Jobs[index].Result).Result = result;
 		(*m_data->Jobs[index].Result).Job = (JobHandle)-1;
-		std::_Atomic_thread_fence(std::memory_order_release);
+		std::atomic_thread_fence(std::memory_order_release);
 	}
 
 	m_data->JobStates[index] = state;

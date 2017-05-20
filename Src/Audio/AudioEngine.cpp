@@ -29,7 +29,7 @@ namespace Audio
 		uint32 NumSources;
 		uint32 NumStreamingSources;
 		Source Sources[MaxSources];
-		SourceOwnership SourceOwnership[MaxSources];
+		SourceOwnership SourceOwnershipState[MaxSources];
 	};
 
 	AudioEngineData* AudioEngine::m_data = nullptr;
@@ -64,7 +64,7 @@ namespace Audio
 
 		m_data->NumSources = 0;
 		m_data->NumStreamingSources = 0;
-		memset(m_data->SourceOwnership, 0, sizeof(m_data->SourceOwnership));
+		memset(m_data->SourceOwnershipState, 0, sizeof(m_data->SourceOwnershipState));
 		alGetError();
 		for (uint32 i = 0; i < AudioEngineData::MaxSources; i++)
 		{
@@ -150,12 +150,12 @@ namespace Audio
 
 		for (uint32 i = start; i < length; i++)
 		{
-			if (m_data->SourceOwnership[i] == SourceOwnership::Released)
+			if (m_data->SourceOwnershipState[i] == SourceOwnership::Released)
 			{
 				source = i;
 				break;
 			}
-			else if (m_data->SourceOwnership[i] == SourceOwnership::ReleaseWhenFinished)
+			else if (m_data->SourceOwnershipState[i] == SourceOwnership::ReleaseWhenFinished)
 			{
 				ALint state;
 				alGetSourcei(m_data->Sources[i].ALSource, AL_SOURCE_STATE, &state);
@@ -172,7 +172,7 @@ namespace Audio
 		{
 			// TODO: set some defaults on the source
 
-			m_data->SourceOwnership[source] = SourceOwnership::Owned;
+			m_data->SourceOwnershipState[source] = SourceOwnership::Owned;
 			return &m_data->Sources[source];
 		}
 
@@ -183,7 +183,7 @@ namespace Audio
 	{
 		if (source != nullptr)
 		{
-			m_data->SourceOwnership[source->Index] = SourceOwnership::Released;
+			m_data->SourceOwnershipState[source->Index] = SourceOwnership::Released;
 		}
 	}
 
@@ -191,7 +191,7 @@ namespace Audio
 	{
 		if (source != nullptr)
 		{
-			m_data->SourceOwnership[source->Index] = SourceOwnership::ReleaseWhenFinished;
+			m_data->SourceOwnershipState[source->Index] = SourceOwnership::ReleaseWhenFinished;
 		}
 	}
 

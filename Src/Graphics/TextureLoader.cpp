@@ -50,14 +50,19 @@ namespace Graphics
 
 		int w, h, d;
 		auto img = stbi_load(params->Filename, &w, &h, &d, 4);
-		StringManager::Release(params->Filename);
-		params->Filename = nullptr;
 
 		if (img == nullptr)
 		{
-			params->ContentState = Content::ContentState::NotFound;
+			LOG_ERROR("Unable to load texture %s", params->Filename);
+			StringManager::Release(params->Filename);
+			params->Filename = nullptr;
+
+			params->State = Content::ContentState::NotFound;
 			return false;
 		}
+
+		StringManager::Release(params->Filename);
+		params->Filename = nullptr;
 
 		TextureLoaderStorage* storage = (TextureLoaderStorage*)params->LocalDataStorage;
 
@@ -82,12 +87,12 @@ namespace Graphics
 		if (m_data->Device->CreateTexture2D(&desc, &srd, (Nxna::Graphics::Texture2D*)params->Destination) != Nxna::NxnaResult::Success)
 		{
 			stbi_image_free(storage->Pixels);
-			params->ContentState = Content::ContentState::UnknownError;
+			params->State = Content::ContentState::UnknownError;
 			return false;
 		}
 		stbi_image_free(storage->Pixels);
 
-		params->ContentState = Content::ContentState::Loaded;
+		params->State = Content::ContentState::Loaded;
 
 		return true;
 	}
