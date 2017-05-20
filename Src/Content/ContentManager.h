@@ -7,29 +7,12 @@
 #include "../Common.h"
 #include "../Logging.h"
 #include "../MyNxna2.h"
+#include "../JobQueue.h"
+#include "ContentLoader.h"
 
 namespace Content
 {
-	enum class LoaderType
-	{
-		ModelObj,
-
-		Texture2D
-	};
-
-	enum class ContentState
-	{
-		Inactive = 0,
-		Incomplete = 1,
-		Loaded = 2,
-
-		UnknownError = -1,
-		NotFound = -2,
-		InvalidFormat = -3,
-		NoLoader = -4,
-		NotLoaded = -5
-	};
-
+	
 	template<typename T>
 	struct Content
 	{
@@ -42,17 +25,11 @@ namespace Content
 	
 	class ContentManager;
 
-	struct ContentLoader
-	{
-		LoaderType Type;
-		int (*Loader)(ContentManager*, const char*, void*, void*);
-		void* LoaderParam;
-	};
 
 	struct ContentManagerData
 	{
-		std::vector<ContentLoader> Loaders;
 	};
+	
 
 	class ContentManager
 	{
@@ -74,10 +51,36 @@ namespace Content
 	public:
 		static void SetGlobalData(ContentManagerData** data, Nxna::Graphics::GraphicsDevice* device);
 		
+		/*
+		Usage rules:
+
+		1) Load() and LoadTracked() may only be called by the main thread
+		2) BeginLoad() and BeginLoadTracked() may be called by either main thread or a worker thread
+		3) WaitForLoad() can only be called by the main thread
+		4) Tick() must be called by the main thread only
+
+		Thought: What if we separated this into two separate things:
+
+		ContentLoader - a lower-level class that only loads content but doesn't track it
+			- Load() - synchronously loads whatever
+			- BeginLoad() - asynchronously begins a load. If two things begin a load of the same file they both happen.
+			- WaitForLoad() - blocks until the load completes
+
+		ContentManager - higher level class that keeps track of content
+			- Load() - synchronously loads AND tracks the content
+			- BeginLoad() - asynchronously begins a load. If two things begin a load they share the load.
+			- WaitForLoad() - blocks until the load completes (do we need this one?)
+
+		This way, if something wants to load child assets, it just uses ContentLoader and manages ownership itself.
+
+		ContentLoader is static, ContentManager is instance
+
+		*/
+
 		template<typename T>
 		static ContentState Load(const char* filename, LoaderType type, T* destination, const char* folder = nullptr)
 		{
-			WriteLog(nullptr, LogSeverityType::Info, LogChannelType::Content, "Loading %s (untracked)...", filename);
+			WriteLog(LogSeverityType::Info, LogChannelType::Content, "Loading %s (untracked)...", filename);
 
 			// we're never really using ContentGeneric directly. It's just storage for Content<T>.
 			static_assert(sizeof(ContentGeneric) == sizeof(Content<T>), "ContentGeneric is incorrect size");
@@ -85,12 +88,6 @@ namespace Content
 
 			if (filename == nullptr || destination == nullptr) return ContentState::UnknownError;
 
-			auto loader = findLoader(type);
-			if (loader == nullptr)
-			{
-				WriteLog(nullptr, LogSeverityType::Error, LogChannelType::Content, "No loader found for %s (type %d)", filename, (int)type);
-				return ContentState::NoLoader;
-			}
 
 			char buffer[256];
 			if (folder != nullptr)
@@ -105,16 +102,12 @@ namespace Content
 				filename = buffer;
 			}
 
-			typedef int(*StrongLoaderType)(ContentManager*, const char*, T*, void*);
-			if (((StrongLoaderType)(loader->Loader))(nullptr, filename, destination, loader->LoaderParam) == 0)
-			{
-				WriteLog(nullptr, LogSeverityType::Info, LogChannelType::Content, "Loaded %s (untracked)", filename);
-				return ContentState::Loaded;
-			}
-
-			WriteLog(nullptr, LogSeverityType::Error, LogChannelType::Content, "Error when loading %s (untracked)...", filename);
-			return ContentState::UnknownError;
+			return ContentLoader::Load(filename, type, destination);
 		}
+
+		template<typename T>
+		static ContentState BeginLoad(PersistantString filename, LoaderType type, T* destination, volatile JobResult* result);
+
 
 		template<typename T>
 		ContentState LoadTracked(const char* filename, LoaderType type, T* destination, const char* folder = nullptr)
@@ -142,9 +135,18 @@ namespace Content
 							return ContentState::NoLoader;
 						}
 
-						typedef int(*StrongLoaderType)(ContentManager*, const char*, T*, void*);
-						if (((StrongLoaderType)(loader->Loader))(this, filename, destination, loader->LoaderParam) == 0)
+						ContentLoaderParams p = {};
+						p.Destination = destination;
+						p.Filename = filename;
+						p.LoaderParam = loader->LoaderParam;
+
+						if (loader->AsyncLoader(&p) == true && (loader->MainThreadLoader == nullptr || loader->MainThreadLoader(&p)))
 							return ContentState::Loaded;
+						else
+						{
+							WriteLog(LogSeverityType::Error, LogChannelType::Content, "Error when loading %s (untracked)...", filename);
+							return ContentState::UnknownError;
+						}
 					}
 				}
 			}
@@ -165,10 +167,52 @@ namespace Content
 		}
 
 		template<typename T>
-		Content<T>* BeginLoad(const char* filename, LoaderType type, T* destination);
+		int BeginLoad(const char* filename, LoaderType type, T* destination)
+		{
+			auto r = Get(filename, type, &destination);
+			if (r == ContentState::NotLoaded)
+			{
+				for (uint32 i = 0; i < m_maxContent; i++)
+				{
+					if (m_content[i].State == ContentState::Inactive)
+					{
+						m_content[i].State = ContentState::Incomplete;
+#ifdef _WIN32
+						strncpy_s(m_content[i].Filename, filename, 256);
+#else
+						strncpy(m_content[i].Filename, filename, 256);
+#endif
+
+						auto loader = findLoader(type);
+						if (loader == nullptr)
+						{
+							m_content[i].State = ContentState::NoLoader;
+							return ContentState::NoLoader;
+						}
+
+						JobQueue::AddJob(loader->Loader, nullptr, nullptr);
+
+						return ContentState::Incomplete;
+					}
+				}
+			}
+
+			return r;
+		}
 
 		template<typename T>
-		Content<T>* WaitForLoad(Content<T>* content);
+		ContentState WaitForLoad(int content)
+		{
+			if (content < 0 || content > m_maxContent)
+				return ContentState::NotLoaded;
+
+			while (m_content[content].State == ContentState::Incomplete)
+			{
+				JobQueue::Tick();
+			}
+
+			return m_content[content].State;
+		}
 
 		template<typename T>
 		ContentState Get(const char* filename, LoaderType type, T** destination)
@@ -192,7 +236,7 @@ namespace Content
 
 		void Tick()
 		{
-			// TODO
+			JobQueue::Tick();
 		}
 
 	private:

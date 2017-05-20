@@ -39,7 +39,9 @@ namespace Graphics
 
 		static void SetGlobalData(ModelData** data);
 
-		static int LoadObj(Content::ContentManager* content, const char* filename, Model* destination, void* device);
+		static bool LoadObj(Content::ContentLoaderParams* params);
+		static bool FinalizeLoadObj(Content::ContentLoaderParams* params);
+
 		static void Render(Nxna::Graphics::GraphicsDevice* device, Nxna::Matrix* modelview, Model* models, uint32 numModels);
 	};
 }

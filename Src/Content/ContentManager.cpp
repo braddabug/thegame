@@ -5,7 +5,6 @@
 namespace Content
 {
 	ContentManagerData* ContentManager::m_data = nullptr;
-	typedef int(*LoaderFunc)(ContentManager*, const char*, void*, void*);
 
 	void ContentManager::SetGlobalData(ContentManagerData** data, Nxna::Graphics::GraphicsDevice* device)
 	{
@@ -13,11 +12,6 @@ namespace Content
 			*data = new ContentManagerData();
 
 		m_data = *data;
-
-		// function pointers within the lib have to be reset
-		m_data->Loaders.clear();
-		m_data->Loaders.push_back(ContentLoader { LoaderType::ModelObj, (LoaderFunc)Graphics::Model::LoadObj, device });
-		m_data->Loaders.push_back(ContentLoader { LoaderType::Texture2D, (LoaderFunc)Graphics::TextureLoader::Load, device });
 	}
 
 	/*
@@ -50,16 +44,4 @@ namespace Content
 
 		return result;
 	}*/
-
-
-	ContentLoader* ContentManager::findLoader(LoaderType type)
-	{
-		for (size_t i = 0; i < m_data->Loaders.size(); i++)
-		{
-			if (m_data->Loaders[i].Type == type)
-				return &m_data->Loaders[i];
-		}
-
-		return nullptr;
-	}
 }

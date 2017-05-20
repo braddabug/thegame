@@ -9,11 +9,14 @@ namespace Audio
 	class AudioLoader
 	{
 	public:
-		static bool LoadWav(const char* filename, Buffer* destination)
+		static bool LoadWav(Content::ContentLoaderParams* params)
 		{
 			File f;
-			if (FileSystem::OpenAndMap(filename, &f) == nullptr)
+			if (FileSystem::OpenAndMap(params->Filename, &f) == nullptr)
+			{
+				params->ContentState = Content::ContentState::NotFound;
 				return false;
+			}
 
 			struct RiffHeader
 			{
@@ -64,7 +67,7 @@ namespace Audio
 			d.SampleRate = wavHeader->SamplesPerSec;
 			d.Data = cursor;
 			d.DataByteLength = data->Size;
-			return AudioEngine::CreateBuffer(&d, destination);
+			return AudioEngine::CreateBuffer(&d, (Buffer*)params->Destination);
 		}
 	};
 }

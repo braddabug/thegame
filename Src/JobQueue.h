@@ -10,7 +10,7 @@
 #error TODO
 #endif
 
-typedef bool(*JobFunc)(uint32, void*);
+typedef bool(*JobFunc)(void*);
 
 enum class JobState : uint8
 {
@@ -23,12 +23,31 @@ enum class JobState : uint8
 	DoneWaitingOnChildren
 };
 
+enum class JobResult
+{
+	Pending,
+	WaitingOnChildren,
+	Completed,
+	Error
+};
+
+typedef uint32 JobHandle;
+
+struct JobInfo
+{
+	volatile JobResult Result;
+	JobHandle Job;
+};
+
 struct Job
 {
 	JobFunc AsyncFunc;
 	JobFunc MainThreadFunc;
-	void* Data;
 	uint32 ParentIndex;
+	JobInfo* Result;
+
+	static const uint32 MaxDataSize = 128;
+	alignas(16) uint8 Data[MaxDataSize];
 };
 
 struct JobQueueData
@@ -45,8 +64,8 @@ struct JobQueueData
 	static const uint32 MaxJobs = 100;
 	Job Jobs[MaxJobs];
 	std::atomic<JobState> JobStates[MaxJobs];
-	std::atomic<uint32> DependantJobCount[MaxJobs];
-	uint32 NumJobs;
+	std::atomic<int32> DependantJobCount[MaxJobs];
+	std::atomic<uint32> NumJobs;
 
 	std::atomic<bool> Active;
 };
@@ -60,8 +79,10 @@ public:
 
 	static void Shutdown(bool complete);
 
-	static bool AddJob(JobFunc asyncFunc, JobFunc mainThreadFunc, void* data);
-	static bool AddDependantJob(uint32 parentJobHandle, JobFunc asyncFunc, JobFunc mainThreadFunc, void* data);
+	static JobHandle AddJob(JobFunc asyncFunc, JobFunc mainThreadFunc, JobInfo* result, void* data, size_t dataSize);
+	static JobHandle AddDependantJob(uint32 parentJobHandle, JobFunc asyncFunc, JobFunc mainThreadFunc, JobInfo* result, void* data, size_t dataSize);
+
+	static void WaitForJob(volatile JobResult* result);
 
 	static void Tick();
 
@@ -69,6 +90,8 @@ private:
 #ifdef _WIN32
 	static DWORD WINAPI threadProc(void* param);
 #endif
+
+	static inline void cleanupJob(uint32 index, JobState state);
 };
 
 #endif // JOBQUEUE_H

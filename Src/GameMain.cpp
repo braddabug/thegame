@@ -1,6 +1,7 @@
 #include "GameMain.h"
 #include "GlobalData.h"
 #include "Logging.h"
+#include "StringManager.h"
 #include "SpriteBatchHelper.h"
 #include "Gui/TextPrinter.h"
 #include "FileSystem.h"
@@ -10,6 +11,7 @@
 #include "Audio/AudioEngine.h"
 
 Graphics::Model m;
+JobInfo mj;
 
 Nxna::Graphics::GraphicsDevice* g_device;
 Nxna::Input::InputState* g_inputState;
@@ -46,11 +48,13 @@ void LibLoaded(GlobalData* data, bool initial)
 	// we always expect the log data to be created
 	g_log = data->Log;
 
+	StringManager::SetGlobalData(&data->StringData);
 	JobQueue::SetGlobalData(&data->JobQueue);
 	Audio::AudioEngine::SetGlobalData(&data->Audio);
 	SpriteBatchHelper::SetGlobalData(&data->SpriteBatch);
 	Gui::TextPrinter::SetGlobalData(&data->TextPrinter);
 	Content::ContentManager::SetGlobalData(&data->ContentData, g_device);
+	Content::ContentLoader::SetGlobalData(&data->ContentLData, g_device);
 	Graphics::Model::SetGlobalData(&data->ModelData);
 	Graphics::TextureLoader::SetGlobalData(&data->TextureLoaderData, g_device);
 }
@@ -77,8 +81,12 @@ int Init(WindowInfo* window)
 	if (Audio::AudioEngine::Init() == false)
 		return -1;
 
-	auto c = Content::ContentManager::Load("Content/Models/Shark.obj", Content::LoaderType::ModelObj, &m);
-	if (c != Content::ContentState::Loaded)
+	//auto c = Content::ContentManager::Load("Content/Models/Shark.obj", Content::LoaderType::ModelObj, &m);
+	//if (c != Content::ContentState::Loaded)
+	//	return -1;
+
+	auto c = Content::ContentLoader::BeginLoad("Content/Models/Shark.obj", Content::LoaderType::ModelObj, &m, &mj);
+	if (c != Content::ContentState::Incomplete)
 		return -1;
 
 	return 0;
@@ -124,8 +132,8 @@ void Tick()
 	Nxna::Matrix view = Nxna::Matrix::CreateLookAt(Nxna::Vector3(cameraPos.X, 0, cameraPos.Y), Nxna::Vector3(0, 0, 0), Nxna::Vector3(0, 1.0f, 0));
 	auto transform = view * projection;
 	
-
-	Graphics::Model::Render(g_device, &transform, &m, 1);
+	if (mj.Result == JobResult::Completed)
+		Graphics::Model::Render(g_device, &transform, &m, 1);
 
 	sb.Begin();
 	Gui::TextPrinter::PrintScreen(&sb, 0, 20, Gui::FontType::Default, "Hello, world!");

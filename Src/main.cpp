@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <atomic>
 #include "MyNxna2.h"
 #include "SpriteBatchHelper.h"
 #include "Gui/TextPrinter.h"
@@ -48,6 +49,7 @@ int main(int argc, char* argv[])
 	memset(gd.Log, 0, sizeof(LogData));
 	for (uint32 i = 0; i < LogData::NumLinePages; i++)
 		gd.Log->LineDataPages[i] = new char[LogData::LineDataSize];
+	gd.Log->Lock.clear(); // TODO: the docs say to set this to ATOMIC_FLAG_INIT, but that won't compile in VS2015
 
 	WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Welcome to The Game!");
 	WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Built %s %s", __DATE__, __TIME__);

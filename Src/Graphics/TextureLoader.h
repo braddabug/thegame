@@ -24,7 +24,8 @@ namespace Graphics
 
 		static Nxna::Graphics::Texture2D GetErrorTexture(bool needOwnership);
 
-		static int Load(Content::ContentManager* content, const char* filename, Nxna::Graphics::Texture2D* destination, void* data);
+		static bool LoadPixels(Content::ContentLoaderParams* params);
+		static bool ConvertPixelsToTexture(Content::ContentLoaderParams* params);
 
 	private:
 

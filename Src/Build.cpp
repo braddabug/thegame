@@ -12,6 +12,7 @@
 
 #include "GameMain.cpp"
 #include "Logging.cpp"
+#include "StringManager.cpp"
 #include "FileSystem.cpp"
 #include "SpriteBatchHelper.cpp"
 #include "WaitManager.cpp"
@@ -19,6 +20,7 @@
 #include "Gui/TextPrinter.cpp"
 #include "Graphics/Model.cpp"
 #include "Graphics/TextureLoader.cpp"
+#include "Content/ContentLoader.cpp"
 #include "Content/ContentManager.cpp"
 #include "Audio/AudioEngine.cpp"
 

@@ -38,29 +38,58 @@ namespace Graphics
 		}
 	}
 
-	int TextureLoader::Load(Content::ContentManager* content, const char* filename, Nxna::Graphics::Texture2D* destination, void* data)
+	struct TextureLoaderStorage
 	{
+		uint32 Width, Height;
+		uint8* Pixels;
+	};
+
+	bool TextureLoader::LoadPixels(Content::ContentLoaderParams* params)
+	{
+		static_assert(sizeof(TextureLoaderStorage) <= sizeof(Content::ContentLoaderParams::LocalDataStorage), "TextureLoaderData is too big");
+
 		int w, h, d;
-		auto img = stbi_load(filename, &w, &h, &d, 4);
+		auto img = stbi_load(params->Filename, &w, &h, &d, 4);
+		StringManager::Release(params->Filename);
+		params->Filename = nullptr;
+
 		if (img == nullptr)
 		{
-			return -1;
+			params->ContentState = Content::ContentState::NotFound;
+			return false;
 		}
+
+		TextureLoaderStorage* storage = (TextureLoaderStorage*)params->LocalDataStorage;
+
+		storage->Width = (uint32)w;
+		storage->Height = (uint32)h;
+		storage->Pixels = img;
+
+		return true;
+	}
+
+	bool TextureLoader::ConvertPixelsToTexture(Content::ContentLoaderParams* params)
+	{
+		TextureLoaderStorage* storage = (TextureLoaderStorage*)params->LocalDataStorage;
 
 		Nxna::Graphics::TextureCreationDesc desc = {};
-		desc.Width = w;
-		desc.Height = h;
+		desc.Width = storage->Width;
+		desc.Height = storage->Height;
 		desc.ArraySize = 1;
 		Nxna::Graphics::SubresourceData srd = {};
-		srd.Data = img;
-		srd.DataPitch = w * 4;
-		if (m_data->Device->CreateTexture2D(&desc, &srd, destination) != Nxna::NxnaResult::Success)
+		srd.Data = storage->Pixels;
+		srd.DataPitch = storage->Width * 4;
+		if (m_data->Device->CreateTexture2D(&desc, &srd, (Nxna::Graphics::Texture2D*)params->Destination) != Nxna::NxnaResult::Success)
 		{
-			stbi_image_free(img);
-			return -1;
+			stbi_image_free(storage->Pixels);
+			params->ContentState = Content::ContentState::UnknownError;
+			return false;
 		}
+		stbi_image_free(storage->Pixels);
 
-		return 0;
+		params->ContentState = Content::ContentState::Loaded;
+
+		return true;
 	}
 
 	bool TextureLoader::generateErrorTexture(Nxna::Graphics::Texture2D* result)

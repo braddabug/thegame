@@ -4,6 +4,7 @@
 #include "Common.h"
 
 struct SpriteBatchData;
+struct StringManagerData;
 
 namespace Gui
 {
@@ -13,6 +14,7 @@ namespace Gui
 namespace Content
 {
 	struct ContentManagerData;
+	struct ContentLoaderData;
 }
 
 namespace Graphics
@@ -45,12 +47,14 @@ struct GlobalData
 {
 	LogData* Log;
 	JobQueueData* JobQueue;
+	StringManagerData* StringData;
 	Nxna::Graphics::GraphicsDevice* Device;
 	Nxna::Input::InputState* Input;
 	Audio::AudioEngineData* Audio;
 	SpriteBatchData* SpriteBatch;
 	Gui::TextPrinterData* TextPrinter;
 	Content::ContentManagerData* ContentData;
+	Content::ContentLoaderData* ContentLData;
 	Graphics::ModelData* ModelData;
 	Graphics::TextureLoaderData* TextureLoaderData;
 };
