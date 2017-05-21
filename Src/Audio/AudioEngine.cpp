@@ -1,5 +1,6 @@
 #include "AudioEngine.h"
 #include "../Logging.h"
+#include "../MemoryManager.h"
 
 #include "AL/al.h"
 #include "AL/alc.h"
@@ -38,7 +39,7 @@ namespace Audio
 	{
 		if (*data == nullptr)
 		{
-			*data = new AudioEngineData();
+			*data = NewObject<AudioEngineData>(__FILE__, __LINE__);
 		}
 
 		m_data = *data;
@@ -107,6 +108,8 @@ namespace Audio
 			alcCloseDevice(m_data->Device);
 			m_data->Device = nullptr;
 		}
+
+		g_memory->FreeTrack(m_data, __FILE__, __LINE__);
 	}
 
 	bool AudioEngine::CreateBuffer(const BufferDesc* desc, Buffer* buffer)

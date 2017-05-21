@@ -15,7 +15,7 @@ namespace Content
 	void ContentLoader::SetGlobalData(ContentLoaderData** data, Nxna::Graphics::GraphicsDevice* device)
 	{
 		if (*data == nullptr)
-			*data = new ContentLoaderData();
+			*data = NewObject<ContentLoaderData>(__FILE__, __LINE__);
 
 		m_data = *data;
 

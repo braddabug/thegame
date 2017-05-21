@@ -36,5 +36,8 @@
 // loader and monolithic
 
 #include "main.cpp"
+#include "MemoryManager.cpp"
 
 #endif
+
+MemoryManager* g_memory;

@@ -5,6 +5,7 @@
 #include "../Common.h"
 #include "../FileSystem.h"
 #include "../SpriteBatchHelper.h"
+#include "../MemoryManager.h"
 
 #include "../MyNxna2.h"
 
@@ -15,7 +16,7 @@ namespace Gui
 	void TextPrinter::SetGlobalData(TextPrinterData** data)
 	{
 		if (*data == nullptr)
-			*data = new TextPrinterData();
+			*data = NewObject<TextPrinterData>(__FILE__, __LINE__);
 		
 		m_data = *data;
 	}
@@ -27,8 +28,9 @@ namespace Gui
 
 	void TextPrinter::Shutdown()
 	{
-		free(m_data->DefaultFont);
-		delete m_data;
+		g_memory->FreeTrack(m_data->DefaultFont, __FILE__, __LINE__);
+
+		g_memory->FreeTrack(m_data, __FILE__, __LINE__);
 	}
 
 	void TextPrinter::PrintScreen(SpriteBatchHelper* sb, float x, float y, FontType font, const char* text)
@@ -116,7 +118,7 @@ namespace Gui
 		r.first_unicode_codepoint_in_range = firstCharacter;
 		r.num_chars = numCharacters;
 		r.font_size = size;
-		r.chardata_for_range = new stbtt_packedchar[numCharacters];
+		r.chardata_for_range = (stbtt_packedchar*)g_memory->AllocTrack(sizeof(stbtt_packedchar) * numCharacters, __FILE__, __LINE__);
 		stbtt_PackFontRanges(&c, (uint8*)f.Memory, 0, &r, 1);
 		stbtt_PackEnd(&c);
 
@@ -144,11 +146,11 @@ namespace Gui
 		srdata.DataPitch = textureSize * 4;
 		if (device->CreateTexture2D(&desc, &srdata, &m_data->Texture) != Nxna::NxnaResult::Success)
 		{
-			delete[] r.chardata_for_range;
+			g_memory->FreeTrack(r.chardata_for_range, __FILE__, __LINE__);
 			return false;
 		}
 
-		auto memory = (uint8*)malloc(sizeof(Font) + sizeof(Font::CharInfo) * numCharacters + sizeof(int) * numCharacters);
+		auto memory = (uint8*)g_memory->AllocTrack(sizeof(Font) + sizeof(Font::CharInfo) * numCharacters + sizeof(int) * numCharacters, __FILE__, __LINE__);
 
 		*result = (Font*)memory;
 		(*result)->CharacterMap = (int*)(memory + sizeof(Font));
@@ -173,7 +175,7 @@ namespace Gui
 
 		(*result)->NumCharacters = numCharacters;
 
-		delete[] r.chardata_for_range;
+		g_memory->FreeTrack(r.chardata_for_range, __FILE__, __LINE__);
 		
 		return true;
 	}

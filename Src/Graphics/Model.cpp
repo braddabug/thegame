@@ -11,7 +11,7 @@ namespace Graphics
 	{
 		if (*data == nullptr)
 		{
-			*data = new ModelData();
+			*data = NewObject<ModelData>(__FILE__, __LINE__);
 			(*data)->Initialized = false;
 		}
 

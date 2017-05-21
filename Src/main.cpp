@@ -8,6 +8,7 @@
 #include "GameMain.h"
 #include "GlobalData.h"
 #include "Logging.h"
+#include "MemoryManager.h"
 
 #ifdef GAME_ENABLE_HOTLOAD
 #include "GameLibLoader.h"
@@ -42,13 +43,23 @@ void LocalHandleEvent(ExternalEvent e)
 
 int main(int argc, char* argv[])
 {
+	MemoryManager mem;
+	g_memory = &mem;
+
+	mem.Alloc = MemoryManagerInternal::Alloc;
+	mem.AllocTrack = MemoryManagerInternal::AllocTrack;
+	mem.Realloc = MemoryManagerInternal::Realloc;
+	mem.Free = MemoryManagerInternal::Free;
+	mem.FreeTrack = MemoryManagerInternal::FreeTrack;
+
 	memset(&gd, 0, sizeof(GlobalData));
+	gd.Memory = g_memory;
 
 	// create the log data
-	gd.Log = new LogData();
+	gd.Log = (LogData*)mem.AllocTrack(sizeof(LogData), __FILE__, __LINE__);
 	memset(gd.Log, 0, sizeof(LogData));
 	for (uint32 i = 0; i < LogData::NumLinePages; i++)
-		gd.Log->LineDataPages[i] = new char[LogData::LineDataSize];
+		gd.Log->LineDataPages[i] = (char*)g_memory->AllocTrack(LogData::LineDataSize, __FILE__, __LINE__);
 	gd.Log->Lock.clear(); // TODO: the docs say to set this to ATOMIC_FLAG_INIT, but that won't compile in VS2015
 
 	WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Welcome to The Game!");
@@ -211,6 +222,11 @@ end:
 	SDL_Quit();
 
 	WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Bye! Hope you had fun!");
+
+	size_t memoryUsage;
+	MemoryManagerInternal::GetMemoryUsage(&memoryUsage);
+
+	printf("Memory usage at exit: %u\n", (uint32)memoryUsage);
 
 	return 0;
 }

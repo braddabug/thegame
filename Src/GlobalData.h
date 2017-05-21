@@ -42,9 +42,11 @@ namespace Input
 
 struct LogData;
 struct JobQueueData;
+struct MemoryManager;
 
 struct GlobalData
 {
+	MemoryManager* Memory;
 	LogData* Log;
 	JobQueueData* JobQueue;
 	StringManagerData* StringData;

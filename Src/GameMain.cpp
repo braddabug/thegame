@@ -9,6 +9,9 @@
 #include "Graphics/TextureLoader.h"
 #include "Content/ContentManager.h"
 #include "Audio/AudioEngine.h"
+#include "MemoryManager.h"
+
+
 
 Graphics::Model m;
 JobInfo mj;
@@ -25,9 +28,11 @@ void msg(Nxna::Graphics::GraphicsDeviceDebugMessage m)
 
 void LibLoaded(GlobalData* data, bool initial)
 {
+	g_memory = data->Memory;
+
 	if (data->Device == nullptr)
 	{
-		g_device = new Nxna::Graphics::GraphicsDevice();
+		g_device = (Nxna::Graphics::GraphicsDevice*)g_memory->Alloc(sizeof(Nxna::Graphics::GraphicsDevice));
 		data->Device = g_device;
 	}
 	else
@@ -37,7 +42,7 @@ void LibLoaded(GlobalData* data, bool initial)
 
 	if (data->Input == nullptr)
 	{
-		g_inputState = new Nxna::Input::InputState();
+		g_inputState = (Nxna::Input::InputState*)g_memory->Alloc(sizeof(Nxna::Input::InputState));
 		data->Input = g_inputState;
 	}
 	else

@@ -8,7 +8,7 @@ namespace Graphics
 	{
 		if (*data == nullptr)
 		{
-			*data = new TextureLoaderData();
+			*data = NewObject<TextureLoaderData>(__FILE__, __LINE__);
 			(*data)->Device = device;
 			(*data)->Initialized = false;
 		}
