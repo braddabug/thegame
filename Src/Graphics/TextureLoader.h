@@ -21,6 +21,7 @@ namespace Graphics
 	public:
 
 		static void SetGlobalData(TextureLoaderData** data, Nxna::Graphics::GraphicsDevice* device);
+		static void Shutdown();
 
 		static Nxna::Graphics::Texture2D GetErrorTexture(bool needOwnership);
 

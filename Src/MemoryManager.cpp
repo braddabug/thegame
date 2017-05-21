@@ -1,6 +1,7 @@
 #include "MemoryManager.h"
 #include <memory>
 #include <atomic>
+#include <cstdio>
 
 std::atomic<size_t> g_requestedMemoryUsed = 0;
 std::atomic<size_t> g_actualMemoryUsed = 0;
@@ -8,6 +9,8 @@ std::atomic<uint32> g_timestamp = 0;
 
 namespace MemoryManagerInternal
 {
+	struct AllocInfoMini;
+
 	struct AllocInfo
 	{
 		size_t TotalSize;
@@ -15,10 +18,84 @@ namespace MemoryManagerInternal
 		char Filename[128];
 		uint32 Line;
 		uint32 Timestamp;
+		AllocInfoMini* Mini;
 
-		static const uint32 PaddingAmount = (32 - (sizeof(size_t) * 2 + 128 + sizeof(uint32) * 2) % 32) % 32;
+		static const uint32 PaddingAmount = (32 - (sizeof(size_t) * 2 + 128 + sizeof(uint32) * 2 + sizeof(AllocInfoMini*)) % 32) % 32;
 		char Padding[PaddingAmount];
 	};
+
+	struct AllocInfoMini
+	{
+		AllocInfo* Info;
+		size_t RequestedSize;
+	};
+
+	struct AllocInfoPage
+	{
+		AllocInfoMini Allocations[1000];
+		AllocInfoPage* Next;
+		std::atomic<uint32> NumAllocations;
+	};
+
+	AllocInfoPage* g_firstPage;
+	AllocInfoPage* g_currentPage;
+#ifdef _WIN32
+	CRITICAL_SECTION g_lock;
+#else
+	pthread_mutex_t g_lock;
+#endif
+
+	AllocInfoMini* GetNewAlloc()
+	{
+#ifdef _WIN32
+		EnterCriticalSection(&g_lock);
+#else
+		pthread_mutex_lock(&g_lock);
+#endif
+
+		if (g_currentPage->NumAllocations == 1000)
+		{
+			auto newPage = (AllocInfoPage*)malloc(sizeof(AllocInfoPage));
+			newPage->Next = nullptr;
+			newPage->NumAllocations = 0;
+			g_currentPage->Next = newPage;
+			g_currentPage = newPage;
+		}
+
+		auto info = &g_currentPage->Allocations[g_currentPage->NumAllocations++];
+
+#ifdef _WIN32
+		LeaveCriticalSection(&g_lock);
+#else
+		pthread_mutex_unlock(&g_lock);
+#endif
+
+		return info;
+	}
+
+	void Initialize()
+	{
+		g_firstPage = g_currentPage = (AllocInfoPage*)malloc(sizeof(AllocInfoPage));
+		g_currentPage->Next = nullptr;
+		g_currentPage->NumAllocations = 0;
+
+#ifdef _WIN32
+		InitializeCriticalSection(&g_lock);
+#else
+		g_lock = PTHREAD_MUTEX_INITIALIZER;
+#endif
+	}
+
+	void Shutdown()
+	{
+		AllocInfoPage* page = g_firstPage;
+		while (page != nullptr)
+		{
+			auto next = page->Next;
+			free(page);
+			page = next;
+		}
+	}
 
 	void* Alloc(size_t amount)
 	{
@@ -53,12 +130,18 @@ namespace MemoryManagerInternal
 		}
 		else
 			info->Filename[0] = 0;
-		info->Line = 0;
+		info->Line = line;
 		info->Timestamp = g_timestamp++;
 
 		// setup the sentinel values
 		memset((uint8*)memory + sizeof(AllocInfo), 0xb0, 64);
 		memset((uint8*)memory + sizeof(AllocInfo) + 64 + amount, 0xb0, 64);
+
+		// record the allocation
+		auto log = GetNewAlloc();
+		log->Info = info;
+		log->RequestedSize = amount;
+		info->Mini = log;
 
 		return (uint8*)memory + sizeof(AllocInfo) + 64;
 	}
@@ -92,11 +175,67 @@ namespace MemoryManagerInternal
 		g_actualMemoryUsed -= info->TotalSize;
 		g_requestedMemoryUsed -= info->RequestedSize;
 
+		info->Mini->Info = nullptr;
+
 		free((uint8*)memory - 64 - sizeof(AllocInfo));
 	}
 
 	void GetMemoryUsage(size_t* usage)
 	{
 		*usage = g_requestedMemoryUsed;
+	}
+
+	void DumpReport(const char* filename)
+	{
+		FILE* fp;
+#ifdef _WIN32
+		fopen_s(&fp, filename, "w");
+#else
+		fp = fopen(filename, "w");
+#endif
+
+		fprintf(fp, "[\n");
+
+		auto page = g_firstPage;
+		while (page != nullptr)
+		{
+			for (uint32 i = 0; i < page->NumAllocations; i++)
+			{
+				fprintf(fp, "\t{\n");
+
+				fprintf(fp, "\t\t\"requestedSize\": %u,\n", (uint32)page->Allocations[i].RequestedSize);
+
+				if (page->Allocations[i].Info == nullptr)
+				{
+					fprintf(fp, "\t\t\"freed\": true,\n");
+					fprintf(fp, "\t\t\"filename\": null,\n");
+					fprintf(fp, "\t\t\"line\": null\n");
+				}
+				else
+				{
+#ifdef _WIN32
+					// Windows puts \ in paths, which aren't legal in json without escaping them, so replace them
+					for (char* c = page->Allocations[i].Info->Filename; *c != 0; c++)
+						if (*c == '\\') *c = '/';
+#endif
+
+					fprintf(fp, "\t\t\"freed\": false,\n");
+					fprintf(fp, "\t\t\"filename\": \"%s\",\n", page->Allocations[i].Info->Filename);
+					fprintf(fp, "\t\t\"line\": %u\n", page->Allocations[i].Info->Line);
+				}
+
+				if (i < page->NumAllocations - 1)
+					fprintf(fp, "\t},\n");
+				else
+					fprintf(fp, "\t}\n");
+			}
+
+			page = page->Next;
+		}
+
+
+		fprintf(fp, "]\n");
+
+		fclose(fp);
 	}
 }

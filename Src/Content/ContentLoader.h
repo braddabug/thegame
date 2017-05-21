@@ -60,6 +60,7 @@ namespace Content
 
 	public:
 		static void SetGlobalData(ContentLoaderData** data, Nxna::Graphics::GraphicsDevice* device);
+		static void Shutdown();
 
 		template<typename T>
 		static ContentState Load(const char* filename, LoaderType type, T* destination)

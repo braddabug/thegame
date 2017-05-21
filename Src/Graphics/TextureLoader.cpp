@@ -16,6 +16,11 @@ namespace Graphics
 		m_data = *data;
 	}
 
+	void TextureLoader::Shutdown()
+	{
+		g_memory->FreeTrack(m_data, __FILE__, __LINE__);
+	}
+
 	Nxna::Graphics::Texture2D TextureLoader::GetErrorTexture(bool needOwnership)
 	{
 		if (needOwnership)

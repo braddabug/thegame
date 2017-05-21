@@ -38,6 +38,7 @@ namespace Graphics
 		static ModelData* m_data;
 
 		static void SetGlobalData(ModelData** data);
+		static void Shutdown();
 
 		static bool LoadObj(Content::ContentLoaderParams* params);
 		static bool FinalizeLoadObj(Content::ContentLoaderParams* params);

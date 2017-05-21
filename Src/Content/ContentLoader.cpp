@@ -26,6 +26,11 @@ namespace Content
 		m_data->Loaders.push_back(Loader{ LoaderType::Audio, (JobFunc)Audio::AudioLoader::LoadWav, nullptr, nullptr });
 	}
 
+	void ContentLoader::Shutdown()
+	{
+		g_memory->FreeTrack(m_data, __FILE__, __LINE__);
+	}
+
 	Loader* ContentLoader::findLoader(LoaderType type)
 	{
 		for (size_t i = 0; i < m_data->Loaders.size(); i++)

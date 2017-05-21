@@ -31,6 +31,9 @@ T* NewObject(const char* filename, int line)
 
 namespace MemoryManagerInternal
 {
+	void Initialize();
+	void Shutdown();
+
 	void* Alloc(size_t amount);
 	void* AllocTrack(size_t amount, const char* filename, int line);
 
@@ -44,6 +47,7 @@ namespace MemoryManagerInternal
 	void FreeTrack(void* memory, const char* filename, int line);
 
 	void GetMemoryUsage(size_t* usage);
+	void DumpReport(const char* filename);
 }
 #endif
 

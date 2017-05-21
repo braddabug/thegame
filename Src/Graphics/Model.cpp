@@ -18,6 +18,11 @@ namespace Graphics
 		m_data = *data;
 	}
 
+	void Model::Shutdown()
+	{
+		g_memory->FreeTrack(m_data, __FILE__, __LINE__);
+	}
+
 	struct ModelLoaderStorage
 	{
 		float* Vertices;

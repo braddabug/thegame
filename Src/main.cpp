@@ -55,6 +55,8 @@ int main(int argc, char* argv[])
 	memset(&gd, 0, sizeof(GlobalData));
 	gd.Memory = g_memory;
 
+	MemoryManagerInternal::Initialize();
+
 	// create the log data
 	gd.Log = (LogData*)mem.AllocTrack(sizeof(LogData), __FILE__, __LINE__);
 	memset(gd.Log, 0, sizeof(LogData));
@@ -223,8 +225,14 @@ end:
 
 	WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Bye! Hope you had fun!");
 
+	for (uint32 i = 0; i < LogData::NumLinePages; i++)
+		g_memory->FreeTrack(gd.Log->LineDataPages[i], __FILE__, __LINE__);
+	g_memory->FreeTrack(gd.Log, __FILE__, __LINE__);
+
 	size_t memoryUsage;
 	MemoryManagerInternal::GetMemoryUsage(&memoryUsage);
+	MemoryManagerInternal::DumpReport("memory.json");
+	MemoryManagerInternal::Shutdown();
 
 	printf("Memory usage at exit: %u\n", (uint32)memoryUsage);
 
