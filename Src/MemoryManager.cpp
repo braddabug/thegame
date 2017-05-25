@@ -148,6 +148,11 @@ namespace MemoryManagerInternal
 
 	void* Realloc(void* original, size_t amount)
 	{
+		return ReallocTrack(original, amount, nullptr, 0);
+	}
+
+	void* ReallocTrack(void* original, size_t amount, const char* filename, int line)
+	{
 		// TODO: track used memory
 
 		return realloc(original, amount);

@@ -119,7 +119,8 @@ namespace Graphics
 					//float ny = attrib.normals[3*idx.normal_index+1];
 					//float nz = attrib.normals[3*idx.normal_index+2];
 					vtx.U = attrib.texcoords[2 * idx.texcoord_index + 0];
-					vtx.V = 1.0f - attrib.texcoords[2 * idx.texcoord_index + 1];
+					//vtx.V = 1.0f - attrib.texcoords[2 * idx.texcoord_index + 1];
+					vtx.V = attrib.texcoords[2 * idx.texcoord_index + 1];
 
 					vertices[vertexCursor++] = vtx;
 				}
@@ -302,9 +303,8 @@ namespace Graphics
 		return true;
 	}
 
-	void Model::Render(Nxna::Graphics::GraphicsDevice* device, Nxna::Matrix* modelview, Model* models, uint32 numModels)
+	void Model::Render(Nxna::Graphics::GraphicsDevice* device, Nxna::Matrix* modelview, Model* models, uint32 numModels, size_t stride)
 	{
-		
 		device->SetBlendState(nullptr);
 		device->SetDepthStencilState(nullptr);
 		device->SetSamplerState(0, &m_data->SamplerState);
@@ -314,14 +314,16 @@ namespace Graphics
 
 		for (uint32 i = 0; i < numModels; i++)
 		{
-			device->SetRasterizerState(&models[i].RasterState);
-			device->SetVertexBuffer(&models[i].Vertices, 0, models[i].VertexStride);
-			device->SetShaderPipeline(&models[i].Pipeline);
+			auto model = (Model*)((uint8*)models + i * stride);
 
-			for (uint32 j = 0; j < models[i].NumMeshes; j++)
+			device->SetRasterizerState(&model->RasterState);
+			device->SetVertexBuffer(&model->Vertices, 0, model->VertexStride);
+			device->SetShaderPipeline(&model->Pipeline);
+
+			for (uint32 j = 0; j < model->NumMeshes; j++)
 			{
-				device->BindTexture(&models[i].Textures[models[i].Meshes[j].TextureIndex], 0);
-				device->DrawPrimitives(Nxna::Graphics::PrimitiveType::TriangleList, models[i].Meshes[j].FirstIndex, models[i].Meshes[j].NumTriangles);
+				device->BindTexture(&model->Textures[model->Meshes[j].TextureIndex], 0);
+				device->DrawPrimitives(Nxna::Graphics::PrimitiveType::TriangleList, model->Meshes[j].FirstIndex, model->Meshes[j].NumTriangles);
 			}
 		}
 	}

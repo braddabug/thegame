@@ -23,12 +23,16 @@
 #include "Content/ContentLoader.cpp"
 #include "Content/ContentManager.cpp"
 #include "Audio/AudioEngine.cpp"
+#include "Game/SceneManager.cpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "Graphics/tiny_obj_loader.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "Graphics/stb_image.h"
+
+#define LIGHTMAPPER_IMPLEMENTATION
+#include "Graphics/lightmapper.h"
 
 #endif
 

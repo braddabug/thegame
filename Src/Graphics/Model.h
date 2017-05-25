@@ -43,7 +43,7 @@ namespace Graphics
 		static bool LoadObj(Content::ContentLoaderParams* params);
 		static bool FinalizeLoadObj(Content::ContentLoaderParams* params);
 
-		static void Render(Nxna::Graphics::GraphicsDevice* device, Nxna::Matrix* modelview, Model* models, uint32 numModels);
+		static void Render(Nxna::Graphics::GraphicsDevice* device, Nxna::Matrix* modelview, Model* models, uint32 numModels, size_t stride = sizeof(Model));
 	};
 }
 

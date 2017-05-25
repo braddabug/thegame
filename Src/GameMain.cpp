@@ -9,6 +9,7 @@
 #include "Graphics/TextureLoader.h"
 #include "Content/ContentManager.h"
 #include "Audio/AudioEngine.h"
+#include "Game/SceneManager.h"
 #include "MemoryManager.h"
 
 
@@ -62,6 +63,7 @@ void LibLoaded(GlobalData* data, bool initial)
 	Content::ContentLoader::SetGlobalData(&data->ContentLData, g_device);
 	Graphics::Model::SetGlobalData(&data->ModelData);
 	Graphics::TextureLoader::SetGlobalData(&data->TextureLoaderData, g_device);
+	Game::SceneManager::SetGlobalData(&data->SceneData, g_device);
 }
 
 int Init(WindowInfo* window)
@@ -90,9 +92,18 @@ int Init(WindowInfo* window)
 	//if (c != Content::ContentState::Loaded)
 	//	return -1;
 
-	auto c = Content::ContentLoader::BeginLoad("Content/Models/Shark.obj", Content::LoaderType::ModelObj, &m, &mj);
-	if (c != Content::ContentState::Incomplete)
+	//auto c = Content::ContentLoader::BeginLoad("Content/Models/Shark.obj", Content::LoaderType::ModelObj, &m, &mj);
+	//auto c = Content::ContentLoader::BeginLoad("Content/Models/out.obj", Content::LoaderType::ModelObj, &m, &mj);
+	//if (c != Content::ContentState::Incomplete)
+	//	return -1;
+
+	if (Content::ContentLoader::Load("Content/Models/out.obj", Content::LoaderType::ModelObj, &m) != Content::ContentState::Loaded)
 		return -1;
+	Game::SceneDesc scene = {};
+	Game::SceneModelDesc models[] = { &m, nullptr, {0,0,0}, {0,0,0} };
+	scene.NumModels = 1;
+	scene.Models = models;
+	Game::SceneManager::CreateScene(&scene);
 
 	return 0;
 }
@@ -112,6 +123,7 @@ void Shutdown()
 	g_memory->FreeTrack(g_inputState, __FILE__, __LINE__);
 	g_memory->FreeTrack(g_device, __FILE__, __LINE__);
 
+	Game::SceneManager::Shutdown();
 	Graphics::Model::Shutdown();
 	Graphics::TextureLoader::Shutdown();
 	Content::ContentLoader::Shutdown();
@@ -128,6 +140,7 @@ void Shutdown()
 }
 
 float rotation = 0;
+float distance = 10.0f;
 void Tick()
 {
 	JobQueue::Tick();
@@ -138,13 +151,15 @@ void Tick()
 	SpriteBatchHelper sb;
 
 	rotation = g_inputState->MouseX * 0.01f;
-	Nxna::Vector2 cameraPos = Nxna::Vector2(0, 10.0f).Rotate(rotation);
+	distance = 10.0f + g_inputState->MouseY * 0.1f;
+	Nxna::Vector2 cameraPos = Nxna::Vector2(0, distance).Rotate(rotation);
 	Nxna::Matrix projection = Nxna::Matrix::CreatePerspectiveFieldOfView(60.0f * 0.0174533f, 640 / (float)480, 0.5f, 1000.0f);
 	Nxna::Matrix view = Nxna::Matrix::CreateLookAt(Nxna::Vector3(cameraPos.X, 0, cameraPos.Y), Nxna::Vector3(0, 0, 0), Nxna::Vector3(0, 1.0f, 0));
 	auto transform = view * projection;
 	
-	if (mj.Result == JobResult::Completed)
-		Graphics::Model::Render(g_device, &transform, &m, 1);
+	Game::SceneManager::Render(&transform);
+	//if (mj.Result == JobResult::Completed)
+		//Graphics::Model::Render(g_device, &transform, &m, 1);
 
 	sb.Begin();
 	Gui::TextPrinter::PrintScreen(&sb, 0, 20, Gui::FontType::Default, "Hello, world!");

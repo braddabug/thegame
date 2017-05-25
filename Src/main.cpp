@@ -49,6 +49,7 @@ int main(int argc, char* argv[])
 	mem.Alloc = MemoryManagerInternal::Alloc;
 	mem.AllocTrack = MemoryManagerInternal::AllocTrack;
 	mem.Realloc = MemoryManagerInternal::Realloc;
+	mem.ReallocTrack = MemoryManagerInternal::ReallocTrack;
 	mem.Free = MemoryManagerInternal::Free;
 	mem.FreeTrack = MemoryManagerInternal::FreeTrack;
 

@@ -28,6 +28,11 @@ namespace Audio
 	struct AudioEngineData;
 }
 
+namespace Game
+{
+	struct SceneManagerData;
+}
+
 namespace Nxna
 {
 namespace Graphics
@@ -59,6 +64,7 @@ struct GlobalData
 	Content::ContentLoaderData* ContentLData;
 	Graphics::ModelData* ModelData;
 	Graphics::TextureLoaderData* TextureLoaderData;
+	Game::SceneManagerData* SceneData;
 };
 
 
