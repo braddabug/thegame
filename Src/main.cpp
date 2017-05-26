@@ -41,6 +41,86 @@ void LocalHandleEvent(ExternalEvent e)
 	GAME_LIB_CALL(HandleExternalEvent)(e);
 }
 
+Nxna::Input::Key ConvertSDLKey(SDL_Keycode key)
+{
+	switch (key)
+	{
+	case SDLK_BACKSPACE:
+		return Nxna::Input::Key::Back;
+	case SDLK_RETURN:
+		return Nxna::Input::Key::Enter;
+	case SDLK_ESCAPE:
+		return Nxna::Input::Key::Escape;
+	case SDLK_SPACE:
+		return Nxna::Input::Key::Space;
+	case SDLK_BACKQUOTE:
+		return Nxna::Input::Key::OemTilde;
+	case SDLK_LSHIFT:
+		return Nxna::Input::Key::LeftShift;
+	case SDLK_RSHIFT:
+		return Nxna::Input::Key::RightShift;
+	case SDLK_LCTRL:
+		return Nxna::Input::Key::LeftControl;
+	case SDLK_RCTRL:
+		return Nxna::Input::Key::RightControl;
+	case SDLK_UP:
+		return Nxna::Input::Key::Up;
+	case SDLK_DOWN:
+		return Nxna::Input::Key::Down;
+	case SDLK_RIGHT:
+		return Nxna::Input::Key::Right;
+	case SDLK_LEFT:
+		return Nxna::Input::Key::Left;
+	case SDLK_PERIOD:
+		return Nxna::Input::Key::OemPeriod;
+	case SDLK_SLASH:
+		return Nxna::Input::Key::OemQuestion;
+	case SDLK_PLUS:
+		return Nxna::Input::Key::OemPlus;
+	case SDLK_MINUS:
+		return Nxna::Input::Key::OemMinus;
+	case SDLK_EQUALS:
+		return Nxna::Input::Key::OemPlus;
+	case SDLK_QUOTE:
+		return Nxna::Input::Key::OemQuotes;
+	case SDLK_SEMICOLON:
+		return Nxna::Input::Key::OemSemicolon;
+	case SDLK_BACKSLASH:
+		return Nxna::Input::Key::OemBackslash;
+	case SDLK_F1:
+		return Nxna::Input::Key::F1;
+	case SDLK_F2:
+		return Nxna::Input::Key::F2;
+	case SDLK_F3:
+		return Nxna::Input::Key::F3;
+	case SDLK_F4:
+		return Nxna::Input::Key::F4;
+	case SDLK_F5:
+		return Nxna::Input::Key::F5;
+	case SDLK_F6:
+		return Nxna::Input::Key::F6;
+	case SDLK_F7:
+		return Nxna::Input::Key::F7;
+	case SDLK_F8:
+		return Nxna::Input::Key::F8;
+	case SDLK_F9:
+		return Nxna::Input::Key::F9;
+	case SDLK_F10:
+		return Nxna::Input::Key::F10;
+	case SDLK_F11:
+		return Nxna::Input::Key::F11;
+	case SDLK_F12:
+		return Nxna::Input::Key::F12;
+	default:
+		if (key >= SDLK_a && key <= SDLK_z)
+			return (Nxna::Input::Key)((int)Nxna::Input::Key::A + (key - SDLK_a));
+		if (key >= SDLK_0 && key <= SDLK_9)
+			return (Nxna::Input::Key)((int)Nxna::Input::Key::D0 + (key - SDLK_0));
+
+		return Nxna::Input::Key::None;
+	}
+}
+
 int main(int argc, char* argv[])
 {
 	MemoryManager mem;
@@ -177,7 +257,7 @@ int main(int argc, char* argv[])
 			case SDL_MOUSEBUTTONUP:
 			{
 				ExternalEvent ee = {};
-				ee.Type = ExternalEventType::MouseButtonDown;
+				ee.Type = ExternalEventType::MouseButtonUp;
 				ee.MouseButton.Button = e.button.button;
 				LocalHandleEvent(ee);
 			}
@@ -196,6 +276,7 @@ int main(int argc, char* argv[])
 				ee.Type = ExternalEventType::KeyboardButtonDown;
 				ee.KeyboardButton.PlatformKey = e.key.keysym.scancode;
 				ee.KeyboardButton.ConvertedKey = e.key.keysym.sym;
+				ee.KeyboardButton.Key = ConvertSDLKey(e.key.keysym.sym);
 				LocalHandleEvent(ee);
 			}
 				break;
@@ -205,6 +286,7 @@ int main(int argc, char* argv[])
 				ee.Type = ExternalEventType::KeyboardButtonUp;
 				ee.KeyboardButton.PlatformKey = e.key.keysym.scancode;
 				ee.KeyboardButton.ConvertedKey = e.key.keysym.sym;
+				ee.KeyboardButton.Key = ConvertSDLKey(e.key.keysym.sym);
 				LocalHandleEvent(ee);
 			}
 			break;

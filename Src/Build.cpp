@@ -10,6 +10,7 @@
 #if defined GAME_ENABLE_HOTLOAD_DLL || !defined GAME_ENABLE_HOTLOAD
 // monolithic and game lib files
 
+#include "Utils.cpp"
 #include "GameMain.cpp"
 #include "Logging.cpp"
 #include "StringManager.cpp"

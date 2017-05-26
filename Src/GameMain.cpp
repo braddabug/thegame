@@ -44,6 +44,7 @@ void LibLoaded(GlobalData* data, bool initial)
 	if (data->Input == nullptr)
 	{
 		g_inputState = (Nxna::Input::InputState*)g_memory->AllocTrack(sizeof(Nxna::Input::InputState), __FILE__, __LINE__);
+		memset(g_inputState, 0, sizeof(Nxna::Input::InputState));
 		data->Input = g_inputState;
 	}
 	else
@@ -139,8 +140,12 @@ void Shutdown()
 	Nxna::Graphics::GraphicsDevice::DestroyGraphicsDevice(g_device);
 }
 
-float rotation = 0;
-float distance = 10.0f;
+
+Nxna::Vector3 cameraPosition(0, 2.0f, 100);
+float cameraPitch = 0;
+float cameraYaw = 0;
+
+
 void Tick()
 {
 	JobQueue::Tick();
@@ -150,14 +155,81 @@ void Tick()
 
 	SpriteBatchHelper sb;
 
+
+	// update camera
+	Nxna::Matrix cameraTransform;
+	{
+		bool upb = Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::Up) ||
+			Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::W);
+		bool downb = Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::Down) ||
+			Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::S);
+		bool leftb = Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::Left) ||
+			Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::A);
+		bool rightb = Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::Down) ||
+			Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::D);
+		bool mlb = Nxna::Input::InputState::IsMouseButtonDown(g_inputState, 1);
+		bool mrb = Nxna::Input::InputState::IsMouseButtonDown(g_inputState, 3);
+
+		cameraPitch = Nxna::MathHelper::Clamp(cameraPitch, -Nxna::Pi, Nxna::Pi);
+
+		Nxna::Quaternion yawq = Nxna::Quaternion::CreateFromYawPitchRoll(cameraYaw, cameraPitch, 0);
+
+		Nxna::Vector3 forward = Nxna::Vector3::Forward;
+		Nxna::Vector3 up = Nxna::Vector3::Up;
+		Nxna::Vector3 right = Nxna::Vector3::Right;
+
+		Nxna::Quaternion::Multiply(yawq, forward, forward);
+		Nxna::Quaternion::Multiply(yawq, up, up);
+		Nxna::Quaternion::Multiply(yawq, right, right);
+
+		if (mrb && mlb)
+		{
+			// strafe (straif? straife? strayph? streigh?)
+			cameraPosition.Y -= g_inputState->RelMouseY;
+			cameraPosition += right * g_inputState->RelMouseX;
+		}
+		else if (mrb)
+		{
+			// move
+			cameraPosition -= forward * g_inputState->RelMouseY;
+			cameraYaw -= g_inputState->RelMouseX * 0.01f;
+		}
+		else if (mlb)
+		{
+			// look around
+			cameraPitch -= g_inputState->RelMouseY * 0.01f;
+			cameraYaw -= g_inputState->RelMouseX * 0.01f;
+		}
+
+		if (upb)
+			cameraPosition += forward;
+		if (downb)
+			cameraPosition -= forward;
+		if (leftb || rightb)
+		{
+			
+			
+
+			if (leftb)
+				cameraPosition -= right;
+			if (rightb)
+				cameraPosition += right;
+		}
+
+		auto lookAt = Nxna::Matrix::CreateLookAt(cameraPosition, cameraPosition + forward, up);
+		Nxna::Matrix projection = Nxna::Matrix::CreatePerspectiveFieldOfView(60.0f * 0.0174533f, 640 / (float)480, 0.5f, 1000.0f);
+		cameraTransform = lookAt * projection;
+	}
+
+	/*
 	rotation = g_inputState->MouseX * 0.01f;
 	distance = 10.0f + g_inputState->MouseY * 0.1f;
 	Nxna::Vector2 cameraPos = Nxna::Vector2(0, distance).Rotate(rotation);
-	Nxna::Matrix projection = Nxna::Matrix::CreatePerspectiveFieldOfView(60.0f * 0.0174533f, 640 / (float)480, 0.5f, 1000.0f);
-	Nxna::Matrix view = Nxna::Matrix::CreateLookAt(Nxna::Vector3(cameraPos.X, 0, cameraPos.Y), Nxna::Vector3(0, 0, 0), Nxna::Vector3(0, 1.0f, 0));
-	auto transform = view * projection;
 	
-	Game::SceneManager::Render(&transform);
+	Nxna::Matrix view = Nxna::Matrix::CreateLookAt(Nxna::Vector3(cameraPos.X, 0, cameraPos.Y), Nxna::Vector3(0, 0, 0), Nxna::Vector3(0, 1.0f, 0));
+	auto transform = view * projection;*/
+	
+	Game::SceneManager::Render(&cameraTransform);
 	//if (mj.Result == JobResult::Completed)
 		//Graphics::Model::Render(g_device, &transform, &m, 1);
 
@@ -185,10 +257,10 @@ void HandleExternalEvent(ExternalEvent e)
 		Nxna::Input::InputState::InjectMouseButtonEvent(g_inputState, false, e.MouseButton.Button);
 		break;
 	case ExternalEventType::KeyboardButtonDown:
-		//Nxna::Input::InputState::InjectKeyEvent(g_inputState, true, e.KeyboardButton.PlatformKey);
+		Nxna::Input::InputState::InjectKeyEvent(g_inputState, true, e.KeyboardButton.Key);
 		break;
 	case ExternalEventType::KeyboardButtonUp:
-		//Nxna::Input::InputState::InjectKeyEvent(g_inputState, false, e.KeyboardButton.PlatformKey);
+		Nxna::Input::InputState::InjectKeyEvent(g_inputState, false, e.KeyboardButton.Key);
 		break;
 	}
 }

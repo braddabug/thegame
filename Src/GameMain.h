@@ -35,6 +35,7 @@ struct ExternalEvent
 			unsigned int PlatformKey;
 			unsigned int ConvertedKey;
 			unsigned int UnicodeCharacter;
+			Nxna::Input::Key Key;
 		} KeyboardButton;
 	};
 };

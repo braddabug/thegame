@@ -1,13 +1,17 @@
 #include "SceneManager.h"
 #include "../Graphics/Model.h"
 #include "../MemoryManager.h"
+#include "../Utils.h"
 
 namespace Game
 {
 	struct SceneManagerData
 	{
 		uint32 NumModels;
-		SceneModelDesc* Models;
+		static const uint32 MaxModels = 10;
+		uint32 ModelNameHash[MaxModels];
+		Nxna::Matrix ModelTransforms[MaxModels];
+		Graphics::Model Models[MaxModels];
 	};
 
 	SceneManagerData* SceneManager::m_data = nullptr;
@@ -27,22 +31,29 @@ namespace Game
 
 	void SceneManager::Shutdown()
 	{
-		if (m_data->Models) g_memory->FreeTrack(m_data->Models, __FILE__, __LINE__);
 		g_memory->FreeTrack(m_data, __FILE__, __LINE__);
 		m_data = nullptr;
 	}
 
 	void SceneManager::CreateScene(SceneDesc* desc)
 	{
+		assert(desc->NumModels <= SceneManagerData::MaxModels);
 		// TODO: do we own the models or not?
 
 		m_data->NumModels = desc->NumModels;
-		m_data->Models = (SceneModelDesc*)g_memory->ReallocTrack(m_data->Models, sizeof(SceneModelDesc) * desc->NumModels, __FILE__, __LINE__);
-		memcpy(m_data->Models, desc->Models, sizeof(SceneManagerData) * desc->NumModels);
+		for (uint32 i = 0; i < desc->NumModels; i++)
+		{
+			if (desc->Models[i].Name == nullptr)
+				m_data->ModelNameHash[i] = 0;
+			else
+				m_data->ModelNameHash[i] = Utils::CalcHash((const uint8*)desc->Models[i].Name);
+
+			m_data->Models[i] = *desc->Models[i].Model;
+		}
 	}
 
 	void SceneManager::Render(Nxna::Matrix* modelview)
 	{
-		Graphics::Model::Render(m_device, modelview, m_data->Models[0].Model, m_data->NumModels, sizeof(SceneModelDesc));
+		Graphics::Model::Render(m_device, modelview, m_data->Models, m_data->NumModels);
 	}
 }
