@@ -27,8 +27,7 @@ namespace Game
 
 	void SceneManager::Shutdown()
 	{
-		// TODO: free the memory once Realloc() is working!
-		// if (m_data->Models) g_memory->FreeTrack(m_data->Models, __FILE__, __LINE__);
+		if (m_data->Models) g_memory->FreeTrack(m_data->Models, __FILE__, __LINE__);
 		g_memory->FreeTrack(m_data, __FILE__, __LINE__);
 		m_data = nullptr;
 	}

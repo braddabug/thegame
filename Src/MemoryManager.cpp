@@ -153,9 +153,54 @@ namespace MemoryManagerInternal
 
 	void* ReallocTrack(void* original, size_t amount, const char* filename, int line)
 	{
-		// TODO: track used memory
+		if (original == nullptr)
+			return AllocTrack(amount, filename, line);
 
-		return realloc(original, amount);
+		size_t amountToAllocate = sizeof(AllocInfo) + 64 + amount + 64;
+
+		AllocInfo* info = (AllocInfo*)((uint8*)original - 64 - sizeof(AllocInfo));
+
+		// check the sentinels
+		for (uint8* mem = (uint8*)original - 64; mem < original; mem++)
+			if (*mem != 0xb0)
+				throw "Memory is corrupt";
+		for (uint8* mem = (uint8*)original + info->RequestedSize; mem < (uint8*)original + info->RequestedSize + 64; mem++)
+			if (*mem != 0xb0)
+				throw "Memory is corrupt";
+
+
+		void* memory = realloc(info, amountToAllocate);
+
+		AllocInfo* newinfo = (AllocInfo*)memory;
+
+		// track memory usage
+		g_actualMemoryUsed += amountToAllocate - newinfo->TotalSize;
+		g_requestedMemoryUsed += amount - newinfo->RequestedSize;
+		
+		newinfo->RequestedSize = amount;
+		newinfo->TotalSize = amountToAllocate;
+		
+		if (filename != nullptr)
+		{
+#ifdef _WIN32
+			strncpy_s(newinfo->Filename, filename, _TRUNCATE);
+#else
+			strncpy(newinfo->Filename, filename, 128);
+			newinfo->Filename[127] = 0;
+#endif
+		}
+		else
+			newinfo->Filename[0] = 0;
+
+		newinfo->Line = line;
+		newinfo->Mini->RequestedSize = amount;
+
+		// set the sentinel values
+		memset((uint8*)memory + sizeof(AllocInfo) + 64 + amount, 0xb0, 64);
+
+		
+
+		return (uint8*)memory + sizeof(AllocInfo) + 64;
 	}
 
 	void Free(void* memory)
