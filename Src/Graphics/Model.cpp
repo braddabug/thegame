@@ -95,6 +95,9 @@ namespace Graphics
 		result->NumMeshes = (uint32)shapes.size();
 		result->Meshes = new ModelMesh[shapes.size()];
 
+		float minv[] = { 1e10, 1e10, 1e10 };
+		float maxv[] = { -1e10, -1e10, -1e10 };
+
 		// Loop over shapes
 		uint32 vertexCursor = 0;
 		for (size_t s = 0; s < shapes.size(); s++)
@@ -123,6 +126,13 @@ namespace Graphics
 					vtx.V = attrib.texcoords[2 * idx.texcoord_index + 1];
 
 					vertices[vertexCursor++] = vtx;
+
+					if (vtx.X > maxv[0]) maxv[0] = vtx.X;
+					if (vtx.Y > maxv[1]) maxv[1] = vtx.Y;
+					if (vtx.Z > maxv[2]) maxv[2] = vtx.Z;
+					if (vtx.X < minv[0]) minv[0] = vtx.X;
+					if (vtx.Y < minv[1]) minv[1] = vtx.Y;
+					if (vtx.Z < minv[2]) minv[2] = vtx.Z;
 				}
 
 				index_offset += 3;
@@ -133,6 +143,13 @@ namespace Graphics
 
 			result->Meshes[s].NumTriangles = (uint32)shapes[s].mesh.num_face_vertices.size();
 		}
+
+		result->BoundingBox[0] = minv[0];
+		result->BoundingBox[1] = minv[1];
+		result->BoundingBox[2] = minv[2];
+		result->BoundingBox[3] = maxv[0];
+		result->BoundingBox[4] = maxv[1];
+		result->BoundingBox[5] = maxv[2];
 
 		ModelLoaderStorage* storage = (ModelLoaderStorage*)params->LocalDataStorage;
 		storage->Vertices = (float*)vertices;
@@ -220,77 +237,6 @@ namespace Graphics
 
 		result->VertexStride = sizeof(float) * 5;
 
-		const char* glsl_vertex = R"(#version 420
-			uniform dataz { mat4 ModelViewProjection; };
-			layout(location = 0) in vec3 position;
-			layout(location = 1) in vec2 texCoords;
-			out VertexOutput
-			{
-				vec2 o_diffuseCoords;
-			};
-			out gl_PerVertex { vec4 gl_Position; };
-			void main()
-			{
-				gl_Position = ModelViewProjection * vec4(position, 1.0);
-				o_diffuseCoords = texCoords;
-			}
-		)";
-
-		const char* glsl_frag = R"(
-			DECLARE_SAMPLER2D(0, Diffuse);
-			in VertexOutput
-			{
-				vec2 o_diffuseCoords;
-			};
-			out vec4 outputColor;
-			
-			void main()
-			{
-				float v = o_diffuseCoords.x;
-				outputColor = texture(Diffuse, o_diffuseCoords);
-			}
-		)";
-
-		Nxna::Graphics::InputElement inputElements[] = {
-			{ 0, Nxna::Graphics::InputElementFormat::Vector3, Nxna::Graphics::InputElementUsage::Position, 0 },
-			{ 3 * sizeof(float), Nxna::Graphics::InputElementFormat::Vector2, Nxna::Graphics::InputElementUsage::TextureCoordinate, 0 }
-		};
-
-		Nxna::Graphics::ShaderBytecode vertexShaderBytecode, pixelShaderBytecode;
-		vertexShaderBytecode.Bytecode = glsl_vertex;
-		vertexShaderBytecode.BytecodeLength = sizeof(glsl_vertex);
-		pixelShaderBytecode.Bytecode = glsl_frag;
-		pixelShaderBytecode.BytecodeLength = sizeof(glsl_frag);
-
-		Nxna::Graphics::Shader vs, ps;
-		if (gd->CreateShader(Nxna::Graphics::ShaderType::Vertex, vertexShaderBytecode.Bytecode, vertexShaderBytecode.BytecodeLength, &vs) != Nxna::NxnaResult::Success)
-		{
-			printf("Unable to create vertex shader\n");
-			delete[] result->Meshes;
-			params->State = Content::ContentState::UnknownError;
-			return false;
-		}
-		if (gd->CreateShader(Nxna::Graphics::ShaderType::Pixel, pixelShaderBytecode.Bytecode, pixelShaderBytecode.BytecodeLength, &ps) != Nxna::NxnaResult::Success)
-		{
-			printf("Unable to create pixel shader\n");
-			delete[] result->Meshes;
-			return false;
-		}
-
-		// now that the shaders have been created, put them into a ShaderPipeline
-		Nxna::Graphics::ShaderPipelineDesc spDesc = {};
-		spDesc.VertexShader = &vs;
-		spDesc.PixelShader = &ps;
-		spDesc.VertexShaderBytecode = vertexShaderBytecode;
-		spDesc.VertexElements = inputElements;
-		spDesc.NumElements = 2;
-		if (gd->CreateShaderPipeline(&spDesc, &result->Pipeline) != Nxna::NxnaResult::Success)
-		{
-			printf("Unable to create shader pipeline\n");
-			delete[] result->Meshes;
-			return false;
-		}
-
 		Nxna::Graphics::RasterizerStateDesc rsDesc = NXNA_RASTERIZERSTATEDESC_DEFAULT;
 		rsDesc.FrontCounterClockwise = true;
 		if (gd->CreateRasterizerState(&rsDesc, &result->RasterState) != Nxna::NxnaResult::Success)
@@ -318,12 +264,14 @@ namespace Graphics
 
 			device->SetRasterizerState(&model->RasterState);
 			device->SetVertexBuffer(&model->Vertices, 0, model->VertexStride);
-			device->SetShaderPipeline(&model->Pipeline);
+
+			auto pipeline = ShaderLibrary::GetShader(ShaderType::BasicTextured);
+			device->SetShaderPipeline(pipeline);
 
 			for (uint32 j = 0; j < model->NumMeshes; j++)
 			{
 				device->BindTexture(&model->Textures[model->Meshes[j].TextureIndex], 0);
-				device->DrawPrimitives(Nxna::Graphics::PrimitiveType::TriangleList, model->Meshes[j].FirstIndex, model->Meshes[j].NumTriangles);
+				device->Draw(Nxna::Graphics::PrimitiveType::TriangleList, model->Meshes[j].FirstIndex, model->Meshes[j].NumTriangles * 3);
 			}
 		}
 	}

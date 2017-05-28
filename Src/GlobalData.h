@@ -21,6 +21,7 @@ namespace Graphics
 {
 	struct ModelData;
 	struct TextureLoaderData;
+	struct ShaderLibraryData;
 }
 
 namespace Audio
@@ -64,6 +65,7 @@ struct GlobalData
 	Content::ContentLoaderData* ContentLData;
 	Graphics::ModelData* ModelData;
 	Graphics::TextureLoaderData* TextureLoaderData;
+	Graphics::ShaderLibraryData* ShaderLibraryData;
 	Game::SceneManagerData* SceneData;
 };
 

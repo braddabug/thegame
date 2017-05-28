@@ -7,6 +7,7 @@
 #include "FileSystem.h"
 #include "Graphics/Model.h"
 #include "Graphics/TextureLoader.h"
+#include "Graphics/ShaderLibrary.h"
 #include "Content/ContentManager.h"
 #include "Audio/AudioEngine.h"
 #include "Game/SceneManager.h"
@@ -64,6 +65,7 @@ void LibLoaded(GlobalData* data, bool initial)
 	Content::ContentLoader::SetGlobalData(&data->ContentLData, g_device);
 	Graphics::Model::SetGlobalData(&data->ModelData);
 	Graphics::TextureLoader::SetGlobalData(&data->TextureLoaderData, g_device);
+	Graphics::ShaderLibrary::SetGlobalData(&data->ShaderLibraryData, g_device);
 	Game::SceneManager::SetGlobalData(&data->SceneData, g_device);
 }
 
@@ -85,6 +87,9 @@ int Init(WindowInfo* window)
 		return -1;
 
 	SpriteBatchHelper::Init(g_device);
+
+	if (Graphics::ShaderLibrary::LoadCoreShaders() == false)
+		return -1;
 
 	if (Audio::AudioEngine::Init() == false)
 		return -1;

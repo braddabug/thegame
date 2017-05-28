@@ -33,7 +33,8 @@ namespace Graphics
 		uint32 VertexStride;
 		Nxna::Graphics::VertexBuffer Vertices;
 		Nxna::Graphics::RasterizerState RasterState;
-		Nxna::Graphics::ShaderPipeline Pipeline;
+
+		float BoundingBox[6];
 		
 		static ModelData* m_data;
 

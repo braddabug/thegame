@@ -220,7 +220,7 @@ public:
 			{
 				device->BindTexture(&m_sprites[spritesDrawn + currentSprite].Texture, 0);
 
-				device->DrawIndexedPrimitives(Nxna::Graphics::PrimitiveType::TriangleList, 0, 0, BATCH_SIZE * 4, currentSprite * 6, textureChanges[i] * 2);
+				device->DrawIndexed(Nxna::Graphics::PrimitiveType::TriangleList, 0, 0, BATCH_SIZE * 4, currentSprite * 6, textureChanges[i] * 2 * 3);
 				currentSprite += textureChanges[i];
 			}
 			spritesDrawn += spritesAdded;
