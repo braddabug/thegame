@@ -12,6 +12,8 @@ namespace Game
 		uint32 ModelNameHash[MaxModels];
 		Nxna::Matrix ModelTransforms[MaxModels];
 		Graphics::Model Models[MaxModels];
+
+		int SelectedModelIndex;
 	};
 
 	SceneManagerData* SceneManager::m_data = nullptr;
@@ -23,6 +25,8 @@ namespace Game
 		{
 			*data = (SceneManagerData*)g_memory->AllocTrack(sizeof(SceneManagerData), __FILE__, __LINE__);
 			memset(*data, 0, sizeof(SceneManagerData));
+
+			(*data)->SelectedModelIndex = 0;
 		}
 
 		m_device = device;
@@ -49,11 +53,49 @@ namespace Game
 				m_data->ModelNameHash[i] = Utils::CalcHash((const uint8*)desc->Models[i].Name);
 
 			m_data->Models[i] = *desc->Models[i].Model;
+			m_data->ModelTransforms[i] = Nxna::Matrix::Identity;
+		}
+	}
+
+	void SceneManager::Process()
+	{
+		if (g_globals->DevMode)
+		{
+			if (m_data->SelectedModelIndex >= 0)
+			{
+				if (Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::Left) &&
+					Nxna::Input::InputState::GetKeyTransitionCount(g_inputState, Nxna::Input::Key::Left) == 1)
+				{
+					m_data->ModelTransforms[m_data->SelectedModelIndex].M41 -= 1.0f;
+				}
+				if (Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::Right) &&
+					Nxna::Input::InputState::GetKeyTransitionCount(g_inputState, Nxna::Input::Key::Right) == 1)
+				{
+					m_data->ModelTransforms[m_data->SelectedModelIndex].M41 += 1.0f;
+				}
+			}
 		}
 	}
 
 	void SceneManager::Render(Nxna::Matrix* modelview)
 	{
-		Graphics::Model::Render(m_device, modelview, m_data->Models, m_data->NumModels);
+		Graphics::Model::BeginRender(m_device);
+
+		for (uint32 i = 0; i < m_data->NumModels; i++)
+		{
+			Nxna::Matrix transform = m_data->ModelTransforms[i] * *modelview;
+			Graphics::Model::Render(m_device, &transform, &m_data->Models[i]);
+
+			if (g_globals->DevMode)
+			{
+				Nxna::Color color(255, 255, 255);
+				if (m_data->SelectedModelIndex == i)
+				{
+					color.G = 0; color.B = 0;
+				}
+
+				Graphics::DrawUtils::DrawBoundingBox(m_data->Models[i].BoundingBox, &transform, color);
+			}
+		}
 	}
 }

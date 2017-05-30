@@ -79,6 +79,8 @@ namespace Game
 		static void Shutdown();
 
 		static void CreateScene(SceneDesc* desc);
+
+		static void Process();
 		static void Render(Nxna::Matrix* modelview);
 	};
 }

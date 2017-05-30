@@ -44,7 +44,14 @@ namespace Graphics
 		static bool LoadObj(Content::ContentLoaderParams* params);
 		static bool FinalizeLoadObj(Content::ContentLoaderParams* params);
 
-		static void Render(Nxna::Graphics::GraphicsDevice* device, Nxna::Matrix* modelview, Model* models, uint32 numModels, size_t stride = sizeof(Model));
+		enum RenderFlags
+		{
+			None = 0,
+			DrawBoundingBoxes = 1
+		};
+
+		static void BeginRender(Nxna::Graphics::GraphicsDevice* device);
+		static void Render(Nxna::Graphics::GraphicsDevice* device, Nxna::Matrix* transform, Model* model);
 	};
 }
 

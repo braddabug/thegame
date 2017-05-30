@@ -22,6 +22,7 @@
 #include "Graphics/Model.cpp"
 #include "Graphics/TextureLoader.cpp"
 #include "Graphics/ShaderLibrary.cpp"
+#include "Graphics/DrawUtils.cpp"
 #include "Content/ContentLoader.cpp"
 #include "Content/ContentManager.cpp"
 #include "Audio/AudioEngine.cpp"

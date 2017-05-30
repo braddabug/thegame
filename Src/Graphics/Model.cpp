@@ -1,6 +1,7 @@
 #include "Model.h"
 #include "tiny_obj_loader.h"
 #include "../StringManager.h"
+#include "DrawUtils.h"
 #include <sstream>
 
 namespace Graphics
@@ -249,30 +250,29 @@ namespace Graphics
 		return true;
 	}
 
-	void Model::Render(Nxna::Graphics::GraphicsDevice* device, Nxna::Matrix* modelview, Model* models, uint32 numModels, size_t stride)
+	void Model::BeginRender(Nxna::Graphics::GraphicsDevice* device)
 	{
 		device->SetBlendState(nullptr);
 		device->SetDepthStencilState(nullptr);
 		device->SetSamplerState(0, &m_data->SamplerState);
-		
-		device->UpdateConstantBuffer(m_data->Constants, modelview->C, 16 * sizeof(float));
+
 		device->SetConstantBuffer(m_data->Constants, 0);
+	}
 
-		for (uint32 i = 0; i < numModels; i++)
+	void Model::Render(Nxna::Graphics::GraphicsDevice* device, Nxna::Matrix* transform, Model* model)
+	{
+		device->UpdateConstantBuffer(m_data->Constants, transform->C, 16 * sizeof(float));
+
+		device->SetRasterizerState(&model->RasterState);
+		device->SetVertexBuffer(&model->Vertices, 0, model->VertexStride);
+
+		auto pipeline = ShaderLibrary::GetShader(ShaderType::BasicTextured);
+		device->SetShaderPipeline(pipeline);
+
+		for (uint32 j = 0; j < model->NumMeshes; j++)
 		{
-			auto model = (Model*)((uint8*)models + i * stride);
-
-			device->SetRasterizerState(&model->RasterState);
-			device->SetVertexBuffer(&model->Vertices, 0, model->VertexStride);
-
-			auto pipeline = ShaderLibrary::GetShader(ShaderType::BasicTextured);
-			device->SetShaderPipeline(pipeline);
-
-			for (uint32 j = 0; j < model->NumMeshes; j++)
-			{
-				device->BindTexture(&model->Textures[model->Meshes[j].TextureIndex], 0);
-				device->Draw(Nxna::Graphics::PrimitiveType::TriangleList, model->Meshes[j].FirstIndex, model->Meshes[j].NumTriangles * 3);
-			}
+			device->BindTexture(&model->Textures[model->Meshes[j].TextureIndex], 0);
+			device->Draw(Nxna::Graphics::PrimitiveType::TriangleList, model->Meshes[j].FirstIndex, model->Meshes[j].NumTriangles * 3);
 		}
 	}
 }

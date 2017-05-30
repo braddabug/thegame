@@ -22,6 +22,7 @@ namespace Graphics
 	struct ModelData;
 	struct TextureLoaderData;
 	struct ShaderLibraryData;
+	struct DrawUtilsData;
 }
 
 namespace Audio
@@ -46,12 +47,14 @@ namespace Input
 }
 }
 
+struct Globals;
 struct LogData;
 struct JobQueueData;
 struct MemoryManager;
 
 struct GlobalData
 {
+	Globals* Global;
 	MemoryManager* Memory;
 	LogData* Log;
 	JobQueueData* JobQueue;
@@ -66,6 +69,7 @@ struct GlobalData
 	Graphics::ModelData* ModelData;
 	Graphics::TextureLoaderData* TextureLoaderData;
 	Graphics::ShaderLibraryData* ShaderLibraryData;
+	Graphics::DrawUtilsData* DrawUtilsData;
 	Game::SceneManagerData* SceneData;
 };
 

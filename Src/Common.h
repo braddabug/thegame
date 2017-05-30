@@ -22,4 +22,20 @@ typedef const char* PersistantString;
 #define P_OUT_OPTIONAL
 #endif
 
+struct Globals
+{
+	bool DevMode;
+};
+
+namespace Nxna
+{
+namespace Input
+{
+	struct InputState;
+}
+}
+
+extern Globals* g_globals;
+extern Nxna::Input::InputState* g_inputState;
+
 #endif // COMMON_H

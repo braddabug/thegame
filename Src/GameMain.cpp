@@ -8,6 +8,7 @@
 #include "Graphics/Model.h"
 #include "Graphics/TextureLoader.h"
 #include "Graphics/ShaderLibrary.h"
+#include "Graphics/DrawUtils.h"
 #include "Content/ContentManager.h"
 #include "Audio/AudioEngine.h"
 #include "Game/SceneManager.h"
@@ -18,6 +19,7 @@
 Graphics::Model m;
 JobInfo mj;
 
+Globals* g_globals;
 Nxna::Graphics::GraphicsDevice* g_device;
 Nxna::Input::InputState* g_inputState;
 Content::ContentManager g_content;
@@ -31,6 +33,13 @@ void msg(Nxna::Graphics::GraphicsDeviceDebugMessage m)
 void LibLoaded(GlobalData* data, bool initial)
 {
 	g_memory = data->Memory;
+
+	if (data->Global == nullptr)
+	{
+		data->Global = NewObject<Globals>(__FILE__, __LINE__);
+		memset(data->Global, 0, sizeof(Globals));
+	}
+	g_globals = data->Global;
 
 	if (data->Device == nullptr)
 	{
@@ -66,11 +75,14 @@ void LibLoaded(GlobalData* data, bool initial)
 	Graphics::Model::SetGlobalData(&data->ModelData);
 	Graphics::TextureLoader::SetGlobalData(&data->TextureLoaderData, g_device);
 	Graphics::ShaderLibrary::SetGlobalData(&data->ShaderLibraryData, g_device);
+	Graphics::DrawUtils::SetGlobalData(&data->DrawUtilsData, g_device);
 	Game::SceneManager::SetGlobalData(&data->SceneData, g_device);
 }
 
 int Init(WindowInfo* window)
 {
+	g_globals->DevMode = true;
+
 	Nxna::Graphics::GraphicsDeviceDesc gdesc = {};
 	gdesc.Type = Nxna::Graphics::GraphicsDeviceType::OpenGl41;
 	gdesc.ScreenWidth = window->ScreenWidth;
@@ -164,17 +176,18 @@ void Tick()
 	// update camera
 	Nxna::Matrix cameraTransform;
 	{
+		bool shiftb = Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::LeftShift);
 		bool upb = Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::Up) ||
 			Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::W);
 		bool downb = Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::Down) ||
 			Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::S);
 		bool leftb = Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::Left) ||
 			Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::A);
-		bool rightb = Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::Down) ||
+		bool rightb = Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::Right) ||
 			Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::D);
 		bool mlb = Nxna::Input::InputState::IsMouseButtonDown(g_inputState, 1);
 		bool mrb = Nxna::Input::InputState::IsMouseButtonDown(g_inputState, 3);
-
+		
 		cameraPitch = Nxna::MathHelper::Clamp(cameraPitch, -Nxna::Pi, Nxna::Pi);
 
 		Nxna::Quaternion yawq = Nxna::Quaternion::CreateFromYawPitchRoll(cameraYaw, cameraPitch, 0);
@@ -206,19 +219,19 @@ void Tick()
 			cameraYaw -= g_inputState->RelMouseX * 0.01f;
 		}
 
-		if (upb)
-			cameraPosition += forward;
-		if (downb)
-			cameraPosition -= forward;
-		if (leftb || rightb)
+		if (shiftb)
 		{
-			
-			
-
-			if (leftb)
-				cameraPosition -= right;
-			if (rightb)
-				cameraPosition += right;
+			if (upb)
+				cameraPosition += forward;
+			if (downb)
+				cameraPosition -= forward;
+			if (leftb || rightb)
+			{
+				if (leftb)
+					cameraPosition -= right;
+				if (rightb)
+					cameraPosition += right;
+			}
 		}
 
 		auto lookAt = Nxna::Matrix::CreateLookAt(cameraPosition, cameraPosition + forward, up);
@@ -234,6 +247,7 @@ void Tick()
 	Nxna::Matrix view = Nxna::Matrix::CreateLookAt(Nxna::Vector3(cameraPos.X, 0, cameraPos.Y), Nxna::Vector3(0, 0, 0), Nxna::Vector3(0, 1.0f, 0));
 	auto transform = view * projection;*/
 	
+	Game::SceneManager::Process();
 	Game::SceneManager::Render(&cameraTransform);
 	//if (mj.Result == JobResult::Completed)
 		//Graphics::Model::Render(g_device, &transform, &m, 1);

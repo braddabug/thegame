@@ -32,7 +32,43 @@ namespace Graphics
 
 	bool ShaderLibrary::LoadCoreShaders()
 	{
-		const char* glsl_vertex = R"(#version 420
+		// basic white
+		{
+			const char* glsl_vertex = R"(#version 420
+			uniform dataz { mat4 ModelViewProjection; };
+			layout(location = 0) in vec3 position;
+			out VertexOutput
+			{
+				vec2 o_diffuseCoords;
+			};
+			out gl_PerVertex { vec4 gl_Position; };
+			void main()
+			{
+				gl_Position = ModelViewProjection * vec4(position, 1.0);
+			}
+		)";
+
+			const char* glsl_frag = R"(
+			layout(binding = 1) uniform dataz { vec4 Color; };
+			out vec4 outputColor;
+			
+			void main()
+			{
+				outputColor = Color;
+			}
+		)";
+
+			Nxna::Graphics::InputElement inputElements[] = {
+				{ 0, Nxna::Graphics::InputElementFormat::Vector3, Nxna::Graphics::InputElementUsage::Position, 0 },
+			};
+
+			if (createShader((const uint8*)glsl_vertex, sizeof(glsl_vertex), (const uint8*)glsl_frag, sizeof(glsl_frag), inputElements, 1, &m_data->Shaders[(int)ShaderType::BasicWhite]) == false)
+				return false;
+		}
+
+		// basic textured
+		{
+			const char* glsl_vertex = R"(#version 420
 			uniform dataz { mat4 ModelViewProjection; };
 			layout(location = 0) in vec3 position;
 			layout(location = 1) in vec2 texCoords;
@@ -48,7 +84,7 @@ namespace Graphics
 			}
 		)";
 
-		const char* glsl_frag = R"(
+			const char* glsl_frag = R"(
 			DECLARE_SAMPLER2D(0, Diffuse);
 			in VertexOutput
 			{
@@ -62,14 +98,15 @@ namespace Graphics
 				outputColor = texture(Diffuse, o_diffuseCoords);
 			}
 		)";
-		
-		Nxna::Graphics::InputElement inputElements[] = {
-			{ 0, Nxna::Graphics::InputElementFormat::Vector3, Nxna::Graphics::InputElementUsage::Position, 0 },
-			{ 3 * sizeof(float), Nxna::Graphics::InputElementFormat::Vector2, Nxna::Graphics::InputElementUsage::TextureCoordinate, 0 }
-		};
 
-		if (createShader((const uint8*)glsl_vertex, sizeof(glsl_vertex), (const uint8*)glsl_frag, sizeof(glsl_frag), inputElements, 3, &m_data->Shaders[(int)ShaderType::BasicTextured]) == false)
-			return false;
+			Nxna::Graphics::InputElement inputElements[] = {
+				{ 0, Nxna::Graphics::InputElementFormat::Vector3, Nxna::Graphics::InputElementUsage::Position, 0 },
+				{ 3 * sizeof(float), Nxna::Graphics::InputElementFormat::Vector2, Nxna::Graphics::InputElementUsage::TextureCoordinate, 0 }
+			};
+
+			if (createShader((const uint8*)glsl_vertex, sizeof(glsl_vertex), (const uint8*)glsl_frag, sizeof(glsl_frag), inputElements, 2, &m_data->Shaders[(int)ShaderType::BasicTextured]) == false)
+				return false;
+		}
 
 		return true;
 	}
