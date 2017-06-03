@@ -31,7 +31,10 @@ namespace Graphics
 		Nxna::Graphics::Texture2D* Textures;
 
 		uint32 VertexStride;
+		uint32 NumVertices;
+		uint32 NumIndices;
 		Nxna::Graphics::VertexBuffer Vertices;
+		Nxna::Graphics::IndexBuffer Indices;
 		Nxna::Graphics::RasterizerState RasterState;
 
 		float BoundingBox[6];

@@ -27,7 +27,7 @@ namespace Graphics
 	struct ModelLoaderStorage
 	{
 		float* Vertices;
-		uint32 NumVertices;
+		uint16* Indices;
 	};
 
 	bool Model::LoadObj(Content::ContentLoaderParams* params)
@@ -92,6 +92,7 @@ namespace Graphics
 			float U, V;
 		};
 		Vertex* vertices = new Vertex[numVertices];
+		uint16* indices = new uint16[numVertices];
 
 		result->NumMeshes = (uint32)shapes.size();
 		result->Meshes = new ModelMesh[shapes.size()];
@@ -136,7 +137,9 @@ namespace Graphics
 					if (vtx.Z < minv[2]) minv[2] = vtx.Z;
 				}
 
-				index_offset += 3;
+				indices[index_offset] = index_offset; index_offset++;
+				indices[index_offset] = index_offset; index_offset++;
+				indices[index_offset] = index_offset; index_offset++;
 
 				// per-face material
 				result->Meshes[s].TextureIndex = shapes[s].mesh.material_ids[f];
@@ -154,7 +157,10 @@ namespace Graphics
 
 		ModelLoaderStorage* storage = (ModelLoaderStorage*)params->LocalDataStorage;
 		storage->Vertices = (float*)vertices;
-		storage->NumVertices = numVertices;
+		result->NumVertices = numVertices;
+
+		storage->Indices = indices;
+		result->NumIndices = numVertices;
 
 		// load the textures
 		result->NumTextures = (uint32)materials.size();
@@ -224,17 +230,33 @@ namespace Graphics
 		ModelLoaderStorage* storage = (ModelLoaderStorage*)params->LocalDataStorage;
 
 		Nxna::Graphics::VertexBufferDesc vbDesc = {};
-		vbDesc.ByteLength = storage->NumVertices * sizeof(float) * 5;
+		vbDesc.ByteLength = result->NumVertices * sizeof(float) * 5;
 		vbDesc.InitialData = storage->Vertices;
-		vbDesc.InitialDataByteCount = storage->NumVertices * sizeof(float) * 5;
+		vbDesc.InitialDataByteCount = result->NumVertices * sizeof(float) * 5;
 		if (gd->CreateVertexBuffer(&vbDesc, &result->Vertices) != Nxna::NxnaResult::Success)
 		{
 			delete[] storage->Vertices;
+			delete[] storage->Indices;
 			delete[] result->Meshes;
 			params->State = Content::ContentState::UnknownError;
 			return false;
 		}
 		delete[] storage->Vertices;
+
+		Nxna::Graphics::IndexBufferDesc ibDesc = {};
+		ibDesc.ElementSize = Nxna::Graphics::IndexElementSize::SixteenBits;
+		ibDesc.NumElements = result->NumIndices;
+		ibDesc.InitialDataByteCount = sizeof(uint16) * result->NumIndices;
+		ibDesc.InitialData = storage->Indices;
+		if (gd->CreateIndexBuffer(&ibDesc, &result->Indices) != Nxna::NxnaResult::Success)
+		{
+			delete[] storage->Vertices;
+			delete[] storage->Indices;
+			delete[] result->Meshes;
+			params->State = Content::ContentState::UnknownError;
+			return false;
+		}
+		delete[] storage->Indices;
 
 		result->VertexStride = sizeof(float) * 5;
 
@@ -265,6 +287,7 @@ namespace Graphics
 
 		device->SetRasterizerState(&model->RasterState);
 		device->SetVertexBuffer(&model->Vertices, 0, model->VertexStride);
+		device->SetIndices(model->Indices);
 
 		auto pipeline = ShaderLibrary::GetShader(ShaderType::BasicTextured);
 		device->SetShaderPipeline(pipeline);
@@ -272,7 +295,7 @@ namespace Graphics
 		for (uint32 j = 0; j < model->NumMeshes; j++)
 		{
 			device->BindTexture(&model->Textures[model->Meshes[j].TextureIndex], 0);
-			device->Draw(Nxna::Graphics::PrimitiveType::TriangleList, model->Meshes[j].FirstIndex, model->Meshes[j].NumTriangles * 3);
+			device->DrawIndexed(Nxna::Graphics::PrimitiveType::TriangleList, 0, 0, model->NumVertices, model->Meshes[j].FirstIndex, model->Meshes[j].NumTriangles * 3);
 		}
 	}
 }
