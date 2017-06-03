@@ -121,6 +121,19 @@ int Init(WindowInfo* window)
 	Game::SceneModelDesc models[] = { &m, nullptr, {0,0,0}, {0,0,0} };
 	scene.NumModels = 1;
 	scene.Models = models;
+
+	Game::SceneLightDesc lights[1];
+	lights[0].Type = Game::LightType::Point;
+	lights[0].Point.Position[0] = 0;
+	lights[0].Point.Position[1] = 100.0f;
+	lights[0].Point.Position[2] = 0;
+	lights[0].Point.Color[0] = 1.0f;
+	lights[0].Point.Color[1] = 1.0f;
+	lights[0].Point.Color[2] = 0;
+	lights[0].Point.Color[3] = 1.0f;
+	scene.NumLights = 1;
+	scene.Lights = lights;
+
 	Game::SceneManager::CreateScene(&scene);
 
 	return 0;

@@ -13,6 +13,10 @@ namespace Game
 		Nxna::Matrix ModelTransforms[MaxModels];
 		Graphics::Model Models[MaxModels];
 
+		static const uint32 MaxLights = 5;
+		SceneLightDesc Lights[MaxLights];
+		uint32 NumLights;
+
 		int SelectedModelIndex;
 	};
 
@@ -42,6 +46,8 @@ namespace Game
 	void SceneManager::CreateScene(SceneDesc* desc)
 	{
 		assert(desc->NumModels <= SceneManagerData::MaxModels);
+		assert(desc->NumLights <= SceneManagerData::MaxLights);
+
 		// TODO: do we own the models or not?
 
 		m_data->NumModels = desc->NumModels;
@@ -54,6 +60,12 @@ namespace Game
 
 			m_data->Models[i] = *desc->Models[i].Model;
 			m_data->ModelTransforms[i] = Nxna::Matrix::Identity;
+		}
+
+		m_data->NumLights = desc->NumLights;
+		for (uint32 i = 0; i < desc->NumLights; i++)
+		{
+			m_data->Lights[i] = desc->Lights[i];
 		}
 	}
 
@@ -95,6 +107,19 @@ namespace Game
 				}
 
 				Graphics::DrawUtils::DrawBoundingBox(m_data->Models[i].BoundingBox, &transform, color);
+			}
+		}
+
+		if (g_globals->DevMode)
+		{
+			// draw the lights
+			for (uint32 i = 0; i < m_data->NumLights; i++)
+			{
+				switch (m_data->Lights[i].Type)
+				{
+				case LightType::Point:
+					Graphics::DrawUtils::DrawSphere(m_data->Lights[i].Point.Position, 1.0f, modelview, m_data->Lights[i].Point.Color);
+				}
 			}
 		}
 	}
