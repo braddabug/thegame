@@ -51,6 +51,7 @@ struct Globals;
 struct LogData;
 struct JobQueueData;
 struct MemoryManager;
+struct FileSystemData;
 
 struct GlobalData
 {
@@ -58,6 +59,7 @@ struct GlobalData
 	MemoryManager* Memory;
 	LogData* Log;
 	JobQueueData* JobQueue;
+	FileSystemData* FileSystem;
 	StringManagerData* StringData;
 	Nxna::Graphics::GraphicsDevice* Device;
 	Nxna::Input::InputState* Input;

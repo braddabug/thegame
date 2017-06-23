@@ -1,4 +1,5 @@
 #include "FileSystem.h"
+#include "tinyfiles.h"
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -14,6 +15,106 @@
 // some stupid garbage is #defining "Success", which conflicts with NxnaResult::Success
 #undef Success
 #endif
+
+struct FileSystemData
+{
+	Utils::HashTable<FileSystem::FileInfo, FileSystem::MaxFiles * 4 / 3> Files;
+};
+
+FileSystemData* FileSystem::m_data;
+
+void FileSystem::SetGlobalData(FileSystemData** data)
+{
+	if (*data == nullptr)
+	{
+		*data = (FileSystemData*)g_memory->AllocTrack(sizeof(FileSystemData), __FILE__, __LINE__);
+		memset(*data, 0, sizeof(FileSystemData));
+	}
+
+	m_data = *data;
+}
+
+void FileSystem::Shutdown()
+{
+	g_memory->FreeTrack(m_data, __FILE__, __LINE__);
+	m_data = nullptr;
+}
+
+void FileSystem::searchPathRecursive(const char* path, uint32 depth)
+{
+	auto pathLen = strlen(path);
+
+	tfDIR dir;
+	tfDirOpen(&dir, path);
+
+	while (dir.has_next)
+	{
+		tfFILE file;
+		tfReadFile(&dir, &file);
+
+		if (file.is_dir)
+		{
+			if (file.name[0] != '.' && depth > 0)
+			{
+				char buffer[256];
+#ifdef _WIN32
+				strncpy_s(buffer, path, 256);
+				strcat_s(buffer, "/");
+				strncat_s(buffer, file.name, 256);
+#else
+				strncpy(buffer, path, 256);
+				strcat(buffer, "/");
+				strncat(buffer, file.name, 256);
+#endif
+
+				searchPathRecursive(buffer, depth - 1);
+			}
+		}
+		else if (file.is_reg)
+		{
+			auto len = pathLen + strlen(file.name) + 2;
+			auto name = (char*)g_memory->AllocAndKeep(len, __FILE__, __LINE__);
+#ifdef _WIN32
+			strcpy_s(name, len, path);
+			strcat_s(name, len, "/");
+			strcat_s(name, len, file.name);
+#else
+			strcpy(name, path);
+			strcat(name, "/");
+			strcat(name, file.name);
+#endif
+
+			FileInfo info;
+			info.Filename = name;
+			m_data->Files.Add(Utils::CalcHash((uint8*)name), info);
+		}
+
+		tfDirNext(&dir);
+	}
+
+	tfDirClose(&dir);
+}
+
+void FileSystem::SetSearchPaths(SearchPathInfo* paths, uint32 numPaths)
+{
+	for (uint32 i = 0; i < numPaths; i++)
+	{
+		searchPathRecursive(paths[i].Path, paths[i].MaxDepth - 1);
+	}
+
+	LOG("%u files added to search path", m_data->Files.GetCount());
+}
+
+const char* FileSystem::GetFilenameByHash(uint32 hash)
+{
+	FileInfo* info;
+	if (m_data->Files.GetPtr(hash, &info))
+	{
+		return info->Filename;
+	}
+
+	return nullptr;
+}
 
 bool FileSystem::Open(const char* path, File* file)
 {
@@ -33,6 +134,17 @@ bool FileSystem::Open(const char* path, File* file)
 
 	return true;
 #endif
+}
+
+bool FileSystem::Open(uint32 hash, File* file)
+{
+	FileInfo* info;
+	if (m_data->Files.GetPtr(hash, &info))
+	{
+		return Open(info->Filename, file);
+	}
+
+	return false;
 }
 
 void FileSystem::Close(File* file)
@@ -144,3 +256,7 @@ void FileSystem::UnmapFile(File* file)
 	
 #endif
 }
+
+#define TINYFILES_IMPL
+#include "tinyfiles.h"
+#undef TINYFILES_IMPL

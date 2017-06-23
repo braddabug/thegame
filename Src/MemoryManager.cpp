@@ -230,6 +230,15 @@ namespace MemoryManagerInternal
 		free((uint8*)memory - 64 - sizeof(AllocInfo));
 	}
 
+	void* AllocAndKeep(size_t amount, const char* filename, int line)
+	{
+		// TODO: this is for memory that will be allocated and held until the game exits.
+		// It should be excluded from memory-leakage detection.
+		// This will allow the memory manager to potentially do some optimizations, like allocate
+		// a big buffer and dole it out
+		return AllocTrack(amount, filename, line);
+	}
+
 	void GetMemoryUsage(size_t* usage)
 	{
 		*usage = g_requestedMemoryUsed;

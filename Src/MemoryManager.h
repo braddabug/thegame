@@ -14,6 +14,8 @@ struct MemoryManager
 
 	void (*Free)(void* memory);
 	void (*FreeTrack)(void* memory, const char* filename, int line);
+
+	void* (*AllocAndKeep)(size_t amount, const char* filename, int line);
 };
 
 extern MemoryManager* g_memory;
@@ -45,6 +47,8 @@ namespace MemoryManagerInternal
 
 	void Free(void* memory);
 	void FreeTrack(void* memory, const char* filename, int line);
+
+	void* AllocAndKeep(size_t amount, const char* filename, int line);
 
 	void GetMemoryUsage(size_t* usage);
 	void DumpReport(const char* filename);
