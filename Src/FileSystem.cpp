@@ -1,9 +1,9 @@
 #include "FileSystem.h"
-#include "tinyfiles.h"
+#include "MemoryManager.h"
+#include "Logging.h"
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#include "CleanWindows.h"
 #else
 #include <sys/types.h>
 #include <dirent.h>
@@ -15,6 +15,9 @@
 // some stupid garbage is #defining "Success", which conflicts with NxnaResult::Success
 #undef Success
 #endif
+
+#include <cstdio>
+#include "tinyfiles.h"
 
 struct FileSystemData
 {

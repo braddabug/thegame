@@ -1,6 +1,7 @@
 #include "Logging.h"
 #include <cstring>
 #include <cstdio>
+#include <cassert>
 
 LogData* g_log;
 
