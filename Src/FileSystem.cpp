@@ -16,6 +16,8 @@
 #undef Success
 #endif
 
+#ifndef LIGHTMAPPER
+
 #include <cstdio>
 #include "tinyfiles.h"
 
@@ -119,6 +121,8 @@ const char* FileSystem::GetFilenameByHash(uint32 hash)
 	return nullptr;
 }
 
+#endif // LIGHTMAPPER
+
 bool FileSystem::Open(const char* path, File* file)
 {
 #ifdef _WIN32
@@ -139,6 +143,8 @@ bool FileSystem::Open(const char* path, File* file)
 #endif
 }
 
+#ifndef LIGHTMAPPER
+
 bool FileSystem::Open(uint32 hash, File* file)
 {
 	FileInfo* info;
@@ -149,6 +155,8 @@ bool FileSystem::Open(uint32 hash, File* file)
 
 	return false;
 }
+
+#endif // LIGHTMAPPER
 
 void FileSystem::Close(File* file)
 {

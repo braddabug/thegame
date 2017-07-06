@@ -64,6 +64,7 @@ int ini_next_within_section(ini_context* ctx, ini_item* item);
 int ini_value_float(ini_context* ctx, ini_item* item, float* result);
 bool ini_section_equals(ini_context* ctx, ini_item* item, const char* name);
 bool ini_key_equals(ini_context* ctx, ini_item* item, const char* key);
+bool ini_value_equals(ini_context* ctx, ini_item* item, const char* value);
 
 #endif // INIPARSE_H
 
@@ -230,6 +231,20 @@ bool ini_key_equals(ini_context* ctx, ini_item* item, const char* key)
 	for (int i = 0; i < item->keyvalue.key_end - item->keyvalue.key_start; i++)
 	{
 		if (key[i] == 0 || ctx->source[item->keyvalue.key_start + i] != key[i])
+			return false;
+	}
+
+	return true;
+}
+
+bool ini_value_equals(ini_context* ctx, ini_item* item, const char* value)
+{
+	if (ctx == nullptr || item == nullptr || value == nullptr || item->type != ini_itemtype::keyvalue)
+		return false;
+
+	for (int i = 0; i < item->keyvalue.value_end - item->keyvalue.value_start; i++)
+	{
+		if (value[i] == 0 || ctx->source[item->keyvalue.value_start + i] != value[i])
 			return false;
 	}
 
