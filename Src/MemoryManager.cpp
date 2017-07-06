@@ -3,9 +3,9 @@
 #include <atomic>
 #include <cstdio>
 
-std::atomic<size_t> g_requestedMemoryUsed = 0;
-std::atomic<size_t> g_actualMemoryUsed = 0;
-std::atomic<uint32> g_timestamp = 0;
+std::atomic<size_t> g_requestedMemoryUsed = { 0 };
+std::atomic<size_t> g_actualMemoryUsed = { 0 };
+std::atomic<uint32> g_timestamp = { 0 };
 
 namespace MemoryManagerInternal
 {

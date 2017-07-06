@@ -12,7 +12,11 @@ namespace Utils
 		if (lenDiff != 0)
 			return lenDiff;
 
+#ifdef _WIN32
 		return _strnicmp(strA, strB, strALength);
+#else
+		return strncasecmp(strA, strB, strALength);
+#endif
 	}
 
 	uint32 CalcHash(const uint8 *str)
