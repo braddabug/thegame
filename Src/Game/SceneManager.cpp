@@ -2,6 +2,7 @@
 #include "../Graphics/Model.h"
 #include "../MemoryManager.h"
 #include "../Utils.h"
+#include "../iniparse.h"
 
 namespace Game
 {
@@ -69,6 +70,98 @@ namespace Game
 		}
 	}
 
+	void SceneManager::CreateScene(const char* sceneFile)
+	{
+		m_data->NumLights = 0;
+		m_data->NumModels = 0;
+
+		File f;
+		if (FileSystem::OpenAndMap(sceneFile, &f) == false)
+			return;
+
+		const char* txt = (char*)f.Memory;
+
+		ini_context ctx;
+		ini_init(&ctx, txt, txt + f.FileSize);
+
+		ini_item item;
+
+	parse:
+		if (ini_next(&ctx, &item) == ini_result_success)
+		{
+			if (item.type == ini_itemtype::section)
+			{
+				if (ini_section_equals(&ctx, &item, "light"))
+				{
+					float x = 0, y = 0, z = 0;
+					float r = 1.0f, g = 1.0f, b = 1.0f;
+
+					while (ini_next_within_section(&ctx, &item) == ini_result_success)
+					{
+						if (ini_key_equals(&ctx, &item, "x"))
+							ini_value_float(&ctx, &item, &x);
+						else if (ini_key_equals(&ctx, &item, "y"))
+							ini_value_float(&ctx, &item, &y);
+						else if (ini_key_equals(&ctx, &item, "z"))
+							ini_value_float(&ctx, &item, &z);
+
+						else if (ini_key_equals(&ctx, &item, "r"))
+							ini_value_float(&ctx, &item, &r);
+						else if (ini_key_equals(&ctx, &item, "g"))
+							ini_value_float(&ctx, &item, &g);
+						else if (ini_key_equals(&ctx, &item, "b"))
+							ini_value_float(&ctx, &item, &b);
+					}
+
+					auto light = &m_data->Lights[m_data->NumLights];
+					light->Type = LightType::Point;
+					light->Point.Position[0] = x;
+					light->Point.Position[1] = y;
+					light->Point.Position[2] = z;
+
+					light->Point.Color[0] = r;
+					light->Point.Color[1] = g;
+					light->Point.Color[2] = b;
+
+					m_data->NumLights++;
+
+					goto parse;
+				}
+				else if (ini_section_equals(&ctx, &item, "model"))
+				{
+					float x = 0, y = 0, z = 0;
+					char name[256]; name[0] = 0;
+
+					while (ini_next_within_section(&ctx, &item) == ini_result_success)
+					{
+						if (ini_key_equals(&ctx, &item, "file"))
+						{
+							int len = item.keyvalue.value_end - item.keyvalue.value_start;
+#ifdef _WIN32
+							strncpy_s(name, txt + item.keyvalue.value_start, len < 256 ? len : 256);
+#else
+							strncpy(name, txt + item.keyvalue.value_start, len < 256 ? len : 256);
+#endif
+							name[255] = 0;
+						}
+					}
+
+					if (name[0] != 0)
+					{
+						if (Content::ContentLoader::Load<Graphics::Model>(name, Content::LoaderType::ModelObj, &m_data->Models[m_data->NumModels]) == Content::ContentState::Loaded)
+						{
+							m_data->ModelTransforms[m_data->NumModels] = Nxna::Matrix::Identity;
+							m_data->NumModels++;
+						}
+					}
+					goto parse;
+				}
+			}
+		}
+
+		FileSystem::Close(&f);
+	}
+
 	void SceneManager::Process()
 	{
 		if (g_globals->DevMode)
@@ -118,7 +211,11 @@ namespace Game
 				switch (m_data->Lights[i].Type)
 				{
 				case LightType::Point:
-					Graphics::DrawUtils::DrawSphere(m_data->Lights[i].Point.Position, 1.0f, modelview, m_data->Lights[i].Point.Color);
+				{
+					float color[4] = { m_data->Lights[i].Point.Color[0], m_data->Lights[i].Point.Color[1], m_data->Lights[i].Point.Color[2], 1.0f };
+					Graphics::DrawUtils::DrawSphere(m_data->Lights[i].Point.Position, 1.0f, modelview, color);
+					break;
+				}		
 				}
 			}
 		}

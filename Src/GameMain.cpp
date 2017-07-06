@@ -115,7 +115,7 @@ int Init(WindowInfo* window)
 	//if (c != Content::ContentState::Incomplete)
 	//	return -1;
 
-	if (Content::ContentLoader::Load("Content/Models/out.obj", Content::LoaderType::ModelObj, &m) != Content::ContentState::Loaded)
+	/*if (Content::ContentLoader::Load("Content/Models/out.obj", Content::LoaderType::ModelObj, &m) != Content::ContentState::Loaded)
 		return -1;
 	Game::SceneDesc scene = {};
 	Game::SceneModelDesc models[] = { &m, nullptr, {0,0,0}, {0,0,0} };
@@ -130,11 +130,12 @@ int Init(WindowInfo* window)
 	lights[0].Point.Color[0] = 1.0f;
 	lights[0].Point.Color[1] = 1.0f;
 	lights[0].Point.Color[2] = 0;
-	lights[0].Point.Color[3] = 1.0f;
 	scene.NumLights = 1;
 	scene.Lights = lights;
 
-	Game::SceneManager::CreateScene(&scene);
+	Game::SceneManager::CreateScene(&scene);*/
+
+	Game::SceneManager::CreateScene("Content/Scenes/scene.txt");
 
 	return 0;
 }

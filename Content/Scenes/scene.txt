@@ -1,0 +1,10 @@
+[light]
+x: 0
+y: 100.0
+z: 0
+r: 1.0
+g: 1.0
+b: 1.0
+
+[model]
+file: Content/Models/out.obj

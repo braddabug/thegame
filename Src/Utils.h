@@ -5,6 +5,8 @@
 
 namespace Utils
 {
+	int CompareI(const char* strA, uint32 strALength, const char* strB);
+
 	uint32 CalcHash(const uint8 *str);
 
 	template<typename T, size_t size>

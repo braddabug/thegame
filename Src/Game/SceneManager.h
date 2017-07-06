@@ -79,6 +79,7 @@ namespace Game
 		static void Shutdown();
 
 		static void CreateScene(SceneDesc* desc);
+		static void CreateScene(const char* sceneFile);
 
 		static void Process();
 		static void Render(Nxna::Matrix* modelview);

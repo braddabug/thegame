@@ -37,6 +37,9 @@
 #define LIGHTMAPPER_IMPLEMENTATION
 #include "Graphics/lightmapper.h"
 
+#define INIPARSE_IMPLEMENTATION
+#include "iniparse.h"
+
 #endif
 
 #if !defined GAME_ENABLE_HOTLOAD || !defined GAME_ENABLE_HOTLOAD_DLL
