@@ -1,6 +1,9 @@
 #ifndef MEMORYMANAGER_H
 #define MEMORYMANAGER_H
 
+#include <new>
+#include "Common.h"
+
 struct MemoryManager
 {
 	void* (*Alloc)(size_t amount);
@@ -35,6 +38,8 @@ namespace MemoryManagerInternal
 {
 	void Initialize();
 	void Shutdown();
+
+	void SetDefaults(MemoryManager* manager);
 
 	void* Alloc(size_t amount);
 	void* AllocTrack(size_t amount, const char* filename, int line);

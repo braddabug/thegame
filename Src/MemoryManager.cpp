@@ -3,6 +3,10 @@
 #include <atomic>
 #include <cstdio>
 
+#ifdef _WIN32
+#include "CleanWindows.h"
+#endif
+
 std::atomic<size_t> g_requestedMemoryUsed = { 0 };
 std::atomic<size_t> g_actualMemoryUsed = { 0 };
 std::atomic<uint32> g_timestamp = { 0 };
@@ -95,6 +99,17 @@ namespace MemoryManagerInternal
 			free(page);
 			page = next;
 		}
+	}
+
+	void SetDefaults(MemoryManager* manager)
+	{
+		manager->Alloc = MemoryManagerInternal::Alloc;
+		manager->AllocTrack = MemoryManagerInternal::AllocTrack;
+		manager->Realloc = MemoryManagerInternal::Realloc;
+		manager->ReallocTrack = MemoryManagerInternal::ReallocTrack;
+		manager->Free = MemoryManagerInternal::Free;
+		manager->FreeTrack = MemoryManagerInternal::FreeTrack;
+		manager->AllocAndKeep = MemoryManagerInternal::AllocAndKeep;
 	}
 
 	void* Alloc(size_t amount)
