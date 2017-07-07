@@ -31,7 +31,7 @@ namespace Nxna
 {
 namespace Input
 {
-	struct InputState;
+	class InputState;
 }
 }
 

@@ -34,9 +34,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "Graphics/stb_image.h"
 
-#define LIGHTMAPPER_IMPLEMENTATION
-#include "Graphics/lightmapper.h"
-
 #define INIPARSE_IMPLEMENTATION
 #include "iniparse.h"
 

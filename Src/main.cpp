@@ -21,6 +21,8 @@ GameLib g_lib;
 
 GlobalData gd;
 
+#undef None
+
 int LocalInit(Nxna::Graphics::GraphicsDevice* device, WindowInfo* window, SpriteBatchData* sbd, Gui::TextPrinterData* tpd)
 {
 	return GAME_LIB_CALL(Init)(window);
