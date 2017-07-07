@@ -269,5 +269,6 @@ void FileSystem::UnmapFile(File* file)
 }
 
 #define TINYFILES_IMPL
+#include <cerrno>
 #include "tinyfiles.h"
 #undef TINYFILES_IMPL
