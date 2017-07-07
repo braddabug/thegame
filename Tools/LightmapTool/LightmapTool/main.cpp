@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cassert>
 #include <cstdlib>
-#include <SDL.h>
+#include "SDL.h"
 #include "glew/GL/glew.h"
 #include "lightmapper.h"
 #include "GeoLoader.h"
