@@ -12,7 +12,11 @@ bool LoadModelObj(const char* path, ModelGeometry* geometry)
 
 	char* pmatlpath = nullptr;
 	char matlPath[256];
+#ifdef _WIN32
 	strncpy_s(matlPath, path, 256);
+#else
+	strncpy(matlPath, path, 256);
+#endif
 	matlPath[255] = 0;
 	auto lastSlash = strrchr(matlPath, '/');
 	if (lastSlash != nullptr)

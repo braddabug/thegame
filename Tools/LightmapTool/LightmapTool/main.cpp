@@ -98,6 +98,11 @@ void multiplyMatrices(float *out, float *a, float *b);
 void translationMatrix(float *out, float x, float y, float z);
 int loadSimpleObjFile(const char *filename, vertex_t **vertices, unsigned int *vertexCount, unsigned short **indices, unsigned int *indexCount);
 
+void glDebug(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
+{
+	printf("%s\n", message);
+}
+
 int main(int argc, char* argv[])
 {
 	const int w = 640;
@@ -121,6 +126,7 @@ int main(int argc, char* argv[])
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 
 	auto context = SDL_GL_CreateContext(window);
 	if (context == nullptr)
@@ -130,6 +136,8 @@ int main(int argc, char* argv[])
 	}
 
 	glewInit();
+
+	glDebugMessageCallback(glDebug, nullptr);
 
 	scene_t scene = { 0 };
 	if (!initScene(&scene, argv[1]))
@@ -329,6 +337,7 @@ void prepModelForBake(SceneModel* model)
 {
 	glBindTexture(GL_TEXTURE_2D, model->LightmapData.GLHandle);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, model->LightmapData.Width, model->LightmapData.Height, 0, GL_RGBA, GL_FLOAT, model->LightmapData.Data);
+	memset(model->LightmapData.Data, 0, sizeof(float) * model->LightmapData.Width * model->LightmapData.Height * LC);
 }
 
 int initScene(scene_t *scene, const char* filename)
@@ -760,35 +769,20 @@ int bake(scene_t *scene, int pass)
 		//lmImageDilate(temp, data, model->LightmapData.Width, model->LightmapData.Height, LC);
 		for (int i = 0; i < 4; i++)
 		{
-			lmImageDilate(data, temp, model->LightmapData.Width, model->LightmapData.Height, LC);
-			lmImageDilate(temp, data, model->LightmapData.Width, model->LightmapData.Height, LC);
+	//		lmImageDilate(data, temp, model->LightmapData.Width, model->LightmapData.Height, LC);
+	//		lmImageDilate(temp, data, model->LightmapData.Width, model->LightmapData.Height, LC);
 		}
-
-		memcpy(model->LightmapData.Data, data, w * h * LC * sizeof(float));
-
-		// if the model is emissive then add that back in
-		if (model->isEmissive)
-		{
-			for (int i = 0; i < w * h; i++)
-			{
-				data[i * 3 + 0] = model->emissive[0];
-				data[i * 3 + 1] = model->emissive[1];
-				data[i * 3 + 2] = model->emissive[2];
-			}
-		}
-
+		memcpy(temp, data, w * h * LC * sizeof(float));
 
 		// postprocess texture
-		
 		//lmImageSmooth(data, temp, w, h, 3);
 		//lmImageDilate(temp, data, w, h, 3);
-		for (int i = 0; i < 16; i++)
-		{
-			lmImageDilate(data, temp, w, h, LC);
-			lmImageDilate(temp, data, w, h, LC);
-		}
-		lmImagePower(data, w, h, LC, 1.0f / 2.2f, 0x7); // gamma correct color channels
+		lmImagePower(temp, w, h, LC, 1.0f / 2.2f, 0x7); // gamma correct color channels
 		
+		// upload result
+		glBindTexture(GL_TEXTURE_2D, model->LightmapData.GLHandle);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, w, h, 0, GL_RGBA, GL_FLOAT, temp);
+
 		// save result to a file
 		if (model->LightmapName[0] != 0)
 		{
@@ -803,9 +797,7 @@ int bake(scene_t *scene, int pass)
 		}
 		free(temp);
 
-		// upload result
-		glBindTexture(GL_TEXTURE_2D, model->LightmapData.GLHandle);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, w, h, 0, GL_RGBA, GL_FLOAT, data);
+		
 	}
 
 	lmDestroy(ctx);
