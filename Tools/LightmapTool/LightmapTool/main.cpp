@@ -72,7 +72,7 @@ struct SceneLight
 
 
 
-typedef struct
+typedef struct scene_
 {
 	GLuint program;
 	GLint u_lightmap;
@@ -294,7 +294,11 @@ int initModel(ModelGeometry* geometry, const char* lightmapName, float* emissive
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 		stbi_image_free(pixels);
 		
+#ifdef _WIN32
 		strcpy_s(model.LightmapName, lightmapName);
+#else
+		strcpy(model.LightmapName, lightmapName);
+#endif
 	}
 	else
 	{
@@ -327,7 +331,7 @@ void prepModelForBake(SceneModel* model)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, model->LightmapData.Width, model->LightmapData.Height, 0, GL_RGBA, GL_FLOAT, model->LightmapData.Data);
 }
 
-static int initScene(scene_t *scene, const char* filename)
+int initScene(scene_t *scene, const char* filename)
 {
 	File f;
 	if (FileSystem::Open(filename, &f) == false || FileSystem::MapFile(&f) == nullptr)
@@ -418,7 +422,8 @@ parse:
 #else
 						strncpy(name, txt + item.keyvalue.value_start, len < 256 ? len : 256);
 #endif
-						name[255] = 0;
+						if (len < 255) name[len] = 0;
+						else name[255] = 0;
 					}
 					else if (ini_key_equals(&ctx, &item, "lightmap"))
 					{
@@ -426,7 +431,7 @@ parse:
 #ifdef _WIN32
 						strncpy_s(lightmap, txt + item.keyvalue.value_start, len < 64 ? len : 64);
 #else
-						strncpy(liightmap, txt + item.keyvalue.value_start, len < 64 ? len : 64);
+						strncpy(lightmap, txt + item.keyvalue.value_start, len < 64 ? len : 64);
 #endif
 						lightmap[63] = 0;
 					}
@@ -582,7 +587,7 @@ void drawScene(scene_t *scene, float *view, float *projection)
 	}
 }
 
-static void destroyScene(scene_t *scene)
+void destroyScene(scene_t *scene)
 {
 	auto model = &scene->models[0];
 	{
@@ -596,7 +601,7 @@ static void destroyScene(scene_t *scene)
 	glDeleteProgram(scene->program);
 }
 
-static int loadSimpleObjFile(const char *filename, vertex_t **vertices, unsigned int *vertexCount, unsigned short **indices, unsigned int *indexCount)
+int loadSimpleObjFile(const char *filename, vertex_t **vertices, unsigned int *vertexCount, unsigned short **indices, unsigned int *indexCount)
 {
 #ifdef _WIN32
 	FILE* file;
@@ -808,7 +813,7 @@ int bake(scene_t *scene, int pass)
 	return 1;
 }
 
-static GLuint loadShader(GLenum type, const char *source)
+GLuint loadShader(GLenum type, const char *source)
 {
 	GLuint shader = glCreateShader(type);
 	if (shader == 0)
@@ -838,7 +843,7 @@ static GLuint loadShader(GLenum type, const char *source)
 	return shader;
 }
 
-static GLuint loadProgram(const char *vp, const char *fp, const char **attributes, int attributeCount)
+GLuint loadProgram(const char *vp, const char *fp, const char **attributes, int attributeCount)
 {
 	GLuint vertexShader = loadShader(GL_VERTEX_SHADER, vp);
 	if (!vertexShader)
@@ -886,7 +891,7 @@ static GLuint loadProgram(const char *vp, const char *fp, const char **attribute
 }
 
 
-static void genSphereGeometry(ModelGeometry* result)
+void genSphereGeometry(ModelGeometry* result)
 {
 	const uint32 numLongitude = 10;
 	const uint32 numLatitude = 8;
@@ -953,20 +958,20 @@ static void genSphereGeometry(ModelGeometry* result)
 	result->Meshes.A[0].TextureIndex = -1;
 }
 
-static void multiplyMatrices(float *out, float *a, float *b)
+void multiplyMatrices(float *out, float *a, float *b)
 {
 	for (int y = 0; y < 4; y++)
 		for (int x = 0; x < 4; x++)
 			out[y * 4 + x] = a[x] * b[y * 4] + a[4 + x] * b[y * 4 + 1] + a[8 + x] * b[y * 4 + 2] + a[12 + x] * b[y * 4 + 3];
 }
-static void translationMatrix(float *out, float x, float y, float z)
+void translationMatrix(float *out, float x, float y, float z)
 {
 	out[0] = 1.0f; out[1] = 0.0f; out[2] = 0.0f; out[3] = 0.0f;
 	out[4] = 0.0f; out[5] = 1.0f; out[6] = 0.0f; out[7] = 0.0f;
 	out[8] = 0.0f; out[9] = 0.0f; out[10] = 1.0f; out[11] = 0.0f;
 	out[12] = x;    out[13] = y;    out[14] = z;    out[15] = 1.0f;
 }
-static void rotationMatrix(float *out, float angle, float x, float y, float z)
+void rotationMatrix(float *out, float angle, float x, float y, float z)
 {
 	angle *= (float)M_PI / 180.0f;
 	float c = cosf(angle), s = sinf(angle), c2 = 1.0f - c;
@@ -975,21 +980,21 @@ static void rotationMatrix(float *out, float angle, float x, float y, float z)
 	out[8] = x*z*c2 + y*s; out[9] = y*z*c2 - x*s; out[10] = z*z*c2 + c;   out[11] = 0.0f;
 	out[12] = 0.0f;         out[13] = 0.0f;         out[14] = 0.0f;         out[15] = 1.0f;
 }
-static void transformPosition(float *out, float *m, float *p)
+void transformPosition(float *out, float *m, float *p)
 {
 	float d = 1.0f / (m[3] * p[0] + m[7] * p[1] + m[11] * p[2] + m[15]);
 	out[2] = d * (m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14]);
 	out[1] = d * (m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13]);
 	out[0] = d * (m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12]);
 }
-static void transposeMatrix(float *out, float *m)
+void transposeMatrix(float *out, float *m)
 {
 	out[0] = m[0]; out[1] = m[4]; out[2] = m[8]; out[3] = m[12];
 	out[4] = m[1]; out[5] = m[5]; out[6] = m[9]; out[7] = m[13];
 	out[8] = m[2]; out[9] = m[6]; out[10] = m[10]; out[11] = m[14];
 	out[12] = m[3]; out[13] = m[7]; out[14] = m[11]; out[15] = m[15];
 }
-static void perspectiveMatrix(float *out, float fovy, float aspect, float zNear, float zFar)
+void perspectiveMatrix(float *out, float fovy, float aspect, float zNear, float zFar)
 {
 	float f = 1.0f / tanf(fovy * (float)M_PI / 360.0f);
 	float izFN = 1.0f / (zNear - zFar);
@@ -999,7 +1004,7 @@ static void perspectiveMatrix(float *out, float fovy, float aspect, float zNear,
 	out[12] = 0.0f;       out[13] = 0.0f; out[14] = 2.0f * zFar * zNear * izFN; out[15] = 0.0f;
 }
 
-static void fpsCameraViewMatrix(SDL_Window *window, float *view)
+void fpsCameraViewMatrix(SDL_Window *window, float *view)
 {
 	// initial camera config
 	static float position[] = { 0.0f, 0.3f, 1.5f };

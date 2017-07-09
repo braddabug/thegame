@@ -16,9 +16,10 @@
 #undef Success
 #endif
 
-#ifndef LIGHTMAPPER
-
 #include <cstdio>
+#include <cstring>
+
+#ifndef LIGHTMAPPER
 #include "tinyfiles.h"
 
 struct FileSystemData

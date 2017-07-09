@@ -1,3 +1,5 @@
+#include <cstdlib>
+#include <cstring>
 #include "GeoLoader.h"
 #include "FileSystem.h"
 #include "tiny_obj_loader.h"
@@ -13,7 +15,10 @@ bool LoadModelObj(const char* path, ModelGeometry* geometry)
 		return false;
 
 	if (err.empty() == false)
+	{
+		printf("%s\n", err.c_str());
 		return false;
+	}
 
 	std::vector<float> positions;
 	std::vector<float> texcoords;
