@@ -10,8 +10,19 @@ bool LoadModelObj(const char* path, ModelGeometry* geometry)
 	std::vector<tinyobj::shape_t> shapes;
 	std::vector<tinyobj::material_t> materials;
 
+	char* pmatlpath = nullptr;
+	char matlPath[256];
+	strncpy_s(matlPath, path, 256);
+	matlPath[255] = 0;
+	auto lastSlash = strrchr(matlPath, '/');
+	if (lastSlash != nullptr)
+	{
+		lastSlash[1] = 0;
+		pmatlpath = matlPath;
+	}
+
 	std::string err;
-	if (tinyobj::LoadObj(&attrib, &shapes, &materials, &err, path) == false)
+	if (tinyobj::LoadObj(&attrib, &shapes, &materials, &err, path, pmatlpath) == false)
 		return false;
 
 	if (err.empty() == false)
