@@ -18,6 +18,30 @@
 
 const int LC = 4;
 
+struct Color3
+{
+	union
+	{
+		struct
+		{
+			float R, G, B;
+		};
+		float RGB[3];
+	};
+};
+
+struct Color4
+{
+	union
+	{
+		struct
+		{
+			float R, G, B, A;
+		};
+		float RGBA[4];
+	};
+};
+
 typedef struct {
 	float p[3];
 	float t[2];
@@ -48,7 +72,7 @@ struct SceneModel
 	unsigned int meshCount;
 
 	bool isEmissive;
-	float emissive[3];
+	Color3 emissive;
 
 	float position[3];
 
@@ -97,23 +121,33 @@ void perspectiveMatrix(float *out, float fovy, float aspect, float zNear, float 
 void multiplyMatrices(float *out, float *a, float *b);
 void translationMatrix(float *out, float x, float y, float z);
 int loadSimpleObjFile(const char *filename, vertex_t **vertices, unsigned int *vertexCount, unsigned short **indices, unsigned int *indexCount);
+void genLightmapTextures(scene_t* scene, float scale);
 
 void glDebug(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
 {
 	printf("%s\n", message);
 }
 
+float scale = 1.0f;
+
 int main(int argc, char* argv[])
 {
 	const int w = 640;
 	const int h = 480;
 	int pass = 0;
+	
 
 	if (argc != 2)
 	{
 		printf("Usage: LightmapTool [scene file]\n");
 		return -1;
 	}
+	
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 
 	auto window = SDL_CreateWindow("Lightmap Tool", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, SDL_WINDOW_OPENGL);
 	if (window == nullptr)
@@ -121,12 +155,6 @@ int main(int argc, char* argv[])
 		printf("Unable to create window\n");
 		return -1;
 	}
-
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 
 	auto context = SDL_GL_CreateContext(window);
 	if (context == nullptr)
@@ -136,6 +164,11 @@ int main(int argc, char* argv[])
 	}
 
 	glewInit();
+
+	int Buffers, Samples;
+	SDL_GL_GetAttribute(SDL_GL_MULTISAMPLEBUFFERS, &Buffers);
+	SDL_GL_GetAttribute(SDL_GL_MULTISAMPLESAMPLES, &Samples);
+	printf("buf = %d, samples = %d\n", Buffers, Samples);
 
 	glDebugMessageCallback(glDebug, nullptr);
 
@@ -169,6 +202,16 @@ int main(int argc, char* argv[])
 					bake(&scene, pass++);
 					glViewport(0, 0, w, h);
 				}
+				else if (e.key.keysym.sym == SDLK_UP)
+				{
+					scale += 0.1f;
+					genLightmapTextures(&scene, scale);
+				}
+				else if (e.key.keysym.sym == SDLK_DOWN)
+				{
+					scale -= 0.1f;
+					genLightmapTextures(&scene, scale);
+				}
 				break;
 			}
 		}
@@ -182,6 +225,7 @@ int main(int argc, char* argv[])
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glEnable(GL_CULL_FACE);
+		glEnable(GL_MULTISAMPLE);
 
 		drawScene(&scene, view, projection);
 
@@ -197,9 +241,9 @@ end:
 
 void genSphereGeometry(ModelGeometry* result);
 
-int initModel(ModelGeometry* geometry, const char* lightmapName, float* emissive, SceneModel* result);
+int initModel(ModelGeometry* geometry, const char* lightmapName, Color3* emissive, SceneModel* result);
 
-int initModel(const char* name, const char* lightmapName, bool isGeo, float* emissive, SceneModel* result)
+int initModel(const char* name, const char* lightmapName, bool isGeo, Color3* emissive, SceneModel* result)
 {
 	// load mesh
 	ModelGeometry geo = {};
@@ -222,7 +266,7 @@ int initModel(const char* name, const char* lightmapName, bool isGeo, float* emi
 	return initModel(&geo, lightmapName, emissive, result);
 }
 
-int initModel(ModelGeometry* geometry, const char* lightmapName, float* emissive, SceneModel* result)
+int initModel(ModelGeometry* geometry, const char* lightmapName, Color3* emissive, SceneModel* result)
 {
 	ModelGeometry& geo = *geometry;
 
@@ -230,14 +274,12 @@ int initModel(ModelGeometry* geometry, const char* lightmapName, float* emissive
 	if (emissive == nullptr)
 	{
 		model.isEmissive = false;
-		model.emissive[0] = model.emissive[1] = model.emissive[2] = 0;
+		model.emissive.R = model.emissive.G = model.emissive.B = 0;
 	}
 	else
 	{
-		model.isEmissive = emissive != nullptr;
-		model.emissive[0] = emissive[0];
-		model.emissive[1] = emissive[1];
-		model.emissive[2] = emissive[2];
+		model.isEmissive = true;
+		model.emissive = *emissive;
 	}
 
 	model.position[0] = model.position[1] = model.position[2] = 0;
@@ -386,13 +428,13 @@ parse:
 						ini_value_float(&ctx, &item, &b);
 				}
 
-				float glowing[] = { r, g, b, 1.0f };
+				Color3 glowing = { r, g, b };
 
 				//if (initModel("sphere.obj", nullptr, false, glowing, &scene->lights[scene->lightCount].Model) == 0)
 				//	return 0;
 				ModelGeometry sphere;
 				genSphereGeometry(&sphere);
-				if (initModel(&sphere, nullptr, glowing, &scene->lights[scene->lightCount].Model) == 0)
+				if (initModel(&sphere, nullptr, &glowing, &scene->lights[scene->lightCount].Model) == 0)
 					return 0;
 
 				scene->lights[scene->lightCount].Type = type;
@@ -475,8 +517,8 @@ parse:
 						isGeo = true;
 
 					
-					float glowing[] = { r, g, b, 1.0f };
-					float* emissive = isEmissive ? glowing : nullptr;
+					Color3 glowing = { r, g, b };
+					Color3* emissive = isEmissive ? &glowing : nullptr;
 
 					if (initModel(name, lightmap, isGeo, emissive, &scene->models[scene->modelCount]) == 0)
 					{
@@ -686,25 +728,51 @@ int loadSimpleObjFile(const char *filename, vertex_t **vertices, unsigned int *v
 	return 1;
 }
 
+void genLightmapTextures(scene_t* scene, float scale)
+{
+	for (int mi = 0; mi < scene->modelCount; mi++)
+	{
+		auto model = &scene->models[mi];
+		auto w = model->LightmapData.Width;
+		auto h = model->LightmapData.Height;
+		auto data = model->LightmapData.Data;
+
+		float *temp = (float*)calloc(w * h * LC, sizeof(float));
+		memcpy(temp, data, w * h * LC * sizeof(float));
+
+		// postprocess texture
+		//lmImageSmooth(data, temp, w, h, 3);
+		//lmImageDilate(temp, data, w, h, 3);
+		lmImageScale(temp, w, h, LC, scale);
+		lmImagePower(temp, w, h, LC, 1.0f / 2.2f, 0x7); // gamma correct color channels
+
+		// upload result
+		glBindTexture(GL_TEXTURE_2D, model->LightmapData.GLHandle);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, w, h, 0, GL_RGBA, GL_FLOAT, temp);
+
+		// save result to a file
+		if (model->LightmapName[0] != 0)
+		{
+			// TODO: flip the image
+
+			if (lmImageSaveTGAf(model->LightmapName, temp, w, h, LC, 1.0f))
+				printf("Saved %s\n", model->LightmapName);
+		}
+
+		free(temp);
+	}
+}
+
 int bake(scene_t *scene, int pass)
 {
 	glDisable(GL_CULL_FACE);
-
-	float ambientRed, ambientGreen, ambientBlue;
-	if (pass == 0 && false)
-	{
-		ambientRed = ambientGreen = ambientBlue = 1.0f;
-	}
-	else
-	{
-		ambientRed = ambientGreen = ambientBlue = 0;
-	}
+	glDisable(GL_MULTISAMPLE);
 
 	lm_context *ctx = lmCreate(
-		64,               // hemisphere resolution (power of two, max=512)
+		256,               // hemisphere resolution (power of two, max=512)
 		0.01f, 200.0f,   // zNear, zFar of hemisphere cameras
-		ambientRed, ambientGreen, ambientBlue, // background color (white for ambient occlusion)
-		0, 0.00f);        // lightmap interpolation threshold (small differences are interpolated rather than sampled)
+		0, 0, 0, // background color (white for ambient occlusion)
+		3, 0.001f);        // lightmap interpolation threshold (small differences are interpolated rather than sampled)
 						  // check debug_interpolation.tga for an overview of sampled (red) vs interpolated (green) pixels.
 	if (!ctx)
 	{
@@ -769,36 +837,16 @@ int bake(scene_t *scene, int pass)
 		//lmImageDilate(temp, data, model->LightmapData.Width, model->LightmapData.Height, LC);
 		for (int i = 0; i < 4; i++)
 		{
-	//		lmImageDilate(data, temp, model->LightmapData.Width, model->LightmapData.Height, LC);
-	//		lmImageDilate(temp, data, model->LightmapData.Width, model->LightmapData.Height, LC);
+			lmImageDilate(data, temp, model->LightmapData.Width, model->LightmapData.Height, LC);
+			lmImageDilate(temp, data, model->LightmapData.Width, model->LightmapData.Height, LC);
 		}
 		memcpy(temp, data, w * h * LC * sizeof(float));
 
-		// postprocess texture
-		//lmImageSmooth(data, temp, w, h, 3);
-		//lmImageDilate(temp, data, w, h, 3);
-		lmImagePower(temp, w, h, LC, 1.0f / 2.2f, 0x7); // gamma correct color channels
-		
-		// upload result
-		glBindTexture(GL_TEXTURE_2D, model->LightmapData.GLHandle);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, w, h, 0, GL_RGBA, GL_FLOAT, temp);
-
-		// save result to a file
-		if (model->LightmapName[0] != 0)
-		{
-			// flip the image
-			for (int i = 0; i < h; i++)
-			{
-				memcpy(temp + i * w * LC, data + (h - i - 1) * w * LC, w * sizeof(float) * LC);
-			}
-
-			if (lmImageSaveTGAf(model->LightmapName, temp, w, h, LC, 1.0f))
-				printf("Saved %s\n", model->LightmapName);
-		}
 		free(temp);
-
-		
 	}
+	
+
+	genLightmapTextures(scene, scale);
 
 	lmDestroy(ctx);
 
@@ -887,7 +935,7 @@ void genSphereGeometry(ModelGeometry* result)
 {
 	const uint32 numLongitude = 10;
 	const uint32 numLatitude = 8;
-	const float radius = 1.0f;
+	const float radius = 10.0f;
 	const uint32 numVertices = numLongitude * numLatitude;
 	const uint32 numIndices = numLongitude  * numLatitude * 6;
 
