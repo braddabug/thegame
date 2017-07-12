@@ -126,7 +126,7 @@ void translationMatrix(float *out, float x, float y, float z);
 int loadSimpleObjFile(const char *filename, vertex_t **vertices, unsigned int *vertexCount, unsigned short **indices, unsigned int *indexCount);
 void genLightmapTextures(scene_t* scene, float scale);
 
-void glDebug(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
+void GLAPIENTRY glDebug(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
 {
 	printf("%s\n", message);
 }
@@ -859,27 +859,30 @@ int bake(scene_t *scene, int pass)
 				int uv[2], hemi;
 				lmTexelInfo(ctx, world, dir, uv, &hemi);
 
-				float light[3] = { 0, 1.0f, 0 };
-				float dot = Nxna::Vector3::Dot(dir, light);
-				if (dot > 0)
+				if (hemi == 0)
 				{
-					float r = intersect(world, light, model->vertices, sizeof(vertex_t), model->indices, model->indexCount);
-
-					if (r > 100.0f)
+					float light[3] = { 0, 1.0f, 0 };
+					float dot = Nxna::Vector3::Dot(dir, light);
+					if (dot > 0)
 					{
-						model->LightmapData.Direct[(uv[1] * w + uv[0]) * LC + 0] = 1.0f;
-						model->LightmapData.Direct[(uv[1] * w + uv[0]) * LC + 1] = 1.0f;
-						model->LightmapData.Direct[(uv[1] * w + uv[0]) * LC + 2] = 1.0f;
-						model->LightmapData.Direct[(uv[1] * w + uv[0]) * LC + 3] = 1.0f;
-					}
+						float r = intersect(world, light, model->vertices, sizeof(vertex_t), model->indices, model->indexCount);
 
-					// display progress every second (printf is expensive)
-					double time = SDL_GetTicks() / 1000.0f;
-					if (time - lastUpdateTime > 1.0)
-					{
-						lastUpdateTime = time;
-						printf("\r%6.2f%%", lmProgress(ctx) * 100.0f);
-						fflush(stdout);
+						if (r > 100.0f)
+						{
+							model->LightmapData.Direct[(uv[1] * w + uv[0]) * LC + 0] = 1.0f;
+							model->LightmapData.Direct[(uv[1] * w + uv[0]) * LC + 1] = 1.0f;
+							model->LightmapData.Direct[(uv[1] * w + uv[0]) * LC + 2] = 1.0f;
+							model->LightmapData.Direct[(uv[1] * w + uv[0]) * LC + 3] = 1.0f;
+						}
+
+						// display progress every second (printf is expensive)
+						double time = SDL_GetTicks() / 1000.0f;
+						if (time - lastUpdateTime > 1.0)
+						{
+							lastUpdateTime = time;
+							printf("\r%6.2f%%", lmProgress(ctx) * 100.0f);
+							fflush(stdout);
+						}
 					}
 				}
 
@@ -1245,3 +1248,6 @@ void fpsCameraViewMatrix(SDL_Window *window, float *view)
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "Graphics/stb_image.h"
+
+#define NXNA_IMPLEMENTATION
+#include "LightmapNxna.h"

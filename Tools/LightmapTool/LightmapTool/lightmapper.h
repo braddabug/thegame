@@ -1434,7 +1434,7 @@ float lmProgress(lm_context *ctx)
 	return ((float)ctx->meshPosition.pass + passProgress) / (float)ctx->meshPosition.passCount;
 }
 
-void lmTexelInfo(lm_context* ctx, float* outWorldPos, float* outDirection, int* outTexelCoord, int* hemisphereIndex)
+void lmTexelInfo(lm_context* ctx, float* outWorldPos, float* outDirection, int* outTexelCoord, int* sideIndex)
 {
 	if (outWorldPos)
 	{
@@ -1456,9 +1456,9 @@ void lmTexelInfo(lm_context* ctx, float* outWorldPos, float* outDirection, int* 
 		outTexelCoord[1] = ctx->meshPosition.rasterizer.y;
 	}
 
-	if (hemisphereIndex)
+	if (sideIndex)
 	{
-		hemisphereIndex[0] = ctx->hemisphere.fbHemiIndex;
+		sideIndex[0] = ctx->meshPosition.hemisphere.side;
 	}
 }
 
