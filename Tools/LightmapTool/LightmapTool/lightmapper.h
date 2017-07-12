@@ -81,6 +81,8 @@ lm_bool lmBegin(lm_context *ctx,
 float lmProgress(lm_context *ctx);                                                                     // should only be called between lmBegin/lmEnd!
 																									   // provides the light mapping progress as a value increasing from 0.0 to 1.0.
 
+void lmTexelInfo(lm_context* ctx, float* outWorldPos, float* outDirection, int* outTexelCoord, int* hemisphereIndex);
+
 void lmEnd(lm_context *ctx);
 
 // destroys the lightmapper instance. should be called to free resources.
@@ -1430,6 +1432,34 @@ float lmProgress(lm_context *ctx)
 {
 	float passProgress = (float)ctx->meshPosition.triangle.baseIndex / (float)ctx->mesh.count;
 	return ((float)ctx->meshPosition.pass + passProgress) / (float)ctx->meshPosition.passCount;
+}
+
+void lmTexelInfo(lm_context* ctx, float* outWorldPos, float* outDirection, int* outTexelCoord, int* hemisphereIndex)
+{
+	if (outWorldPos)
+	{
+		outWorldPos[0] = ctx->meshPosition.sample.position.x;
+		outWorldPos[1] = ctx->meshPosition.sample.position.y;
+		outWorldPos[2] = ctx->meshPosition.sample.position.z;
+	}
+
+	if (outDirection)
+	{
+		outDirection[0] = ctx->meshPosition.sample.direction.x;
+		outDirection[1] = ctx->meshPosition.sample.direction.y;
+		outDirection[2] = ctx->meshPosition.sample.direction.z;
+	}
+
+	if (outTexelCoord)
+	{
+		outTexelCoord[0] = ctx->meshPosition.rasterizer.x;
+		outTexelCoord[1] = ctx->meshPosition.rasterizer.y;
+	}
+
+	if (hemisphereIndex)
+	{
+		hemisphereIndex[0] = ctx->hemisphere.fbHemiIndex;
+	}
 }
 
 void lmEnd(lm_context *ctx)

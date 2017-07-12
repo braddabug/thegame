@@ -11,5 +11,6 @@
     <ClInclude Include="GeoLoader.h" />
     <ClInclude Include="Common.h" />
     <ClInclude Include="..\..\..\Src\FileSystem.h" />
+    <ClInclude Include="LightmapNxna.h" />
   </ItemGroup>
 </Project>

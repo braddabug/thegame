@@ -7,6 +7,8 @@
 #include "GeoLoader.h"
 #include "FileSystem.h"
 #include "Graphics/stb_image.h"
+#include "LightmapNxna.h"
+
 
 #include <cstring>
 #include "iniparse.h"
@@ -55,6 +57,7 @@ struct SceneMesh
 struct Lightmap
 {
 	float* Data;
+	float* Direct;
 	uint32 Width;
 	uint32 Height;
 	GLuint GLHandle;
@@ -112,7 +115,7 @@ typedef struct scene_
 } scene_t;
 
 int initScene(scene_t *scene, const char* filename);
-void drawScene(scene_t *scene, float *view, float *projection);
+void drawScene(scene_t *scene, bool drawLights, float *view, float *projection);
 void destroyScene(scene_t *scene);
 int bake(scene_t *scene, int pass);
 GLuint loadProgram(const char *vp, const char *fp, const char **attributes, int attributeCount);
@@ -227,7 +230,7 @@ int main(int argc, char* argv[])
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_MULTISAMPLE);
 
-		drawScene(&scene, view, projection);
+		drawScene(&scene, true, view, projection);
 
 		SDL_GL_SwapWindow(window);
 	}
@@ -357,6 +360,9 @@ int initModel(ModelGeometry* geometry, const char* lightmapName, Color3* emissiv
 		model.LightmapName[0] = 0;
 	}
 
+	model.LightmapData.Direct = new float[model.LightmapData.Width * model.LightmapData.Height * LC];
+	memset(model.LightmapData.Direct, 0, sizeof(float) * model.LightmapData.Width * model.LightmapData.Height * LC);
+
 	model.LightmapData.Data = new float[model.LightmapData.Width * model.LightmapData.Height * LC];
 	if (emissive == nullptr)
 		memset(model.LightmapData.Data, 0, sizeof(float) * model.LightmapData.Width * model.LightmapData.Height * LC);
@@ -375,8 +381,13 @@ int initModel(ModelGeometry* geometry, const char* lightmapName, Color3* emissiv
 	return 1;
 }
 
-void prepModelForBake(SceneModel* model)
+void prepModelForBake(SceneModel* model, int pass)
 {
+	if (pass == 0)
+	{
+		memcpy(model->LightmapData.Data, model->LightmapData.Direct, sizeof(float) * model->LightmapData.Width * model->LightmapData.Height * LC);
+	}
+
 	glBindTexture(GL_TEXTURE_2D, model->LightmapData.GLHandle);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, model->LightmapData.Width, model->LightmapData.Height, 0, GL_RGBA, GL_FLOAT, model->LightmapData.Data);
 	memset(model->LightmapData.Data, 0, sizeof(float) * model->LightmapData.Width * model->LightmapData.Height * LC);
@@ -604,7 +615,7 @@ void drawModel(scene_t* scene, SceneModel* model, float* view)
 	}
 }
 
-void drawScene(scene_t *scene, float *view, float *projection)
+void drawScene(scene_t *scene, bool drawLights, float *view, float *projection)
 {
 	glEnable(GL_DEPTH_TEST);
 	//glEnable(GL_CULL_FACE);
@@ -621,19 +632,22 @@ void drawScene(scene_t *scene, float *view, float *projection)
 		drawModel(scene, model, view);
 	}
 
-	for (unsigned int mi = 0; mi < scene->lightCount; mi++)
+	if (drawLights)
 	{
-		auto model = &scene->lights[mi].Model;
-
-		if (scene->lights[mi].Type == LightType::Point)
-			drawModel(scene, model, view);
-		else if (scene->lights[mi].Type == LightType::Directional)
+		for (unsigned int mi = 0; mi < scene->lightCount; mi++)
 		{
-			float lightView[16];
-			memcpy(lightView, view, sizeof(float) * 16);
-			lightView[12] = lightView[13] = lightView[14] = 0;
+			auto model = &scene->lights[mi].Model;
 
-			drawModel(scene, model, lightView);
+			if (scene->lights[mi].Type == LightType::Point)
+				drawModel(scene, model, view);
+			else if (scene->lights[mi].Type == LightType::Directional)
+			{
+				float lightView[16];
+				memcpy(lightView, view, sizeof(float) * 16);
+				lightView[12] = lightView[13] = lightView[14] = 0;
+
+				drawModel(scene, model, lightView);
+			}
 		}
 	}
 }
@@ -763,12 +777,132 @@ void genLightmapTextures(scene_t* scene, float scale)
 	}
 }
 
+float intersect(float* orig, float* dir, void* positions, uint32 vertexStride, uint16* indices, uint32 numIndices)
+{
+#define VERT(vi, c) (*(float*)((char*)positions + vertexStride * *indices + sizeof(float) * c))
+
+	float minDistance = 1e10;
+
+	for (uint32 i = 0; i < numIndices / 3; i++)
+	{
+		float v0[3] = { VERT(0, 0), VERT(0, 1), VERT(0, 2) }; indices++;
+		float v1[3] = { VERT(1, 0), VERT(1, 1), VERT(1, 2) }; indices++;
+		float v2[3] = { VERT(2, 0), VERT(2, 1), VERT(2, 2) }; indices++;
+
+		float e1[3] = { v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2] };
+		float e2[3] = { v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2] };
+
+		// Calculate planes normal vector
+		float pvec[3];
+		Nxna::Vector3::Cross(dir, e2, pvec);
+		float det = Nxna::Vector3::Dot(e1, pvec);
+
+		// Ray is parallel to plane
+		if (det < 1e-8 && det > -1e-8) {
+			continue;
+		}
+
+		float inv_det = 1 / det;
+		float tvec[3] = { orig[0] - v0[0], orig[1] - v0[1], orig[2] - v0[2] };
+		float u = Nxna::Vector3::Dot(tvec, pvec) * inv_det;
+		if (u < 0 || u > 1) {
+			continue;
+		}
+
+		float qvec[3];
+		Nxna::Vector3::Cross(tvec, e1, qvec);
+		float v = Nxna::Vector3::Dot(dir, qvec) * inv_det;
+		if (v < 0 || u + v > 1) {
+			continue;
+		}
+
+		float dist = Nxna::Vector3::Dot(e2, qvec) * inv_det;
+
+		if (dist > 0 && dist < minDistance)
+			minDistance = dist;
+	}
+
+	return minDistance;
+}
+
 int bake(scene_t *scene, int pass)
 {
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_MULTISAMPLE);
 
-	lm_context *ctx = lmCreate(
+	// do a direct lighting pass
+	if (pass == 0)
+	{
+		printf("Calculating direct lighting...\n");
+
+		lm_context* ctx = lmCreate(32, 0.01f, 100.0f, 0, 0, 0, 0, 0);
+
+		for (unsigned int mi = 0; mi < scene->modelCount; mi++)
+		{
+			auto model = &scene->models[mi];
+			int w = model->LightmapData.Width, h = model->LightmapData.Height;
+			float *data = model->LightmapData.Data;
+
+			lmSetTargetLightmap(ctx, data, w, h, LC);
+
+			lmSetGeometry(ctx, NULL,
+				LM_FLOAT, (unsigned char*)model->vertices + offsetof(vertex_t, p), sizeof(vertex_t),
+				LM_FLOAT, (unsigned char*)model->vertices + offsetof(vertex_t, t), sizeof(vertex_t),
+				model->indexCount, LM_UNSIGNED_SHORT, model->indices);
+
+			int vp[4];
+			float view[16], projection[16];
+			double lastUpdateTime = 0.0;
+			while (lmBegin(ctx, vp, view, projection))
+			{
+				float world[3], dir[3];
+				int uv[2], hemi;
+				lmTexelInfo(ctx, world, dir, uv, &hemi);
+
+				float light[3] = { 0, 1.0f, 0 };
+				float dot = Nxna::Vector3::Dot(dir, light);
+				if (dot > 0)
+				{
+					float r = intersect(world, light, model->vertices, sizeof(vertex_t), model->indices, model->indexCount);
+
+					if (r > 100.0f)
+					{
+						model->LightmapData.Direct[(uv[1] * w + uv[0]) * LC + 0] = 1.0f;
+						model->LightmapData.Direct[(uv[1] * w + uv[0]) * LC + 1] = 1.0f;
+						model->LightmapData.Direct[(uv[1] * w + uv[0]) * LC + 2] = 1.0f;
+						model->LightmapData.Direct[(uv[1] * w + uv[0]) * LC + 3] = 1.0f;
+					}
+
+					// display progress every second (printf is expensive)
+					double time = SDL_GetTicks() / 1000.0f;
+					if (time - lastUpdateTime > 1.0)
+					{
+						lastUpdateTime = time;
+						printf("\r%6.2f%%", lmProgress(ctx) * 100.0f);
+						fflush(stdout);
+					}
+				}
+
+				lmEnd(ctx);
+			}
+			printf("\rFinished baking %d triangles.\n", model->indexCount / 3);
+
+			lmImageSaveTGAf("direct.tga", model->LightmapData.Direct, w, h, LC);
+		}
+
+		lmDestroy(ctx);
+	}
+
+	// temp
+	/*{
+		auto model = &scene->models[0];
+		memcpy(model->LightmapData.Data, model->LightmapData.Direct, model->LightmapData.Width * model->LightmapData.Height * LC * sizeof(float));
+		genLightmapTextures(scene, scale);
+
+		return 0;
+	}*/
+
+	lm_context* ctx = lmCreate(
 		256,               // hemisphere resolution (power of two, max=512)
 		0.01f, 200.0f,   // zNear, zFar of hemisphere cameras
 		0, 0, 0, // background color (white for ambient occlusion)
@@ -782,7 +916,7 @@ int bake(scene_t *scene, int pass)
 	
 	for (unsigned int mi = 0; mi < scene->modelCount; mi++)
 	{
-		prepModelForBake(&scene->models[mi]);
+		prepModelForBake(&scene->models[mi], pass);
 	}
 
 	for (unsigned int mi = 0; mi < scene->modelCount; mi++)
@@ -808,7 +942,7 @@ int bake(scene_t *scene, int pass)
 		{
 			// render to lightmapper framebuffer
 			glViewport(vp[0], vp[1], vp[2], vp[3]);
-			drawScene(scene, view, projection);
+			drawScene(scene, false, view, projection);
 
 			// display progress every second (printf is expensive)
 			double time = SDL_GetTicks() / 1000.0f;
@@ -831,6 +965,16 @@ int bake(scene_t *scene, int pass)
 		auto h = model->LightmapData.Height;
 
 		auto data = model->LightmapData.Data;
+
+		// combine direct and indirect lighting
+		for (uint32 i = 0; i < model->LightmapData.Width * model->LightmapData.Height; i++)
+		{
+			data[i * LC + 0] += model->LightmapData.Direct[i * LC + 0];
+			data[i * LC + 1] += model->LightmapData.Direct[i * LC + 1];
+			data[i * LC + 2] += model->LightmapData.Direct[i * LC + 2];
+			data[i * LC + 3] += model->LightmapData.Direct[i * LC + 3];
+		}
+
 		float *temp = (float*)calloc(w * h * LC, sizeof(float));
 
 		//lmImageSmooth(data, temp, model->LightmapData.Width, model->LightmapData.Height, LC);

@@ -88,7 +88,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir)../../../Libs/SDL/Windows/include;$(ProjectDir)../../../Src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)../../../Libs/SDL/Windows/include;$(ProjectDir)../../../Src;$(ProjectDir)../../../Libs/Nxna</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GLEW_STATIC;LIGHTMAPPER;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -133,6 +133,7 @@
     <ClInclude Include="..\..\..\Src\FileSystem.h" />
     <ClInclude Include="Common.h" />
     <ClInclude Include="GeoLoader.h" />
+    <ClInclude Include="LightmapNxna.h" />
     <ClInclude Include="lightmapper.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
