@@ -74,8 +74,8 @@ struct SceneModel
 	SceneMesh* Meshes;
 	unsigned int meshCount;
 
-	bool isEmissive;
-	Color3 emissive;
+	//bool isEmissive;
+	//Color3 emissive;
 
 	float position[3];
 
@@ -87,7 +87,8 @@ struct SceneModel
 enum class LightType
 {
 	Point,
-	Directional
+	Directional,
+	Sun
 };
 
 struct SceneLight
@@ -115,16 +116,18 @@ typedef struct scene_
 } scene_t;
 
 int initScene(scene_t *scene, const char* filename);
-void drawScene(scene_t *scene, bool drawLights, float *view, float *projection);
+void drawScene(scene_t *scene, bool drawLights, float *view, float *projection, float* position);
 void destroyScene(scene_t *scene);
 int bake(scene_t *scene, int pass);
 GLuint loadProgram(const char *vp, const char *fp, const char **attributes, int attributeCount);
-void fpsCameraViewMatrix(SDL_Window *window, float *view);
+void fpsCameraViewMatrix(SDL_Window *window, float *view, float* cameraPosition);
 void perspectiveMatrix(float *out, float fovy, float aspect, float zNear, float zFar);
 void multiplyMatrices(float *out, float *a, float *b);
 void translationMatrix(float *out, float x, float y, float z);
 int loadSimpleObjFile(const char *filename, vertex_t **vertices, unsigned int *vertexCount, unsigned short **indices, unsigned int *indexCount);
 void genLightmapTextures(scene_t* scene, float scale);
+void createLightmap(uint32 width, uint32 height, float* data, Lightmap* result);
+int createLightmap(const char* lightmapName, Color3* emissive, Lightmap* result);
 
 void GLAPIENTRY glDebug(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
 {
@@ -219,8 +222,8 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		float view[16], projection[16];
-		fpsCameraViewMatrix(window, view);
+		float view[16], projection[16], position[3];
+		fpsCameraViewMatrix(window, view, position);
 		perspectiveMatrix(projection, 45.0f, (float)w / (float)h, 0.01f, 100.0f);
 
 		// draw to screen with a blueish sky
@@ -230,7 +233,7 @@ int main(int argc, char* argv[])
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_MULTISAMPLE);
 
-		drawScene(&scene, true, view, projection);
+		drawScene(&scene, true, view, projection, position);
 
 		SDL_GL_SwapWindow(window);
 	}
@@ -242,9 +245,34 @@ end:
 	return 0;
 }
 
+
+
+void genCircularLightTexture(float r, float g, float b, float* buffer, int size)
+{
+	memset(buffer, 0, size * size * LC * sizeof(float));
+
+	int radius = size / 2;
+	for (int y = 0; y < size; y++)
+	{
+		for (int x = 0; x < size; x++)
+		{
+			if ((x - radius) * (x - radius) + (y - radius) * (y - radius) < radius * radius)
+			{
+				buffer[(y * size + x) * LC + 0] = r;
+				buffer[(y * size + x) * LC + 1] = g;
+				buffer[(y * size + x) * LC + 2] = b;
+
+				if (LC == 4)
+					buffer[(y * size + x) * LC + 3] = 1.0f;
+			}
+		}
+	}
+}
+
+void genBillboardGeometry(float width, float height, ModelGeometry* result);
 void genSphereGeometry(ModelGeometry* result);
 
-int initModel(ModelGeometry* geometry, const char* lightmapName, Color3* emissive, SceneModel* result);
+int initModel(ModelGeometry* geometry, Lightmap* lightmap, SceneModel* result);
 
 int initModel(const char* name, const char* lightmapName, bool isGeo, Color3* emissive, SceneModel* result)
 {
@@ -266,15 +294,108 @@ int initModel(const char* name, const char* lightmapName, bool isGeo, Color3* em
 		}
 	}
 
-	return initModel(&geo, lightmapName, emissive, result);
+	Lightmap lm;
+	createLightmap(lightmapName, emissive, &lm);
+
+	return initModel(&geo, &lm, result);
 }
 
-int initModel(ModelGeometry* geometry, const char* lightmapName, Color3* emissive, SceneModel* result)
+void createLightmap(uint32 width, uint32 height, float* data, Lightmap* result)
+{
+	result->Width = width;
+	result->Height = height;
+	result->Data = data;
+
+	glGenTextures(1, &result->GLHandle);
+	glBindTexture(GL_TEXTURE_2D, result->GLHandle);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, result->Width, result->Height, 0, GL_RGBA, GL_FLOAT, result->Data);
+
+	result->Direct = new float[width * height * LC];
+	memset(result->Direct, 0, sizeof(float) * width * height * LC);
+}
+
+int createLightmap(const char* lightmapName, Color3* emissive, Lightmap* result)
+{
+	/*model.LightmapData.Width = 512;
+	model.LightmapData.Height = 512;
+	glGenTextures(1, &model.LightmapData.GLHandle);
+	glBindTexture(GL_TEXTURE_2D, model.LightmapData.GLHandle);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	if (lightmapName)
+	{
+		int w, h, d;
+		auto pixels = stbi_load(lightmapName, &w, &h, &d, LC);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+		stbi_image_free(pixels);
+
+#ifdef _WIN32
+		strcpy_s(model.LightmapName, lightmapName);
+#else
+		strcpy(model.LightmapName, lightmapName);
+#endif
+	}
+	else
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1, 1, 0, GL_RGBA, GL_FLOAT, emissive);
+
+		model.LightmapName[0] = 0;
+	}
+
+	model.LightmapData.Direct = new float[model.LightmapData.Width * model.LightmapData.Height * LC];
+	memset(model.LightmapData.Direct, 0, sizeof(float) * model.LightmapData.Width * model.LightmapData.Height * LC);
+
+	model.LightmapData.Data = new float[model.LightmapData.Width * model.LightmapData.Height * LC];
+	if (emissive == nullptr)
+		memset(model.LightmapData.Data, 0, sizeof(float) * model.LightmapData.Width * model.LightmapData.Height * LC);
+	else
+	{
+		for (int i = 0; i < model.LightmapData.Width * model.LightmapData.Height; i++)
+		{
+			memcpy(model.LightmapData.Data + i * LC, emissive, sizeof(float) * 3);
+			if (LC == 4)
+				model.LightmapData.Data[i * LC + 3] = 0;
+		}
+	}*/
+
+	const uint32 defaultWidth = 512;
+	const uint32 defaultHeight = 512;
+
+	int width = defaultWidth;
+	int height = defaultHeight;
+	float* data = new float[width * height * LC];
+
+	if (emissive)
+	{
+		for (int i = 0; i < width * height; i++)
+		{
+			memcpy(data + i * LC, emissive, sizeof(float) * 3);
+			if (LC == 4)
+				data[i * LC + 3] = 0;
+		}
+	}
+	else
+	{
+		memset(data, 0, sizeof(float) * width * height * LC);
+	}
+
+	createLightmap(width, height, data, result);
+
+	return 0;
+}
+
+int initModel(ModelGeometry* geometry, Lightmap* lightmap, SceneModel* result)
 {
 	ModelGeometry& geo = *geometry;
 
 	SceneModel model;
-	if (emissive == nullptr)
+	/*if (emissive == nullptr)
 	{
 		model.isEmissive = false;
 		model.emissive.R = model.emissive.G = model.emissive.B = 0;
@@ -283,7 +404,7 @@ int initModel(ModelGeometry* geometry, const char* lightmapName, Color3* emissiv
 	{
 		model.isEmissive = true;
 		model.emissive = *emissive;
-	}
+	}*/
 
 	model.position[0] = model.position[1] = model.position[2] = 0;
 	model.Meshes = new SceneMesh[geo.Meshes.Length];
@@ -332,7 +453,9 @@ int initModel(ModelGeometry* geometry, const char* lightmapName, Color3* emissiv
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)offsetof(vertex_t, t));
 
 	// create lightmap texture
-	model.LightmapData.Width = 512;
+	model.LightmapData = *lightmap;
+
+	/*model.LightmapData.Width = 512;
 	model.LightmapData.Height = 512;
 	glGenTextures(1, &model.LightmapData.GLHandle);
 	glBindTexture(GL_TEXTURE_2D, model.LightmapData.GLHandle);
@@ -374,7 +497,7 @@ int initModel(ModelGeometry* geometry, const char* lightmapName, Color3* emissiv
 			if (LC == 4)
 				model.LightmapData.Data[i * LC + 3] = 0;
 		}
-	}
+	}*/
 
 	*result = model;
 
@@ -423,6 +546,8 @@ parse:
 					{
 						if (ini_value_equals(&ctx, &item, "directional"))
 							type = LightType::Directional;
+						else if (ini_value_equals(&ctx, &item, "sun"))
+							type = LightType::Sun;
 					}
 					if (ini_key_equals(&ctx, &item, "x"))
 						ini_value_float(&ctx, &item, &x);
@@ -444,8 +569,14 @@ parse:
 				//if (initModel("sphere.obj", nullptr, false, glowing, &scene->lights[scene->lightCount].Model) == 0)
 				//	return 0;
 				ModelGeometry sphere;
-				genSphereGeometry(&sphere);
-				if (initModel(&sphere, nullptr, &glowing, &scene->lights[scene->lightCount].Model) == 0)
+				//genSphereGeometry(&sphere);
+				genBillboardGeometry(10.0f, 10.0f, &sphere);
+				Lightmap lm;
+				float* buffer = new float[64 * 64 * LC];
+				genCircularLightTexture(r, g, b, buffer, 64);
+				createLightmap(64, 64, buffer, &lm);
+				//createLightmap(nullptr, &glowing, &lm);
+				if (initModel(&sphere, &lm, &scene->lights[scene->lightCount].Model) == 0)
 					return 0;
 
 				scene->lights[scene->lightCount].Type = type;
@@ -454,6 +585,13 @@ parse:
 					scene->lights[scene->lightCount].Model.position[0] = -x;
 					scene->lights[scene->lightCount].Model.position[1] = -y;
 					scene->lights[scene->lightCount].Model.position[2] = -z;
+				}
+				else if (type == LightType::Sun)
+				{
+					const float sunDistance = 70.0f;
+					scene->lights[scene->lightCount].Model.position[0] = x * sunDistance;
+					scene->lights[scene->lightCount].Model.position[1] = y * sunDistance;
+					scene->lights[scene->lightCount].Model.position[2] = z * sunDistance;
 				}
 				else
 				{
@@ -595,15 +733,22 @@ parse:
 	return 1;
 }
 
-void drawModel(scene_t* scene, SceneModel* model, float* view)
+void drawModel(scene_t* scene, SceneModel* model, float* view, bool translate = true)
 {
-	float transform[16];
-	translationMatrix(transform, model->position[0], model->position[1], model->position[2]);
+	if (translate)
+	{
+		float transform[16];
+		translationMatrix(transform, model->position[0], model->position[1], model->position[2]);
 
-	float out[16];
-	multiplyMatrices(out, view, transform);
+		float out[16];
+		multiplyMatrices(out, view, transform);
 
-	glUniformMatrix4fv(scene->u_view, 1, GL_FALSE, out);
+		glUniformMatrix4fv(scene->u_view, 1, GL_FALSE, out);
+	}
+	else
+	{
+		glUniformMatrix4fv(scene->u_view, 1, GL_FALSE, view);
+	}
 
 	glBindTexture(GL_TEXTURE_2D, model->LightmapData.GLHandle);
 
@@ -615,7 +760,7 @@ void drawModel(scene_t* scene, SceneModel* model, float* view)
 	}
 }
 
-void drawScene(scene_t *scene, bool drawLights, float *view, float *projection)
+void drawScene(scene_t *scene, bool drawLights, float *view, float *projection, float* position)
 {
 	glEnable(GL_DEPTH_TEST);
 	//glEnable(GL_CULL_FACE);
@@ -634,9 +779,55 @@ void drawScene(scene_t *scene, bool drawLights, float *view, float *projection)
 
 	if (drawLights)
 	{
+		glDisable(GL_CULL_FACE);
 		for (unsigned int mi = 0; mi < scene->lightCount; mi++)
 		{
 			auto model = &scene->lights[mi].Model;
+
+			Nxna::Vector3 cameraPos2 = { -view[12], -view[13], -view[14] };
+			Nxna::Vector3 cameraPos = { position[0], position[1], position[2] };
+			Nxna::Vector3 cameraUp = { view[1], view[5], view[9] };
+			Nxna::Vector3 lightPos = { model->position[0], model->position[1], model->position[2] };
+
+			if (scene->lights[mi].Type == LightType::Sun)
+			{
+				lightPos = cameraPos;
+
+				lightPos.X += model->position[0];
+				lightPos.Y += model->position[1];
+				lightPos.Z += model->position[2];
+			}
+
+			Nxna::Vector3 look = Nxna::Vector3::Normalize(cameraPos - lightPos);
+			Nxna::Vector3 right = -Nxna::Vector3::Normalize(Nxna::Vector3::Cross(cameraUp, look));
+			Nxna::Vector3 up = Nxna::Vector3::Normalize(Nxna::Vector3::Cross(look, right));
+
+
+			float lightView[16];
+			lightView[0] = right.X;
+			lightView[1] = right.Y;
+			lightView[2] = right.Z;
+			lightView[3] = 0;
+			lightView[4] = up.X;
+			lightView[5] = up.Y;
+			lightView[6] = up.Z;
+			lightView[7] = 0;
+			lightView[8] = look.X;
+			lightView[9] = look.Y;
+			lightView[10] = look.Z;
+			lightView[11] = 0;
+
+			lightView[12] = lightPos.X;
+			lightView[13] = lightPos.Y;
+			lightView[14] = lightPos.Z;
+			lightView[15] = 1.0f;
+
+			float result[16];
+			multiplyMatrices(result, view, lightView);
+
+			drawModel(scene, model, result, false);
+			continue;
+
 
 			if (scene->lights[mi].Type == LightType::Point)
 				drawModel(scene, model, view);
@@ -831,7 +1022,8 @@ int bake(scene_t *scene, int pass)
 	glDisable(GL_MULTISAMPLE);
 
 	// do a direct lighting pass
-	if (pass == 0)
+	//if (pass == 0)
+	if (false)
 	{
 		printf("Calculating direct lighting...\n");
 
@@ -943,9 +1135,13 @@ int bake(scene_t *scene, int pass)
 		double lastUpdateTime = 0.0;
 		while (lmBegin(ctx, vp, view, projection))
 		{
+			float world[3], dir[3];
+			int uv[2], hemi;
+			lmTexelInfo(ctx, world, dir, uv, &hemi);
+
 			// render to lightmapper framebuffer
 			glViewport(vp[0], vp[1], vp[2], vp[3]);
-			drawScene(scene, false, view, projection);
+			drawScene(scene, true, view, projection, world);
 
 			// display progress every second (printf is expensive)
 			double time = SDL_GetTicks() / 1000.0f;
@@ -1077,6 +1273,40 @@ GLuint loadProgram(const char *vp, const char *fp, const char **attributes, int 
 	return program;
 }
 
+void genBillboardGeometry(float width, float height, ModelGeometry* result)
+{
+	float halfWidth = width * 0.5f;
+	float halfHeight = height * 0.5f;
+
+	float positions[] = {
+		-halfWidth, -halfHeight, 0,
+		halfWidth, -halfWidth, 0,
+		halfWidth, halfWidth, 0,
+		-halfWidth, halfWidth, 0,
+	};
+
+	float uvs[] = {
+		0, 0,
+		1.0f, 0,
+		1.0f, 1.0f,
+		0, 1.0f
+	};
+
+	uint32 indices[] = { 0, 1, 2, 0, 2, 3 };
+
+	result->Indices = HeapArray<uint32>::Init(6);
+	result->Positions = HeapArray<float>::Init(4 * 3);
+	result->TextureCoords = HeapArray<float>::Init(4 * 2);
+	result->Meshes = HeapArray<ModelGeometryMesh>::Init(1);
+
+	memcpy(result->Indices.A, indices, sizeof(uint32) * 6);
+	memcpy(result->Positions.A, positions, sizeof(float) * 4 * 3);
+	memcpy(result->TextureCoords.A, uvs, sizeof(float) * 4 * 2);
+	result->Meshes.A[0].NumTriangles = 2;
+	result->Meshes.A[0].StartIndex = 0;
+	result->Meshes.A[0].TextureIndex = -1;
+}
+
 
 void genSphereGeometry(ModelGeometry* result)
 {
@@ -1167,6 +1397,9 @@ void rotationMatrix(float *out, float angle, float x, float y, float z)
 	out[8] = x*z*c2 + y*s; out[9] = y*z*c2 - x*s; out[10] = z*z*c2 + c;   out[11] = 0.0f;
 	out[12] = 0.0f;         out[13] = 0.0f;         out[14] = 0.0f;         out[15] = 1.0f;
 }
+
+
+
 void transformPosition(float *out, float *m, float *p)
 {
 	float d = 1.0f / (m[3] * p[0] + m[7] * p[1] + m[11] * p[2] + m[15]);
@@ -1191,7 +1424,7 @@ void perspectiveMatrix(float *out, float fovy, float aspect, float zNear, float 
 	out[12] = 0.0f;       out[13] = 0.0f; out[14] = 2.0f * zFar * zNear * izFN; out[15] = 0.0f;
 }
 
-void fpsCameraViewMatrix(SDL_Window *window, float *view)
+void fpsCameraViewMatrix(SDL_Window *window, float *view, float* cameraPosition)
 {
 	// initial camera config
 	static float position[] = { 0.0f, 0.3f, 1.5f };
@@ -1232,6 +1465,13 @@ void fpsCameraViewMatrix(SDL_Window *window, float *view)
 	position[1] += worldMovement[1];
 	position[2] += worldMovement[2];
 
+	if (cameraPosition)
+	{
+		cameraPosition[0] = position[0];
+		cameraPosition[1] = position[1];
+		cameraPosition[2] = position[2];
+	}
+
 	// construct view matrix
 	float inverseRotation[16], inverseTranslation[16];
 	transposeMatrix(inverseRotation, rotationYX);
@@ -1249,5 +1489,5 @@ void fpsCameraViewMatrix(SDL_Window *window, float *view)
 #define STB_IMAGE_IMPLEMENTATION
 #include "Graphics/stb_image.h"
 
-#define NXNA_IMPLEMENTATION
+#define NXNA2_IMPLEMENTATION
 #include "LightmapNxna.h"
