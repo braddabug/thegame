@@ -9,6 +9,10 @@
 #define INIPARSE_STRTOF strtof
 #endif
 
+#ifndef INIPARSE_STRTOD
+#define INIPARSE_STRTOD strtod
+#endif
+
 #ifndef INIPARSE_MEMCPY
 #define INIPARSE_MEMCPY memcpy
 #endif
@@ -61,6 +65,7 @@ void ini_init(ini_context* ctx, const char* source, const char* end);
 int ini_next(ini_context* ctx, ini_item* item);
 int ini_next_within_section(ini_context* ctx, ini_item* item);
 
+int ini_value_int(ini_context* ctx, ini_item* item, int* result);
 int ini_value_float(ini_context* ctx, ini_item* item, float* result);
 bool ini_section_equals(ini_context* ctx, ini_item* item, const char* name);
 bool ini_key_equals(ini_context* ctx, ini_item* item, const char* key);
@@ -187,6 +192,26 @@ int ini_next_within_section(ini_context* ctx, ini_item* item)
 	}
 
 	return result;
+}
+
+int ini_value_int(ini_context* ctx, ini_item* item, int* result)
+{
+	if (item == nullptr || item->type != ini_itemtype::keyvalue)
+		return ini_result_error;
+
+	char buffer[20];
+	int len = item->keyvalue.value_end - item->keyvalue.value_start;
+	INIPARSE_MEMCPY(buffer, ctx->source + item->keyvalue.value_start, len);
+	buffer[len] = 0;
+
+	char* end;
+	int value = INIPARSE_STRTOD(buffer, &end);
+
+	if (value == 0 && end == buffer)
+		return ini_result_error;
+
+	*result = value;
+	return ini_result_success;
 }
 
 int ini_value_float(ini_context* ctx, ini_item* item, float* result)
