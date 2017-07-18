@@ -19,6 +19,7 @@
 #include "WaitManager.cpp"
 #include "JobQueue.cpp"
 #include "Gui/TextPrinter.cpp"
+#include "Gui/Console.cpp"
 #include "Graphics/Model.cpp"
 #include "Graphics/TextureLoader.cpp"
 #include "Graphics/ShaderLibrary.cpp"

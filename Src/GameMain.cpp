@@ -4,6 +4,7 @@
 #include "StringManager.h"
 #include "SpriteBatchHelper.h"
 #include "Gui/TextPrinter.h"
+#include "Gui/Console.h"
 #include "FileSystem.h"
 #include "Graphics/Model.h"
 #include "Graphics/TextureLoader.h"
@@ -267,7 +268,11 @@ void Tick()
 		//Graphics::Model::Render(g_device, &transform, &m, 1);
 
 	sb.Begin();
-	Gui::TextPrinter::PrintScreen(&sb, 0, 20, Gui::FontType::Default, "Hello, world!");
+	auto font = Gui::TextPrinter::GetFont(Gui::FontType::Default);
+	Gui::TextPrinter::PrintScreen(&sb, 0, 20, font, "Hello, world!");
+
+	Gui::Console::Draw(&sb, g_log);
+
 	sb.End();
 
 	g_device->Present();

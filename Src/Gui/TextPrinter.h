@@ -9,7 +9,8 @@ namespace Gui
 {
 	enum class FontType
 	{
-		Default
+		Default,
+		Console
 	};
 
 	struct Font
@@ -26,12 +27,14 @@ namespace Gui
 		CharInfo* Characters;
 		int* CharacterMap;
 		int NumCharacters;
+		float LineHeight;
 	};
 
 	struct TextPrinterData
 	{
 		Nxna::Graphics::Texture2D Texture;
 		Font* DefaultFont;
+		Font* ConsoleFont;
 	};
 
 	class TextPrinter
@@ -43,7 +46,9 @@ namespace Gui
 		static bool Init(Nxna::Graphics::GraphicsDevice* device);
 		static void Shutdown();
 
-		static void PrintScreen(SpriteBatchHelper* sb, float x, float y, FontType font, const char* text);
+		static Font* GetFont(FontType type);
+
+		static void PrintScreen(SpriteBatchHelper* sb, float x, float y, Font* font, const char* text);
 
 	private:
 		static bool createFont(Nxna::Graphics::GraphicsDevice* device, const char* path, float size, Font** result);

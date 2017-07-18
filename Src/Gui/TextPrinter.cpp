@@ -23,7 +23,8 @@ namespace Gui
 
 	bool TextPrinter::Init(Nxna::Graphics::GraphicsDevice* device)
 	{
-		return createFont(device, "Content/Fonts/DroidSans.ttf", 20, &m_data->DefaultFont);
+		return createFont(device, "Content/Fonts/DroidSans.ttf", 20, &m_data->DefaultFont) &&
+			createFont(device, "Content/Fonts/DroidSans.ttf", 12, &m_data->ConsoleFont);
 	}
 
 	void TextPrinter::Shutdown()
@@ -33,11 +34,20 @@ namespace Gui
 		g_memory->FreeTrack(m_data, __FILE__, __LINE__);
 	}
 
-	void TextPrinter::PrintScreen(SpriteBatchHelper* sb, float x, float y, FontType font, const char* text)
+	Font* TextPrinter::GetFont(FontType type)
+	{
+		switch (type)
+		{
+		case FontType::Console: return m_data->ConsoleFont;
+		default: return m_data->DefaultFont;
+		}
+	}
+
+	void TextPrinter::PrintScreen(SpriteBatchHelper* sb, float x, float y, Font* font, const char* text)
 	{
 		uint32 numCharacters = (uint32)strlen(text);
 
-		auto pfont = m_data->DefaultFont;
+		auto pfont = font;
 		if (pfont == nullptr) return;
 
 		Nxna::Graphics::SpriteBatchSprite* sprites = sb->AddSprites(numCharacters);
@@ -173,6 +183,7 @@ namespace Gui
 			(*result)->CharacterMap[i] = firstCharacter + i;
 		}
 
+		(*result)->LineHeight = size;
 		(*result)->NumCharacters = numCharacters;
 
 		g_memory->FreeTrack(r.chardata_for_range, __FILE__, __LINE__);
