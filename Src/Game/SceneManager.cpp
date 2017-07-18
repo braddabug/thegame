@@ -1,5 +1,7 @@
 #include "SceneManager.h"
+#include "../FileSystem.h"
 #include "../Graphics/Model.h"
+#include "../Graphics/DrawUtils.h"
 #include "../MemoryManager.h"
 #include "../Utils.h"
 #include "../iniparse.h"
@@ -70,14 +72,14 @@ namespace Game
 		}
 	}
 
-	void SceneManager::CreateScene(const char* sceneFile)
+	bool SceneManager::CreateScene(const char* sceneFile)
 	{
 		m_data->NumLights = 0;
 		m_data->NumModels = 0;
 
 		File f;
 		if (FileSystem::OpenAndMap(sceneFile, &f) == false)
-			return;
+			return false;
 
 		const char* txt = (char*)f.Memory;
 
@@ -160,6 +162,8 @@ namespace Game
 		}
 
 		FileSystem::Close(&f);
+
+		return true;
 	}
 
 	void SceneManager::Process()

@@ -1,7 +1,9 @@
 #include "Model.h"
 #include "tiny_obj_loader.h"
 #include "../StringManager.h"
+#include "../FileSystem.h"
 #include "DrawUtils.h"
+#include "TextureLoader.h"
 #include <sstream>
 
 namespace Graphics

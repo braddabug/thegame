@@ -1,4 +1,6 @@
 #include "TextureLoader.h"
+#include "../MemoryManager.h"
+#include "../StringManager.h"
 
 namespace Graphics
 {

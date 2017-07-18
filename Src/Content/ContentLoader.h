@@ -4,6 +4,7 @@
 #include <vector>
 #include "../MyNxna2.h"
 #include "../JobQueue.h"
+#include "../StringManager.h"
 
 namespace Content
 {
