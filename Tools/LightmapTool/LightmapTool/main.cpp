@@ -127,7 +127,7 @@ void translationMatrix(float *out, float x, float y, float z);
 int loadSimpleObjFile(const char *filename, vertex_t **vertices, unsigned int *vertexCount, unsigned short **indices, unsigned int *indexCount);
 void genLightmapTextures(scene_t* scene, float scale);
 void createLightmap(uint32 width, uint32 height, float* data, Lightmap* result);
-int createLightmap(const char* lightmapName, Color3* emissive, Lightmap* result);
+int createLightmap(const char* lightmapName, int width, int height, Color3* emissive, Lightmap* result);
 
 void GLAPIENTRY glDebug(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
 {
@@ -274,7 +274,7 @@ void genSphereGeometry(ModelGeometry* result);
 
 int initModel(ModelGeometry* geometry, Lightmap* lightmap, SceneModel* result);
 
-int initModel(const char* name, const char* lightmapName, bool isGeo, Color3* emissive, SceneModel* result)
+int initModel(const char* name, const char* lightmapName, int lightmapWidth, int lightmapHeight, bool isGeo, Color3* emissive, SceneModel* result)
 {
 	// load mesh
 	ModelGeometry geo = {};
@@ -295,7 +295,7 @@ int initModel(const char* name, const char* lightmapName, bool isGeo, Color3* em
 	}
 
 	Lightmap lm;
-	createLightmap(lightmapName, emissive, &lm);
+	createLightmap(lightmapName, lightmapWidth, lightmapHeight, emissive, &lm);
 
 	return initModel(&geo, &lm, result);
 }
@@ -318,7 +318,7 @@ void createLightmap(uint32 width, uint32 height, float* data, Lightmap* result)
 	memset(result->Direct, 0, sizeof(float) * width * height * LC);
 }
 
-int createLightmap(const char* lightmapName, Color3* emissive, Lightmap* result)
+int createLightmap(const char* lightmapName, int width, int height, Color3* emissive, Lightmap* result)
 {
 	/*model.LightmapData.Width = 512;
 	model.LightmapData.Height = 512;
@@ -367,8 +367,6 @@ int createLightmap(const char* lightmapName, Color3* emissive, Lightmap* result)
 	const uint32 defaultWidth = 512;
 	const uint32 defaultHeight = 512;
 
-	int width = defaultWidth;
-	int height = defaultHeight;
 	float* data = new float[width * height * LC];
 
 	if (emissive)
@@ -611,6 +609,7 @@ parse:
 				bool isEmissive = false;
 				char name[256]; name[0] = 0;
 				char lightmap[64]; lightmap[0] = 0;
+				int lightmapWidth = 512, lightmapHeight = 512;
 
 				while (ini_next_within_section(&ctx, &item) == ini_result_success)
 				{
@@ -635,6 +634,10 @@ parse:
 #endif
 						lightmap[63] = 0;
 					}
+					else if (ini_key_equals(&ctx, &item, "lightmapWidth"))
+						ini_value_int(&ctx, &item, &lightmapWidth);
+					else if (ini_key_equals(&ctx, &item, "lightmapHeight"))
+						ini_value_int(&ctx, &item, &lightmapHeight);
 					else if (ini_key_equals(&ctx, &item, "x"))
 						ini_value_float(&ctx, &item, &x);
 					else if (ini_key_equals(&ctx, &item, "y"))
@@ -669,7 +672,7 @@ parse:
 					Color3 glowing = { r, g, b };
 					Color3* emissive = isEmissive ? &glowing : nullptr;
 
-					if (initModel(name, lightmap, isGeo, emissive, &scene->models[scene->modelCount]) == 0)
+					if (initModel(name, lightmap, lightmapWidth, lightmapHeight, isGeo, emissive, &scene->models[scene->modelCount]) == 0)
 					{
 						printf("Could not load model %s\n", name);
 						return 0;
