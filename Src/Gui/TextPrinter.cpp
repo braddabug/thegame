@@ -43,7 +43,7 @@ namespace Gui
 		}
 	}
 
-	void TextPrinter::PrintScreen(SpriteBatchHelper* sb, float x, float y, Font* font, const char* text)
+	void TextPrinter::PrintScreen(SpriteBatchHelper* sb, float x, float y, Font* font, const char* text, Nxna::PackedColor color)
 	{
 		uint32 numCharacters = (uint32)strlen(text);
 
@@ -52,8 +52,6 @@ namespace Gui
 
 		Nxna::Graphics::SpriteBatchSprite* sprites = sb->AddSprites(numCharacters);
 		memset(sprites, 0, sizeof(Nxna::Graphics::SpriteBatchSprite) * numCharacters);
-
-		const auto white = NXNA_GET_PACKED_COLOR_RGB_BYTES(255, 255, 255);
 
 		float cursorX = x;
 
@@ -99,9 +97,9 @@ namespace Gui
 			sprites[i].Destination[2] = characterInfo.ScreenW;
 			sprites[i].Destination[3] = characterInfo.ScreenH;
 
-			sprites[i].SpriteColor = white;
+			sprites[i].SpriteColor = color;
 
-			sprites[i].Texture = m_data->Texture;
+			sprites[i].Texture = pfont->Texture;
 			sprites[i].TextureWidth = 256;
 			sprites[i].TextureHeight = 256;
 
@@ -147,6 +145,7 @@ namespace Gui
 			rgbaPixels[i * 4 + 3] = pixel;
 		}
 
+		Nxna::Graphics::Texture2D texture;
 		Nxna::Graphics::TextureCreationDesc desc = {};
 		desc.ArraySize = 1;
 		desc.Width = textureSize;
@@ -154,7 +153,7 @@ namespace Gui
 		Nxna::Graphics::SubresourceData srdata = {};
 		srdata.Data = rgbaPixels;
 		srdata.DataPitch = textureSize * 4;
-		if (device->CreateTexture2D(&desc, &srdata, &m_data->Texture) != Nxna::NxnaResult::Success)
+		if (device->CreateTexture2D(&desc, &srdata, &texture) != Nxna::NxnaResult::Success)
 		{
 			g_memory->FreeTrack(r.chardata_for_range, __FILE__, __LINE__);
 			return false;
@@ -163,6 +162,7 @@ namespace Gui
 		auto memory = (uint8*)g_memory->AllocTrack(sizeof(Font) + sizeof(Font::CharInfo) * numCharacters + sizeof(int) * numCharacters, __FILE__, __LINE__);
 
 		*result = (Font*)memory;
+		(*result)->Texture = texture;
 		(*result)->CharacterMap = (int*)(memory + sizeof(Font));
 		(*result)->Characters = (Font::CharInfo*)(memory + sizeof(Font) + sizeof(int) * numCharacters);
 

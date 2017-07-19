@@ -9,6 +9,7 @@ struct StringManagerData;
 namespace Gui
 {
 	struct TextPrinterData;
+	struct ConsoleData;
 }
 
 namespace Content
@@ -66,6 +67,7 @@ struct GlobalData
 	Audio::AudioEngineData* Audio;
 	SpriteBatchData* SpriteBatch;
 	Gui::TextPrinterData* TextPrinter;
+	Gui::ConsoleData* ConsoleData;
 	Content::ContentManagerData* ContentData;
 	Content::ContentLoaderData* ContentLData;
 	Graphics::ModelData* ModelData;

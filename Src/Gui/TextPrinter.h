@@ -28,11 +28,12 @@ namespace Gui
 		int* CharacterMap;
 		int NumCharacters;
 		float LineHeight;
+		
+		Nxna::Graphics::Texture2D Texture;
 	};
 
 	struct TextPrinterData
 	{
-		Nxna::Graphics::Texture2D Texture;
 		Font* DefaultFont;
 		Font* ConsoleFont;
 	};
@@ -48,7 +49,7 @@ namespace Gui
 
 		static Font* GetFont(FontType type);
 
-		static void PrintScreen(SpriteBatchHelper* sb, float x, float y, Font* font, const char* text);
+		static void PrintScreen(SpriteBatchHelper* sb, float x, float y, Font* font, const char* text, Nxna::PackedColor color = NXNA_GET_PACKED_COLOR_RGB_BYTES(255, 255, 255));
 
 	private:
 		static bool createFont(Nxna::Graphics::GraphicsDevice* device, const char* path, float size, Font** result);

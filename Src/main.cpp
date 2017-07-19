@@ -174,6 +174,9 @@ int main(int argc, char* argv[])
 	int screenWidth = 640;
 	int screenHeight = 480;
 
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
+
 	WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Creating window...");
 	auto window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 	if (window == nullptr)
@@ -190,6 +193,7 @@ int main(int argc, char* argv[])
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 
 	auto context = SDL_GL_CreateContext(window);
@@ -203,9 +207,9 @@ int main(int argc, char* argv[])
 	if (SDL_GL_SetSwapInterval(-1) != 0)
 	{
 		if (SDL_GL_SetSwapInterval(1) != 0)
-			WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Unable to enable vsync");
+			WriteLog(gd.Log, LogSeverityType::Warning, LogChannelType::Unknown, "Unable to enable vsync");
 		else
-			WriteLog(gd.Log, LogSeverityType::Error, LogChannelType::Unknown, "Vsync enabled");
+			WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Vsync enabled");
 	}
 	else
 	{

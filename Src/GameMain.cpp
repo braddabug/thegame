@@ -71,6 +71,7 @@ void LibLoaded(GlobalData* data, bool initial)
 	Audio::AudioEngine::SetGlobalData(&data->Audio);
 	SpriteBatchHelper::SetGlobalData(&data->SpriteBatch);
 	Gui::TextPrinter::SetGlobalData(&data->TextPrinter);
+	Gui::Console::SetGlobalData(&data->ConsoleData);
 	Content::ContentManager::SetGlobalData(&data->ContentData, g_device);
 	Content::ContentLoader::SetGlobalData(&data->ContentLData, g_device);
 	Graphics::Model::SetGlobalData(&data->ModelData);
