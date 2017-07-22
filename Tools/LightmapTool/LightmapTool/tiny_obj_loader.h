@@ -218,6 +218,7 @@ typedef struct {
   std::vector<float> vertices;   // 'v'
   std::vector<float> normals;    // 'vn'
   std::vector<float> texcoords;  // 'vt'
+  std::vector<float> texcoords2; // 'vt2'
 } attrib_t;
 
 typedef struct callback_t_ {
@@ -1423,6 +1424,7 @@ bool LoadObj(attrib_t *attrib, std::vector<shape_t> *shapes,
   std::vector<float> v;
   std::vector<float> vn;
   std::vector<float> vt;
+  std::vector<float> vt2;
   std::vector<tag_t> tags;
   std::vector<std::vector<vertex_index> > faceGroup;
   std::string name;
@@ -1492,6 +1494,16 @@ bool LoadObj(attrib_t *attrib, std::vector<shape_t> *shapes,
       vt.push_back(y);
       continue;
     }
+
+	// texcoord2
+	if (token[0] == 'v' && token[1] == 't' && token[2] == '2' && IS_SPACE((token[3]))) {
+		token += 4;
+		float x, y;
+		parseFloat2(&x, &y, &token);
+		vt2.push_back(x);
+		vt2.push_back(y);
+		continue;
+	}
 
     // face
     if (token[0] == 'f' && IS_SPACE((token[1]))) {
@@ -1718,6 +1730,7 @@ bool LoadObj(attrib_t *attrib, std::vector<shape_t> *shapes,
   attrib->vertices.swap(v);
   attrib->normals.swap(vn);
   attrib->texcoords.swap(vt);
+  attrib->texcoords2.swap(vt2);
 
   return true;
 }

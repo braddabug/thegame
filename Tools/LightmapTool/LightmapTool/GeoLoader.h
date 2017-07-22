@@ -14,6 +14,7 @@ struct ModelGeometry
 {
 	HeapArray<float> Positions;
 	HeapArray<float> TextureCoords;
+	HeapArray<float> TextureCoords2;
 	HeapArray<uint32> Indices;
 	HeapArray<ModelGeometryMesh> Meshes;
 };

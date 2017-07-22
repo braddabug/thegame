@@ -37,6 +37,7 @@ bool LoadModelObj(const char* path, ModelGeometry* geometry)
 
 	std::vector<float> positions;
 	std::vector<float> texcoords;
+	std::vector<float> texcoords2;
 	std::vector<uint32> indices;
 
 	geometry->Meshes = HeapArray<ModelGeometryMesh>::Init(shapes.size());
@@ -83,6 +84,18 @@ bool LoadModelObj(const char* path, ModelGeometry* geometry)
 					ty = 1.0f - attrib.texcoords[2 * idx.texcoord_index + 1];
 				}
 
+				float tx2, ty2;
+				if (attrib.texcoords2.empty())
+				{
+					tx2 = 0;
+					ty2 = 0;
+				}
+				else
+				{
+					tx2 = attrib.texcoords2[2 * idx.texcoord_index + 0];
+					ty2 = 1.0f - attrib.texcoords2[2 * idx.texcoord_index + 1];
+				}
+
 				auto index = positions.size() / 3;
 				indices.push_back(index);
 
@@ -91,9 +104,11 @@ bool LoadModelObj(const char* path, ModelGeometry* geometry)
 				positions.push_back(vz);
 				texcoords.push_back(tx);
 				texcoords.push_back(ty);
-
+				texcoords2.push_back(tx2);
+				texcoords2.push_back(ty2);
 				
 			}
+
 			m.NumTriangles++;
 
 			index_offset += fv;
@@ -105,10 +120,12 @@ bool LoadModelObj(const char* path, ModelGeometry* geometry)
 	geometry->Indices = HeapArray<uint32>::Init(indices.size());
 	geometry->Positions = HeapArray<float>::Init(positions.size());
 	geometry->TextureCoords = HeapArray<float>::Init(positions.size());
+	geometry->TextureCoords2 = HeapArray<float>::Init(positions.size());
 
 	memcpy(geometry->Indices.A, indices.data(), sizeof(uint32) * indices.size());
 	memcpy(geometry->Positions.A, positions.data(), sizeof(float) * positions.size());
 	memcpy(geometry->TextureCoords.A, texcoords.data(), sizeof(float) * texcoords.size());
+	memcpy(geometry->TextureCoords2.A, texcoords2.data(), sizeof(float) * texcoords2.size());
 
 	return true;
 }
