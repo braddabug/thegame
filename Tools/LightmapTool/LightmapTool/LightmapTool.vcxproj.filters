@@ -2,9 +2,10 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="glew\glew.c" />
     <ClCompile Include="GeoLoader.cpp" />
     <ClCompile Include="..\..\..\Src\FileSystem.cpp" />
+    <ClCompile Include="glew\glew.c" />
+    <ClCompile Include="noc_file_dialog.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="lightmapper.h" />
@@ -12,5 +13,6 @@
     <ClInclude Include="Common.h" />
     <ClInclude Include="..\..\..\Src\FileSystem.h" />
     <ClInclude Include="LightmapNxna.h" />
+    <ClInclude Include="noc_file_dialog.h" />
   </ItemGroup>
 </Project>

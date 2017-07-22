@@ -128,6 +128,7 @@
     <ClCompile Include="GeoLoader.cpp" />
     <ClCompile Include="glew\glew.c" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="noc_file_dialog.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Src\FileSystem.h" />
@@ -135,6 +136,7 @@
     <ClInclude Include="GeoLoader.h" />
     <ClInclude Include="LightmapNxna.h" />
     <ClInclude Include="lightmapper.h" />
+    <ClInclude Include="noc_file_dialog.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
