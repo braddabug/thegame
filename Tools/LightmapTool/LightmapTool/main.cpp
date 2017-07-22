@@ -8,12 +8,17 @@
 #include "FileSystem.h"
 #include "Graphics/stb_image.h"
 #include "LightmapNxna.h"
+#include "Path.h"
 
 
 #include <cstring>
 #include "iniparse.h"
 
 #include "Common.h"
+
+extern "C" {
+	_declspec(dllexport) uint32 NvOptimusEnablement = 0x00000001;
+}
 
 //#define STBVOX_CONFIG_MODE 0
 //#include "stb_voxel_render.h"
@@ -47,6 +52,7 @@ struct Color4
 typedef struct {
 	float p[3];
 	float t[2];
+	float t2[2];
 } vertex_t;
 
 struct SceneMesh
@@ -82,6 +88,7 @@ struct SceneModel
 	char LightmapName[64];
 
 	Lightmap LightmapData;
+	GLuint Diffuse;
 };
 
 enum class LightType
@@ -104,6 +111,7 @@ typedef struct scene_
 {
 	GLuint program;
 	GLint u_lightmap;
+	GLint u_diffuse;
 	GLint u_projection;
 	GLint u_view;
 
@@ -136,8 +144,16 @@ void GLAPIENTRY glDebug(GLenum source, GLenum type, GLuint id, GLenum severity, 
 
 float scale = 1.0f;
 
+GLuint defaultTexture;
+
 int main(int argc, char* argv[])
 {
+	if (Path::Test() == false)
+	{
+		printf("Path test failed!\n");
+		return -1;
+	}
+
 	const int w = 640;
 	const int h = 480;
 	int pass = 0;
@@ -177,6 +193,11 @@ int main(int argc, char* argv[])
 	printf("buf = %d, samples = %d\n", Buffers, Samples);
 
 	glDebugMessageCallback(glDebug, nullptr);
+
+	glGenTextures(1, &defaultTexture);
+	glBindTexture(GL_TEXTURE_2D, defaultTexture);
+	uint32 white = 0xffffffff;
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &white);
 
 	scene_t scene = { 0 };
 	if (!initScene(&scene, argv[1]))
@@ -227,7 +248,7 @@ int main(int argc, char* argv[])
 		perspectiveMatrix(projection, 45.0f, (float)w / (float)h, 0.01f, 100.0f);
 
 		// draw to screen with a blueish sky
-		glClearColor(0.6f, 0.8f, 1.0f, 1.0f);
+		glClearColor(0.9f, 0.8f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glEnable(GL_CULL_FACE);
@@ -272,9 +293,9 @@ void genCircularLightTexture(float r, float g, float b, float* buffer, int size)
 void genBillboardGeometry(float width, float height, ModelGeometry* result);
 void genSphereGeometry(ModelGeometry* result);
 
-int initModel(ModelGeometry* geometry, Lightmap* lightmap, SceneModel* result);
+int initModel(ModelGeometry* geometry, const char* diffuse, Lightmap* lightmap, SceneModel* result);
 
-int initModel(const char* name, const char* lightmapName, int lightmapWidth, int lightmapHeight, bool isGeo, Color3* emissive, SceneModel* result)
+int initModel(const char* name, const char* diffuse, const char* lightmapName, int lightmapWidth, int lightmapHeight, bool isGeo, Color3* emissive, SceneModel* result)
 {
 	// load mesh
 	ModelGeometry geo = {};
@@ -297,7 +318,13 @@ int initModel(const char* name, const char* lightmapName, int lightmapWidth, int
 	Lightmap lm;
 	createLightmap(lightmapName, lightmapWidth, lightmapHeight, emissive, &lm);
 
-	return initModel(&geo, &lm, result);
+	char diffusePath[256];
+	if (diffuse)
+	{
+		Path::ReplaceFilename(name, diffuse, diffusePath, 256);
+		diffuse = diffusePath;
+	}
+	return initModel(&geo, diffuse, &lm, result);
 }
 
 void createLightmap(uint32 width, uint32 height, float* data, Lightmap* result)
@@ -388,7 +415,7 @@ int createLightmap(const char* lightmapName, int width, int height, Color3* emis
 	return 0;
 }
 
-int initModel(ModelGeometry* geometry, Lightmap* lightmap, SceneModel* result)
+int initModel(ModelGeometry* geometry, const char* diffuse, Lightmap* lightmap, SceneModel* result)
 {
 	ModelGeometry& geo = *geometry;
 
@@ -422,6 +449,9 @@ int initModel(ModelGeometry* geometry, Lightmap* lightmap, SceneModel* result)
 
 		model.vertices[i].t[0] = geo.TextureCoords.A[i * 2 + 0];
 		model.vertices[i].t[1] = geo.TextureCoords.A[i * 2 + 1];
+
+		model.vertices[i].t2[0] = geo.TextureCoords2.A[i * 2 + 0];
+		model.vertices[i].t2[1] = geo.TextureCoords2.A[i * 2 + 1];
 	}
 
 	for (size_t i = 0; i < geo.Meshes.Length; i++)
@@ -449,9 +479,35 @@ int initModel(ModelGeometry* geometry, Lightmap* lightmap, SceneModel* result)
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)offsetof(vertex_t, p));
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)offsetof(vertex_t, t));
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)offsetof(vertex_t, t2));
 
 	// create lightmap texture
 	model.LightmapData = *lightmap;
+
+	if (diffuse)
+	{
+		glGenTextures(1, &model.Diffuse);
+		glBindTexture(GL_TEXTURE_2D, model.Diffuse);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		int w, h, d;
+		auto pixels = stbi_load(diffuse, &w, &h, &d, LC); // TODO: diffuse is looking in the root directory instead of Content/Models
+		if (pixels == nullptr)
+		{
+			printf("Unable to load diffuse texture %s\n", diffuse);
+			return 0;
+		}
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+		stbi_image_free(pixels);
+	}
+	else
+	{
+		model.Diffuse = defaultTexture;
+	}
 
 	/*model.LightmapData.Width = 512;
 	model.LightmapData.Height = 512;
@@ -574,7 +630,7 @@ parse:
 				genCircularLightTexture(r, g, b, buffer, 64);
 				createLightmap(64, 64, buffer, &lm);
 				//createLightmap(nullptr, &glowing, &lm);
-				if (initModel(&sphere, &lm, &scene->lights[scene->lightCount].Model) == 0)
+				if (initModel(&sphere, nullptr, &lm, &scene->lights[scene->lightCount].Model) == 0)
 					return 0;
 
 				scene->lights[scene->lightCount].Type = type;
@@ -608,6 +664,7 @@ parse:
 				float r = 0, g = 0, b = 0;
 				bool isEmissive = false;
 				char name[256]; name[0] = 0;
+				char diffuse[64]; diffuse[0] = 0;
 				char lightmap[64]; lightmap[0] = 0;
 				int lightmapWidth = 512, lightmapHeight = 512;
 
@@ -623,6 +680,16 @@ parse:
 #endif
 						if (len < 255) name[len] = 0;
 						else name[255] = 0;
+					}
+					else if (ini_key_equals(&ctx, &item, "diffuse"))
+					{
+						int len = item.keyvalue.value_end - item.keyvalue.value_start;
+#ifdef _WIN32
+						strncpy_s(diffuse, txt + item.keyvalue.value_start, len < 64 ? len : 64);
+#else
+						strncpy(diffuse, txt + item.keyvalue.value_start, len < 64 ? len : 64);
+#endif
+						diffuse[63] = 0;
 					}
 					else if (ini_key_equals(&ctx, &item, "lightmap"))
 					{
@@ -672,7 +739,7 @@ parse:
 					Color3 glowing = { r, g, b };
 					Color3* emissive = isEmissive ? &glowing : nullptr;
 
-					if (initModel(name, lightmap, lightmapWidth, lightmapHeight, isGeo, emissive, &scene->models[scene->modelCount]) == 0)
+					if (initModel(name, diffuse, lightmap, lightmapWidth, lightmapHeight, isGeo, emissive, &scene->models[scene->modelCount]) == 0)
 					{
 						printf("Could not load model %s\n", name);
 						return 0;
@@ -696,31 +763,38 @@ parse:
 		"#version 150 core\n"
 		"in vec3 a_position;\n"
 		"in vec2 a_texcoord;\n"
+		"in vec2 a_texcoord2;\n"
 		"uniform mat4 u_view;\n"
 		"uniform mat4 u_projection;\n"
 		"out vec2 v_texcoord;\n"
+		"out vec2 v_texcoord2;\n"
 
 		"void main()\n"
 		"{\n"
 		"gl_Position = u_projection * (u_view * vec4(a_position, 1.0));\n"
 		"v_texcoord = a_texcoord;\n"
+		"v_texcoord2 = a_texcoord2;\n"
 		"}\n";
 
 	const char *fp =
 		"#version 150 core\n"
 		"in vec2 v_texcoord;\n"
+		"in vec2 v_texcoord2;\n"
 		"uniform sampler2D u_lightmap;\n"
+		"uniform sampler2D u_diffuse;\n"
 		"out vec4 o_color;\n"
 
 		"void main()\n"
 		"{\n"
-		"o_color = vec4(texture(u_lightmap, v_texcoord).rgb, gl_FrontFacing ? 1.0 : 0.0);\n"
+		"vec3 diffuseColor = texture(u_diffuse, v_texcoord2).rgb;\n"
+		"o_color = vec4(texture(u_lightmap, v_texcoord).rgb * diffuseColor, gl_FrontFacing ? 1.0 : 0.0);\n"
 		"}\n";
 
 	const char *attribs[] =
 	{
 		"a_position",
-		"a_texcoord"
+		"a_texcoord",
+		"a_texcoord2"
 	};
 
 	scene->program = loadProgram(vp, fp, attribs, 2);
@@ -732,6 +806,7 @@ parse:
 	scene->u_view = glGetUniformLocation(scene->program, "u_view");
 	scene->u_projection = glGetUniformLocation(scene->program, "u_projection");
 	scene->u_lightmap = glGetUniformLocation(scene->program, "u_lightmap");
+	scene->u_diffuse = glGetUniformLocation(scene->program, "u_diffuse");
 
 	return 1;
 }
@@ -753,7 +828,10 @@ void drawModel(scene_t* scene, SceneModel* model, float* view, bool translate = 
 		glUniformMatrix4fv(scene->u_view, 1, GL_FALSE, view);
 	}
 
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, model->LightmapData.GLHandle);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, model->Diffuse);
 
 	glBindVertexArray(model->vao);
 
@@ -770,6 +848,7 @@ void drawScene(scene_t *scene, bool drawLights, float *view, float *projection, 
 
 	glUseProgram(scene->program);
 	glUniform1i(scene->u_lightmap, 0);
+	glUniform1i(scene->u_diffuse, 1);
 	glUniformMatrix4fv(scene->u_projection, 1, GL_FALSE, projection);
 	
 	
@@ -1300,11 +1379,13 @@ void genBillboardGeometry(float width, float height, ModelGeometry* result)
 	result->Indices = HeapArray<uint32>::Init(6);
 	result->Positions = HeapArray<float>::Init(4 * 3);
 	result->TextureCoords = HeapArray<float>::Init(4 * 2);
+	result->TextureCoords2 = HeapArray<float>::Init(4 * 2);
 	result->Meshes = HeapArray<ModelGeometryMesh>::Init(1);
 
 	memcpy(result->Indices.A, indices, sizeof(uint32) * 6);
 	memcpy(result->Positions.A, positions, sizeof(float) * 4 * 3);
 	memcpy(result->TextureCoords.A, uvs, sizeof(float) * 4 * 2);
+	memcpy(result->TextureCoords2.A, uvs, sizeof(float) * 4 * 2);
 	result->Meshes.A[0].NumTriangles = 2;
 	result->Meshes.A[0].StartIndex = 0;
 	result->Meshes.A[0].TextureIndex = -1;
@@ -1427,6 +1508,7 @@ void perspectiveMatrix(float *out, float fovy, float aspect, float zNear, float 
 	out[12] = 0.0f;       out[13] = 0.0f; out[14] = 2.0f * zFar * zNear * izFN; out[15] = 0.0f;
 }
 
+uint32 prevTicks = 0;
 void fpsCameraViewMatrix(SDL_Window *window, float *view, float* cameraPosition)
 {
 	// initial camera config
@@ -1453,7 +1535,12 @@ void fpsCameraViewMatrix(SDL_Window *window, float *view, float* cameraPosition)
 	// keyboard movement (WSADEQ)
 	auto keys = SDL_GetKeyboardState(nullptr);
 
-	float speed = keys[SDL_SCANCODE_LSHIFT] ? 0.1f : 0.01f;
+	uint32 ticks = SDL_GetTicks();
+	uint32 elapsed = ticks - prevTicks;
+	float secondsPerFrame = elapsed / 1000.0f;
+	prevTicks = ticks;
+
+	float speed = (keys[SDL_SCANCODE_LSHIFT] ? 20.0f : 10.0f) * secondsPerFrame;
 	float movement[3] = { 0 };
 	if (keys[SDL_SCANCODE_W]) movement[2] -= speed;
 	if (keys[SDL_SCANCODE_S]) movement[2] += speed;

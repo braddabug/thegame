@@ -5,6 +5,7 @@
     <ClCompile Include="glew\glew.c" />
     <ClCompile Include="GeoLoader.cpp" />
     <ClCompile Include="..\..\..\Src\FileSystem.cpp" />
+    <ClCompile Include="..\..\..\Src\Path.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="lightmapper.h" />
@@ -12,5 +13,6 @@
     <ClInclude Include="Common.h" />
     <ClInclude Include="..\..\..\Src\FileSystem.h" />
     <ClInclude Include="LightmapNxna.h" />
+    <ClInclude Include="..\..\..\Src\Path.h" />
   </ItemGroup>
 </Project>

@@ -125,12 +125,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\Src\FileSystem.cpp" />
+    <ClCompile Include="..\..\..\Src\Path.cpp" />
     <ClCompile Include="GeoLoader.cpp" />
     <ClCompile Include="glew\glew.c" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Src\FileSystem.h" />
+    <ClInclude Include="..\..\..\Src\Path.h" />
     <ClInclude Include="Common.h" />
     <ClInclude Include="GeoLoader.h" />
     <ClInclude Include="LightmapNxna.h" />
