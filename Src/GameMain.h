@@ -2,6 +2,7 @@
 #define GAMEMAIN_H
 
 #include "MyNxna2.h"
+#include "Common.h"
 
 enum class ExternalEventType
 {
@@ -11,7 +12,8 @@ enum class ExternalEventType
 	MouseButtonDown,
 	MouseButtonUp,
 	KeyboardButtonDown,
-	KeyboardButtonUp
+	KeyboardButtonUp,
+	TextInput
 };
 struct ExternalEvent
 {
@@ -37,6 +39,10 @@ struct ExternalEvent
 			unsigned int UnicodeCharacter;
 			Nxna::Input::Key Key;
 		} KeyboardButton;
+		struct
+		{
+			uint32 Unicode;
+		} TextInput;
 	};
 };
 

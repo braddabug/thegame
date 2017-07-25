@@ -49,6 +49,7 @@ namespace Gui
 
 		static Font* GetFont(FontType type);
 
+		static Nxna::Vector2 MeasureString(Font* font, const char* text, const char* end = nullptr);
 		static void PrintScreen(SpriteBatchHelper* sb, float x, float y, Font* font, const char* text, Nxna::PackedColor color = NXNA_GET_PACKED_COLOR_RGB_BYTES(255, 255, 255));
 
 	private:

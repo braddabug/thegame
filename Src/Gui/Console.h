@@ -16,6 +16,11 @@ namespace Gui
 		static void SetGlobalData(ConsoleData** data);
 		static void Shutdown();
 
+		static bool IsVisible();
+		static void IsVisible(bool visible);
+
+		static void HandleInput(Nxna::Input::InputState* input);
+
 		static void Draw(SpriteBatchHelper* sb, LogData* data);
 	};
 }

@@ -113,6 +113,8 @@ Nxna::Input::Key ConvertSDLKey(SDL_Keycode key)
 		return Nxna::Input::Key::F11;
 	case SDLK_F12:
 		return Nxna::Input::Key::F12;
+	case SDLK_DELETE:
+		return Nxna::Input::Key::Delete;
 	default:
 		if (key >= SDLK_a && key <= SDLK_z)
 			return (Nxna::Input::Key)((int)Nxna::Input::Key::A + (key - SDLK_a));
@@ -296,7 +298,15 @@ int main(int argc, char* argv[])
 				ee.KeyboardButton.Key = ConvertSDLKey(e.key.keysym.sym);
 				LocalHandleEvent(ee);
 			}
-			break;
+				break;
+			case SDL_TEXTINPUT:
+			{
+				ExternalEvent ee = {};
+				ee.Type = ExternalEventType::TextInput;
+				ee.TextInput.Unicode = e.text.text[0]; // TODO: support unicode properly!
+				LocalHandleEvent(ee);
+			}
+				break;
 			}
 		}
 

@@ -187,11 +187,43 @@ void Tick()
 	g_device->ClearDepthStencil(true, true, 1.0f, 0);
 
 	SpriteBatchHelper sb;
-
-
-	// update camera
 	Nxna::Matrix cameraTransform;
+
+	// setup the camera
+	cameraPitch = Nxna::MathHelper::Clamp(cameraPitch, -Nxna::Pi, Nxna::Pi);
+
+	Nxna::Quaternion yawq = Nxna::Quaternion::CreateFromYawPitchRoll(cameraYaw, cameraPitch, 0);
+
+	Nxna::Vector3 forward = Nxna::Vector3::Forward;
+	Nxna::Vector3 up = Nxna::Vector3::Up;
+	Nxna::Vector3 right = Nxna::Vector3::Right;
+
+	Nxna::Quaternion::Multiply(yawq, forward, forward);
+	Nxna::Quaternion::Multiply(yawq, up, up);
+	Nxna::Quaternion::Multiply(yawq, right, right);
+	
+
+	if (Gui::Console::IsVisible())
 	{
+		cameraTransform = Nxna::Matrix::Identity;
+
+		Gui::Console::HandleInput(g_inputState);
+
+		if (NXNA_BUTTON_STATE(g_inputState->KeyboardKeysData[(int)Nxna::Input::Key::F1]) &&
+			NXNA_BUTTON_TRANSITION_COUNT(g_inputState->KeyboardKeysData[(int)Nxna::Input::Key::F1]) == 1)
+		{
+			Gui::Console::IsVisible(false);
+		}
+	}
+	else
+	{
+		if (NXNA_BUTTON_STATE(g_inputState->KeyboardKeysData[(int)Nxna::Input::Key::F1]) &&
+			NXNA_BUTTON_TRANSITION_COUNT(g_inputState->KeyboardKeysData[(int)Nxna::Input::Key::F1]) == 1)
+		{
+			Gui::Console::IsVisible(true);
+		}
+
+		// update camera
 		bool shiftb = Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::LeftShift);
 		bool upb = Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::Up) ||
 			Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::W);
@@ -204,18 +236,6 @@ void Tick()
 		bool mlb = Nxna::Input::InputState::IsMouseButtonDown(g_inputState, 1);
 		bool mrb = Nxna::Input::InputState::IsMouseButtonDown(g_inputState, 3);
 		
-		cameraPitch = Nxna::MathHelper::Clamp(cameraPitch, -Nxna::Pi, Nxna::Pi);
-
-		Nxna::Quaternion yawq = Nxna::Quaternion::CreateFromYawPitchRoll(cameraYaw, cameraPitch, 0);
-
-		Nxna::Vector3 forward = Nxna::Vector3::Forward;
-		Nxna::Vector3 up = Nxna::Vector3::Up;
-		Nxna::Vector3 right = Nxna::Vector3::Right;
-
-		Nxna::Quaternion::Multiply(yawq, forward, forward);
-		Nxna::Quaternion::Multiply(yawq, up, up);
-		Nxna::Quaternion::Multiply(yawq, right, right);
-
 		if (mrb && mlb)
 		{
 			// strafe (straif? straife? strayph? streigh?)
@@ -249,7 +269,11 @@ void Tick()
 					cameraPosition += right;
 			}
 		}
+	}
 
+
+	// setup the camera
+	{
 		auto lookAt = Nxna::Matrix::CreateLookAt(cameraPosition, cameraPosition + forward, up);
 		Nxna::Matrix projection = Nxna::Matrix::CreatePerspectiveFieldOfView(60.0f * 0.0174533f, 640 / (float)480, 0.5f, 1000.0f);
 		cameraTransform = lookAt * projection;
@@ -300,6 +324,9 @@ void HandleExternalEvent(ExternalEvent e)
 		break;
 	case ExternalEventType::KeyboardButtonUp:
 		Nxna::Input::InputState::InjectKeyEvent(g_inputState, false, e.KeyboardButton.Key);
+		break;
+	case ExternalEventType::TextInput:
+		g_inputState->BufferedKeys[g_inputState->NumBufferedKeys++] = e.TextInput.Unicode;
 		break;
 	}
 }

@@ -43,6 +43,57 @@ namespace Gui
 		}
 	}
 
+	Nxna::Vector2 TextPrinter::MeasureString(Font* font, const char* text, const char* end)
+	{
+		Nxna::Vector2 result;
+		uint32 numCharacters;
+		if (end == nullptr)
+			numCharacters = (uint32)strlen(text);
+		else
+			numCharacters = (uint32)(end - text);
+
+		for (uint32 i = 0; i < numCharacters; i++)
+		{
+			auto character = (int)text[i];
+
+			// binary search to find the character index
+			int characterIndex = -1;
+			{
+				int first = 0;
+				int last = font->NumCharacters - 1;
+				int middle = (first + last) / 2;
+
+				while (first <= last)
+				{
+					if (font->CharacterMap[middle] < character)
+						first = middle + 1;
+					else if (font->CharacterMap[middle] == character)
+					{
+						characterIndex = middle;
+						break;
+					}
+					else
+						last = middle - 1;
+
+					middle = (first + last) / 2;
+				}
+			}
+
+			if (characterIndex == -1)
+				continue;
+
+			auto characterInfo = font->Characters[characterIndex];
+
+			result.X += characterInfo.XAdvance;
+
+			auto height = characterInfo.YOffset + characterInfo.ScreenH;
+			if (height > result.Y)
+				result.Y = height;
+		}
+
+		return result;
+	}
+
 	void TextPrinter::PrintScreen(SpriteBatchHelper* sb, float x, float y, Font* font, const char* text, Nxna::PackedColor color)
 	{
 		uint32 numCharacters = (uint32)strlen(text);
