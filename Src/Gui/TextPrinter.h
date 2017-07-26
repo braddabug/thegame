@@ -53,7 +53,7 @@ namespace Gui
 		static void PrintScreen(SpriteBatchHelper* sb, float x, float y, Font* font, const char* text, Nxna::PackedColor color = NXNA_GET_PACKED_COLOR_RGB_BYTES(255, 255, 255));
 
 	private:
-		static bool createFont(Nxna::Graphics::GraphicsDevice* device, const char* path, float size, Font** result);
+		static bool createFont(Nxna::Graphics::GraphicsDevice* device, const char* path, float size, int firstCharacter, int lastCharacter, Font** result);
 	};
 }
 

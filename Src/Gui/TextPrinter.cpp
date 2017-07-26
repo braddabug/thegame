@@ -23,8 +23,8 @@ namespace Gui
 
 	bool TextPrinter::Init(Nxna::Graphics::GraphicsDevice* device)
 	{
-		return createFont(device, "Content/Fonts/DroidSans.ttf", 20, &m_data->DefaultFont) &&
-			createFont(device, "Content/Fonts/DroidSans.ttf", 12, &m_data->ConsoleFont);
+		return createFont(device, "Content/Fonts/DroidSans.ttf", 20, 32, 127, &m_data->DefaultFont) &&
+			createFont(device, "Content/Fonts/Inconsolata-Regular.ttf", 14, 32, 255, &m_data->ConsoleFont);
 	}
 
 	void TextPrinter::Shutdown()
@@ -43,6 +43,41 @@ namespace Gui
 		}
 	}
 
+	inline Font::CharInfo findCharacter(Font* font, int character)
+	{
+		// binary search to find the character index
+		int characterIndex = -1;
+		{
+			int first = 0;
+			int last =  font->NumCharacters - 1;
+			int middle = (first + last) / 2;
+
+			while (first <= last)
+			{
+				if (font->CharacterMap[middle] < character)
+					first = middle + 1;
+				else if (font->CharacterMap[middle] == character)
+				{
+					characterIndex = middle;
+					break;
+				}
+				else
+					last = middle - 1;
+
+				middle = (first + last) / 2;
+			}
+		}
+
+		if (characterIndex == -1)
+		{
+			Font::CharInfo info = {};
+			return info;
+		}
+
+		auto characterInfo = font->Characters[characterIndex];
+		return characterInfo;
+	}
+
 	Nxna::Vector2 TextPrinter::MeasureString(Font* font, const char* text, const char* end)
 	{
 		Nxna::Vector2 result;
@@ -54,35 +89,8 @@ namespace Gui
 
 		for (uint32 i = 0; i < numCharacters; i++)
 		{
-			auto character = (int)text[i];
-
-			// binary search to find the character index
-			int characterIndex = -1;
-			{
-				int first = 0;
-				int last = font->NumCharacters - 1;
-				int middle = (first + last) / 2;
-
-				while (first <= last)
-				{
-					if (font->CharacterMap[middle] < character)
-						first = middle + 1;
-					else if (font->CharacterMap[middle] == character)
-					{
-						characterIndex = middle;
-						break;
-					}
-					else
-						last = middle - 1;
-
-					middle = (first + last) / 2;
-				}
-			}
-
-			if (characterIndex == -1)
-				continue;
-
-			auto characterInfo = font->Characters[characterIndex];
+			auto character = (int)((const uint8*)text)[i];
+			auto characterInfo = findCharacter(font, character);
 
 			result.X += characterInfo.XAdvance;
 
@@ -108,35 +116,9 @@ namespace Gui
 
 		for (uint32 i = 0; i < numCharacters; i++)
 		{
-			auto character = (int)text[i];
+			auto character = (int)((const uint8*)text)[i];
 
-			// binary search to find the character index
-			int characterIndex = -1;
-			{
-				int first = 0;
-				int last =  pfont->NumCharacters - 1;
-				int middle = (first + last) / 2;
-
-				while (first <= last)
-				{
-					if (pfont->CharacterMap[middle] < character)
-						first = middle + 1;
-					else if (pfont->CharacterMap[middle] == character)
-					{
-						characterIndex = middle;
-						break;
-					}
-					else
-						last = middle - 1;
-
-					middle = (first + last) / 2;
-				}
-			}
-
-			if (characterIndex == -1)
-				continue;
-
-			auto characterInfo = pfont->Characters[characterIndex];
+			auto characterInfo = findCharacter(pfont, character);
 
 			sprites[i].Source[0] = characterInfo.SrcX;
 			sprites[i].Source[1] = characterInfo.SrcY;
@@ -158,10 +140,8 @@ namespace Gui
 		}
 	}
 
-	bool TextPrinter::createFont(Nxna::Graphics::GraphicsDevice* device, const char* path, float size, Font** result)
+	bool TextPrinter::createFont(Nxna::Graphics::GraphicsDevice* device, const char* path, float size, int firstCharacter, int lastCharacter, Font** result)
 	{
-		const int firstCharacter = 32;
-		const int lastCharacter = 127;
 		const int numCharacters = lastCharacter - firstCharacter;
 
 		const uint32 textureSize = 256;

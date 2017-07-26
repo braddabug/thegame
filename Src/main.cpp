@@ -4,6 +4,7 @@
 #include "SpriteBatchHelper.h"
 #include "Gui/TextPrinter.h"
 #include SDL_HEADER
+#include "utf8.h"
 
 #include "GameMain.h"
 #include "GlobalData.h"
@@ -301,9 +302,12 @@ int main(int argc, char* argv[])
 				break;
 			case SDL_TEXTINPUT:
 			{
+				int unicode;
+				utf8codepoint(e.text.text, &unicode);
+
 				ExternalEvent ee = {};
 				ee.Type = ExternalEventType::TextInput;
-				ee.TextInput.Unicode = e.text.text[0]; // TODO: support unicode properly!
+				ee.TextInput.Unicode = unicode;
 				LocalHandleEvent(ee);
 			}
 				break;
