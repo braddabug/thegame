@@ -52,12 +52,20 @@ struct Globals;
 struct LogData;
 struct JobQueueData;
 struct MemoryManager;
+struct PlatformInfo;
 struct FileSystemData;
+
+struct PlatformInfo
+{
+	const char* (*GetClipboardText)();
+	void(*FreeClipboardText)(const char*);
+};
 
 struct GlobalData
 {
 	Globals* Global;
 	MemoryManager* Memory;
+	PlatformInfo* Platform;
 	LogData* Log;
 	JobQueueData* JobQueue;
 	FileSystemData* FileSystem;

@@ -24,6 +24,18 @@ GlobalData gd;
 
 #undef None
 
+extern PlatformInfo* g_platform;
+
+const char* LocalGetClipboardText()
+{
+	return SDL_GetClipboardText();
+}
+
+void LocalFreeClipboardText(const char* text)
+{
+	SDL_free((char*)text);
+}
+
 int LocalInit(Nxna::Graphics::GraphicsDevice* device, WindowInfo* window, SpriteBatchData* sbd, Gui::TextPrinterData* tpd)
 {
 	return GAME_LIB_CALL(Init)(window);
@@ -116,6 +128,8 @@ Nxna::Input::Key ConvertSDLKey(SDL_Keycode key)
 		return Nxna::Input::Key::F12;
 	case SDLK_DELETE:
 		return Nxna::Input::Key::Delete;
+	case SDLK_INSERT:
+		return Nxna::Input::Key::Insert;
 	default:
 		if (key >= SDLK_a && key <= SDLK_z)
 			return (Nxna::Input::Key)((int)Nxna::Input::Key::A + (key - SDLK_a));
@@ -143,6 +157,12 @@ int main(int argc, char* argv[])
 	gd.Memory = g_memory;
 
 	MemoryManagerInternal::Initialize();
+
+	PlatformInfo platform;
+	platform.GetClipboardText = LocalGetClipboardText;
+	platform.FreeClipboardText = LocalFreeClipboardText;
+	g_platform = &platform;
+	gd.Platform = g_platform;
 
 	// create the log data
 	gd.Log = (LogData*)mem.AllocTrack(sizeof(LogData), __FILE__, __LINE__);

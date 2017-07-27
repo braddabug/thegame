@@ -1,6 +1,9 @@
 #include "Console.h"
 #include "TextPrinter.h"
 #include "../Logging.h"
+#include "../GlobalData.h"
+
+extern PlatformInfo* g_platform;
 
 namespace Gui
 {
@@ -45,6 +48,29 @@ namespace Gui
 		m_data->Visible = visible;
 	}
 
+	void injectText(ConsoleData* data, const char* text)
+	{
+		uint32 len = strlen(text);
+		uint32 toCopy = 255 - data->InputBufferSize;
+		if (toCopy > len) toCopy = len;
+
+		if (toCopy > 0)
+		{
+			if (data->InputBufferCursor != data->InputBufferSize)
+			{
+				// the cursor is in the middle, so we have to rearrange things
+				memmove(data->InputBuffer + data->InputBufferCursor + toCopy, data->InputBuffer + data->InputBufferCursor, data->InputBufferSize - data->InputBufferCursor);
+			}
+
+			memcpy(data->InputBuffer + data->InputBufferCursor, text, toCopy);
+			data->InputBufferSize += toCopy;
+			data->InputBufferCursor += toCopy;
+			data->InputBuffer[data->InputBufferSize] = 0;
+		}
+
+		assert(data->InputBufferSize < 256);
+	}
+
 	void Console::HandleInput(Nxna::Input::InputState* input)
 	{
 		// handle unicdoe input
@@ -53,19 +79,8 @@ namespace Gui
 			auto key = input->BufferedKeys[i];
 			if (key >= 32)
 			{
-				if (m_data->InputBufferSize < 255)
-				{
-					if (m_data->InputBufferCursor != m_data->InputBufferSize)
-					{
-						// the cursor is in the middle, so we have to rearrange things
-						memmove(m_data->InputBuffer + m_data->InputBufferCursor + 1, m_data->InputBuffer + m_data->InputBufferCursor, m_data->InputBufferSize - m_data->InputBufferCursor);
-					}
-
-					m_data->InputBuffer[m_data->InputBufferCursor] = key;
-					m_data->InputBuffer[m_data->InputBufferSize + 1] = 0;
-					m_data->InputBufferSize++;
-					m_data->InputBufferCursor++;
-				}
+				char buffer[2] = { key, 0 };
+				injectText(m_data, buffer);
 			}
 		}
 
@@ -138,6 +153,24 @@ namespace Gui
 			m_data->InputBuffer[0] = 0;
 			m_data->InputBufferSize = 0;
 			m_data->InputBufferCursor = 0;
+		}
+
+		// handle clipboard
+		{
+			uint32 insertTransition = NXNA_BUTTON_TRANSITION_COUNT(input->KeyboardKeysData[(int)Nxna::Input::Key::Insert]);
+			uint32 insertDown = NXNA_BUTTON_STATE(input->KeyboardKeysData[(int)Nxna::Input::Key::Insert]) > 0 ? 1 : 0;
+			uint32 shiftDown = NXNA_BUTTON_STATE(input->KeyboardKeysData[(int)Nxna::Input::Key::LeftShift]) > 0 ||
+				NXNA_BUTTON_STATE(input->KeyboardKeysData[(int)Nxna::Input::Key::RightShift]) > 0 ? 1 : 0;
+
+			if (insertDown == 1 && insertTransition > 0 && shiftDown == 1)
+			{
+				const char* clipboard = g_platform->GetClipboardText();
+				if (clipboard != nullptr)
+				{
+					injectText(m_data, clipboard);
+					g_platform->FreeClipboardText(clipboard);
+				}
+			}
 		}
 	}
 

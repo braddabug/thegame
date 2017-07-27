@@ -25,6 +25,7 @@ Nxna::Graphics::GraphicsDevice* g_device;
 Nxna::Input::InputState* g_inputState;
 Content::ContentManager g_content;
 extern LogData* g_log;
+extern PlatformInfo* g_platform;
 
 void msg(Nxna::Graphics::GraphicsDeviceDebugMessage m)
 {
@@ -34,6 +35,7 @@ void msg(Nxna::Graphics::GraphicsDeviceDebugMessage m)
 void LibLoaded(GlobalData* data, bool initial)
 {
 	g_memory = data->Memory;
+	g_platform = data->Platform;
 
 	if (data->Global == nullptr)
 	{

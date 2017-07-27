@@ -49,3 +49,4 @@
 #endif
 
 MemoryManager* g_memory;
+PlatformInfo* g_platform;
