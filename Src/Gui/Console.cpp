@@ -9,9 +9,17 @@ namespace Gui
 {
 	struct ConsoleData
 	{
-		char InputBuffer[256];
+		static const int MaxInputBufferSize = 256;
+		char InputBuffer[MaxInputBufferSize];
 		int InputBufferSize;
 		int InputBufferCursor;
+
+		static const int MaxHistorySize = 5;
+		char History[MaxHistorySize][MaxInputBufferSize];
+		int HistorySize;
+		int HistoryCursor;
+		int HistoryNext;
+
 		int FirstVisibleLine;
 		bool Visible;
 	};
@@ -51,7 +59,7 @@ namespace Gui
 	void injectText(ConsoleData* data, const char* text)
 	{
 		uint32 len = strlen(text);
-		uint32 toCopy = 255 - data->InputBufferSize;
+		uint32 toCopy = ConsoleData::MaxInputBufferSize - 1 - data->InputBufferSize;
 		if (toCopy > len) toCopy = len;
 
 		if (toCopy > 0)
@@ -68,7 +76,7 @@ namespace Gui
 			data->InputBuffer[data->InputBufferSize] = 0;
 		}
 
-		assert(data->InputBufferSize < 256);
+		assert(data->InputBufferSize < ConsoleData::MaxInputBufferSize);
 	}
 
 	void Console::HandleInput(Nxna::Input::InputState* input)
@@ -90,12 +98,37 @@ namespace Gui
 			uint32 leftDown = NXNA_BUTTON_STATE(input->KeyboardKeysData[(int)Nxna::Input::Key::Left]) > 0 ? 1 : 0;
 			uint32 rightTransition = NXNA_BUTTON_TRANSITION_COUNT(input->KeyboardKeysData[(int)Nxna::Input::Key::Right]);
 			uint32 rightDown = NXNA_BUTTON_STATE(input->KeyboardKeysData[(int)Nxna::Input::Key::Right]) > 0 ? 1 : 0;
+			
 
 			m_data->InputBufferCursor -= (leftTransition + leftDown) / 2;
 			m_data->InputBufferCursor += (rightTransition + rightDown) / 2;
 
 			if (m_data->InputBufferCursor < 0) m_data->InputBufferCursor = 0;
 			if (m_data->InputBufferCursor > m_data->InputBufferSize) m_data->InputBufferCursor = m_data->InputBufferSize;
+
+			if (m_data->HistorySize > 0)
+			{
+				uint32 upTransition = NXNA_BUTTON_TRANSITION_COUNT(input->KeyboardKeysData[(int)Nxna::Input::Key::Up]);
+				uint32 upDown = NXNA_BUTTON_STATE(input->KeyboardKeysData[(int)Nxna::Input::Key::Up]) > 0 ? 1 : 0;
+				uint32 downTransition = NXNA_BUTTON_TRANSITION_COUNT(input->KeyboardKeysData[(int)Nxna::Input::Key::Down]);
+				uint32 downDown = NXNA_BUTTON_STATE(input->KeyboardKeysData[(int)Nxna::Input::Key::Down]) > 0 ? 1 : 0;
+
+				int oldCursor = m_data->HistoryCursor;
+				m_data->HistoryCursor += (upTransition + upDown) / 2;
+				m_data->HistoryCursor -= (downTransition + downDown) / 2;
+				m_data->HistoryCursor = Utils::Wrap(m_data->HistoryCursor, m_data->HistorySize);
+
+				if (oldCursor != m_data->HistoryCursor)
+				{
+					int history = Utils::Wrap(m_data->HistoryNext - m_data->HistoryCursor, m_data->HistorySize);
+#ifdef _WIN32
+					strcpy_s(m_data->InputBuffer, m_data->History[history]);
+#else
+					strcpy(m_data->InputBuffer, m_data->History[history]);
+#endif
+					m_data->InputBufferCursor = m_data->InputBufferSize = strlen(m_data->InputBuffer);
+				}
+			}
 		}
 
 		// handle backspace
@@ -149,7 +182,25 @@ namespace Gui
 		uint32 enterDown = NXNA_BUTTON_STATE(input->KeyboardKeysData[(int)Nxna::Input::Key::Enter]) > 0 ? 1 : 0;
 		if (enterDown && enterTransition == 1)
 		{
-			WriteLog(LogSeverityType::Normal, LogChannelType::ConsoleInput, m_data->InputBuffer);
+			WriteLog(LogSeverityType::Normal, LogChannelType::ConsoleInput, ">%s", m_data->InputBuffer);
+			
+
+			m_data->HistorySize++;
+			
+			if (m_data->HistorySize > m_data->MaxHistorySize)
+				m_data->HistorySize = m_data->MaxHistorySize;
+
+#ifdef _WIN32
+			strcpy_s(m_data->History[m_data->HistoryNext], m_data->InputBuffer);
+#else
+			strcpy(m_data->History[m_data->HistoryFirst], m_data->InputBuffer);
+#endif
+
+			m_data->HistoryCursor = 0;
+			m_data->HistoryNext++;
+			if (m_data->HistoryNext >= m_data->MaxHistorySize)
+				m_data->HistoryNext = 0;
+						
 			m_data->InputBuffer[0] = 0;
 			m_data->InputBufferSize = 0;
 			m_data->InputBufferCursor = 0;

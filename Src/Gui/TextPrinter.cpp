@@ -7,6 +7,7 @@
 #include "../SpriteBatchHelper.h"
 #include "../MemoryManager.h"
 
+#include "../utf8.h"
 #include "../MyNxna2.h"
 
 namespace Gui
@@ -23,8 +24,8 @@ namespace Gui
 
 	bool TextPrinter::Init(Nxna::Graphics::GraphicsDevice* device)
 	{
-		return createFont(device, "Content/Fonts/DroidSans.ttf", 20, 32, 127, &m_data->DefaultFont) &&
-			createFont(device, "Content/Fonts/Inconsolata-Regular.ttf", 14, 32, 255, &m_data->ConsoleFont);
+		return createFont(device, "Content/Fonts/DroidSans.ttf", 20, 32, 127, '?', &m_data->DefaultFont) &&
+			createFont(device, "Content/Fonts/Inconsolata-Regular.ttf", 14, 32, 255, '?', &m_data->ConsoleFont);
 	}
 
 	void TextPrinter::Shutdown()
@@ -43,7 +44,7 @@ namespace Gui
 		}
 	}
 
-	inline Font::CharInfo findCharacter(Font* font, int character)
+	inline int findCharacter(Font* font, int character)
 	{
 		// binary search to find the character index
 		int characterIndex = -1;
@@ -68,14 +69,7 @@ namespace Gui
 			}
 		}
 
-		if (characterIndex == -1)
-		{
-			Font::CharInfo info = {};
-			return info;
-		}
-
-		auto characterInfo = font->Characters[characterIndex];
-		return characterInfo;
+		return characterIndex;
 	}
 
 	Nxna::Vector2 TextPrinter::MeasureString(Font* font, const char* text, const char* end)
@@ -90,7 +84,10 @@ namespace Gui
 		for (uint32 i = 0; i < numCharacters; i++)
 		{
 			auto character = (int)((const uint8*)text)[i];
-			auto characterInfo = findCharacter(font, character);
+			auto characterIndex = findCharacter(font, character);
+			if (characterIndex == -1)
+				characterIndex = font->DefaultCharacterInfoIndex;
+			auto characterInfo = font->Characters[characterIndex];
 
 			result.X += characterInfo.XAdvance;
 
@@ -104,21 +101,23 @@ namespace Gui
 
 	void TextPrinter::PrintScreen(SpriteBatchHelper* sb, float x, float y, Font* font, const char* text, Nxna::PackedColor color)
 	{
-		uint32 numCharacters = (uint32)strlen(text);
-
 		auto pfont = font;
 		if (pfont == nullptr) return;
+
+		uint32 numCharacters = (uint32)utf8len(text);
 
 		Nxna::Graphics::SpriteBatchSprite* sprites = sb->AddSprites(numCharacters);
 		memset(sprites, 0, sizeof(Nxna::Graphics::SpriteBatchSprite) * numCharacters);
 
 		float cursorX = x;
 
-		for (uint32 i = 0; i < numCharacters; i++)
+		int character, i = 0;
+		while((text = (const char*)utf8codepoint(text, &character)) && character != 0)
 		{
-			auto character = (int)((const uint8*)text)[i];
-
-			auto characterInfo = findCharacter(pfont, character);
+			auto characterIndex = findCharacter(pfont, character);
+			if (characterIndex == -1)
+				characterIndex = pfont->DefaultCharacterInfoIndex;
+			auto characterInfo = pfont->Characters[characterIndex];
 
 			sprites[i].Source[0] = characterInfo.SrcX;
 			sprites[i].Source[1] = characterInfo.SrcY;
@@ -137,10 +136,12 @@ namespace Gui
 			sprites[i].TextureHeight = 256;
 
 			cursorX += characterInfo.XAdvance;
+			i++;
 		}
+		assert(i == numCharacters);
 	}
 
-	bool TextPrinter::createFont(Nxna::Graphics::GraphicsDevice* device, const char* path, float size, int firstCharacter, int lastCharacter, Font** result)
+	bool TextPrinter::createFont(Nxna::Graphics::GraphicsDevice* device, const char* path, float size, int firstCharacter, int lastCharacter, int defaultCharacter, Font** result)
 	{
 		const int numCharacters = lastCharacter - firstCharacter;
 
@@ -213,11 +214,13 @@ namespace Gui
 			
 			(*result)->CharacterMap[i] = firstCharacter + i;
 		}
+		g_memory->FreeTrack(r.chardata_for_range, __FILE__, __LINE__);
 
 		(*result)->LineHeight = size;
 		(*result)->NumCharacters = numCharacters;
-
-		g_memory->FreeTrack(r.chardata_for_range, __FILE__, __LINE__);
+		(*result)->DefaultCharacterInfoIndex = findCharacter((*result), defaultCharacter);
+		if ((*result)->DefaultCharacterInfoIndex == -1)
+			return false;
 		
 		return true;
 	}

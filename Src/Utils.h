@@ -6,6 +6,15 @@
 
 namespace Utils
 {
+	static inline int Wrap(int value, int maxExclusive)
+	{
+		if (value > 0)
+			return value % maxExclusive;
+		if (value < 0)
+			return (value + 1) % maxExclusive + maxExclusive - 1;
+		return 0;
+	}
+
 	int CompareI(const char* strA, uint32 strALength, const char* strB);
 
 	uint32 CalcHash(const uint8 *str);
