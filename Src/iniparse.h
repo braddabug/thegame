@@ -9,8 +9,8 @@
 #define INIPARSE_STRTOF strtof
 #endif
 
-#ifndef INIPARSE_STRTOD
-#define INIPARSE_STRTOD strtod
+#ifndef INIPARSE_STRTOL
+#define INIPARSE_STRTOL strtol
 #endif
 
 #ifndef INIPARSE_MEMCPY
@@ -205,7 +205,7 @@ int ini_value_int(ini_context* ctx, ini_item* item, int* result)
 	buffer[len] = 0;
 
 	char* end;
-	int value = INIPARSE_STRTOD(buffer, &end);
+	int value = INIPARSE_STRTOL(buffer, &end, 10);
 
 	if (value == 0 && end == buffer)
 		return ini_result_error;
