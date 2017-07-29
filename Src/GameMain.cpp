@@ -100,7 +100,10 @@ int Init(WindowInfo* window)
 	g_device->SetViewport(vp);
 
 	if (Gui::TextPrinter::Init(g_device) == false)
+	{
+		WriteLog(LogSeverityType::Error, LogChannelType::Unknown, "Unable to load one or more fonts");
 		return -1;
+	}
 
 	SpriteBatchHelper::Init(g_device);
 

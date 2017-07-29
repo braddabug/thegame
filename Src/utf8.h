@@ -40,7 +40,7 @@
 #pragma warning(pop)
 #endif
 
-#if (_MSC_VER < 1600)
+#if defined(_MSC_VER) && (_MSC_VER < 1600)
 #define int32_t __int32
 #define uint32_t __uint32
 #else
