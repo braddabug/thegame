@@ -193,7 +193,7 @@ namespace Gui
 #ifdef _WIN32
 			strcpy_s(m_data->History[m_data->HistoryNext], m_data->InputBuffer);
 #else
-			strcpy(m_data->History[m_data->HistoryFirst], m_data->InputBuffer);
+			strcpy(m_data->History[m_data->HistoryNext], m_data->InputBuffer);
 #endif
 
 			m_data->HistoryCursor = 0;
