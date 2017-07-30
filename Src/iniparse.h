@@ -71,6 +71,9 @@ bool ini_section_equals(ini_context* ctx, ini_item* item, const char* name);
 bool ini_key_equals(ini_context* ctx, ini_item* item, const char* key);
 bool ini_value_equals(ini_context* ctx, ini_item* item, const char* value);
 
+bool ini_key_copy(ini_context* ctx, ini_item* item, char* destination, int maxLength);
+bool ini_value_copy(ini_context* ctx, ini_item* item, char* destination, int maxLength);
+
 #endif // INIPARSE_H
 
 #ifdef INIPARSE_IMPLEMENTATION
@@ -274,6 +277,51 @@ bool ini_value_equals(ini_context* ctx, ini_item* item, const char* value)
 	}
 
 	return true;
+}
+
+bool ini_copy(ini_context* ctx, int start, int end, char* destination, int maxLength)
+{
+	int len = end - start;
+	int i = 0;
+
+	while (i < maxLength - 1 && i < len)
+	{
+		destination[i] = ctx->source[start + i];
+
+		i++;
+	}
+	destination[i] = 0;
+
+	return i == len;
+}
+
+bool ini_key_copy(ini_context* ctx, ini_item* item, char* destination, int maxLength)
+{
+	if (destination == nullptr || maxLength == 0)
+		return false;
+
+	if (ctx == nullptr || item == nullptr || item->type != ini_itemtype::keyvalue)
+	{
+		destination[0] = 0;
+		return false;
+	}
+
+	return ini_copy(ctx, item->keyvalue.key_start, item->keyvalue.key_end, destination, maxLength);
+}
+
+bool ini_value_copy(ini_context* ctx, ini_item* item, char* destination, int maxLength)
+{
+
+	if (destination == nullptr || maxLength == 0)
+		return false;
+
+	if (ctx == nullptr || item == nullptr || item->type != ini_itemtype::keyvalue)
+	{
+		destination[0] = 0;
+		return false;
+	}
+
+	return ini_copy(ctx, item->keyvalue.value_start, item->keyvalue.value_end, destination, maxLength);
 }
 
 #endif // INIPARSE_IMPLEMENTATION

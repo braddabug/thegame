@@ -30,6 +30,9 @@
       <Filter>Gui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Src\Logging.h" />
+    <ClInclude Include="..\..\Src\Game\SceneManager.h">
+      <Filter>Game</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Gui">
@@ -40,6 +43,9 @@
     </Filter>
     <Filter Include="Content">
       <UniqueIdentifier>{651207a5-bae6-44a7-b92e-a2bd1a3f667d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Game">
+      <UniqueIdentifier>{80e8e80a-bbed-485f-b807-d36c4bbc5dc2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -11,13 +11,11 @@ namespace Game
 	struct SceneManagerData
 	{
 		uint32 NumModels;
-		static const uint32 MaxModels = 10;
-		uint32 ModelNameHash[MaxModels];
-		Nxna::Matrix ModelTransforms[MaxModels];
-		Graphics::Model Models[MaxModels];
+		uint32 ModelNameHash[SceneDesc::MaxModels];
+		Nxna::Matrix ModelTransforms[SceneDesc::MaxModels];
+		Graphics::Model Models[SceneDesc::MaxModels];
 
-		static const uint32 MaxLights = 5;
-		SceneLightDesc Lights[MaxLights];
+		SceneLightDesc Lights[SceneDesc::MaxLights];
 		uint32 NumLights;
 
 		int SelectedModelIndex;
@@ -48,8 +46,8 @@ namespace Game
 
 	void SceneManager::CreateScene(SceneDesc* desc)
 	{
-		assert(desc->NumModels <= SceneManagerData::MaxModels);
-		assert(desc->NumLights <= SceneManagerData::MaxLights);
+		assert(desc->NumModels <= SceneDesc::MaxModels);
+		assert(desc->NumLights <= SceneDesc::MaxLights);
 
 		// TODO: do we own the models or not?
 
@@ -61,7 +59,9 @@ namespace Game
 			else
 				m_data->ModelNameHash[i] = Utils::CalcHash((const uint8*)desc->Models[i].Name);
 
-			m_data->Models[i] = *desc->Models[i].Model;
+			Content::ContentLoader::Load<Graphics::Model>(desc->Models[i].Name, Content::LoaderType::ModelObj, &m_data->Models[i]);
+
+			//m_data->Models[i] = *desc->Models[i].Model;
 			m_data->ModelTransforms[i] = Nxna::Matrix::Identity;
 		}
 
@@ -74,8 +74,16 @@ namespace Game
 
 	bool SceneManager::CreateScene(const char* sceneFile)
 	{
-		m_data->NumLights = 0;
-		m_data->NumModels = 0;
+		SceneDesc desc;
+		if (LoadSceneDesc(sceneFile, &desc) == false)
+			return false;
+
+		CreateScene(&desc);
+	}
+
+	bool SceneManager::LoadSceneDesc(const char* sceneFile, SceneDesc* result)
+	{
+		memset(result, 0, sizeof(SceneDesc));
 
 		File f;
 		if (FileSystem::OpenAndMap(sceneFile, &f) == false)
@@ -131,31 +139,24 @@ namespace Game
 				}
 				else if (ini_section_equals(&ctx, &item, "model"))
 				{
-					float x = 0, y = 0, z = 0;
-					char name[256]; name[0] = 0;
-
 					while (ini_next_within_section(&ctx, &item) == ini_result_success)
 					{
 						if (ini_key_equals(&ctx, &item, "file"))
 						{
-							int len = item.keyvalue.value_end - item.keyvalue.value_start;
-#ifdef _WIN32
-							strncpy_s(name, txt + item.keyvalue.value_start, len < 256 ? len : 256);
-#else
-							strncpy(name, txt + item.keyvalue.value_start, len < 256 ? len : 256);
-#endif
-							name[255] = 0;
+							ini_value_copy(&ctx, &item, result->Models[result->NumModels].Name, 128);
+						}
+						else if (ini_key_equals(&ctx, &item, "diffuse"))
+						{
+							ini_value_copy(&ctx, &item, result->Models[result->NumModels].Diffuse, 128);
+						}
+						else if (ini_key_equals(&ctx, &item, "lightmap"))
+						{
+							ini_value_copy(&ctx, &item, result->Models[result->NumModels].Lightmap, 128);
 						}
 					}
 
-					if (name[0] != 0)
-					{
-						if (Content::ContentLoader::Load<Graphics::Model>(name, Content::LoaderType::ModelObj, &m_data->Models[m_data->NumModels]) == Content::ContentState::Loaded)
-						{
-							m_data->ModelTransforms[m_data->NumModels] = Nxna::Matrix::Identity;
-							m_data->NumModels++;
-						}
-					}
+					result->NumModels++;
+
 					goto parse;
 				}
 			}

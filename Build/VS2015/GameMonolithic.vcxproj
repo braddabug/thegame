@@ -25,6 +25,7 @@
     <ClInclude Include="..\..\src\Content\ContentManager.h" />
     <ClInclude Include="..\..\Src\FileSystem.h" />
     <ClInclude Include="..\..\Src\GameMain.h" />
+    <ClInclude Include="..\..\Src\Game\SceneManager.h" />
     <ClInclude Include="..\..\src\GlobalData.h" />
     <ClInclude Include="..\..\Src\Graphics\Model.h" />
     <ClInclude Include="..\..\src\Graphics\TextureLoader.h" />

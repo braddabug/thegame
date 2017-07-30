@@ -15,8 +15,10 @@ namespace Game
 
 	struct SceneModelDesc
 	{
-		Graphics::Model* Model;
-		const char* Name;
+		char Name[128];
+		char Diffuse[128];
+		char Lightmap[128];
+
 		float Position[3];
 		float EulerOrientation[3];
 	};
@@ -61,10 +63,13 @@ namespace Game
 
 	struct SceneDesc
 	{
-		SceneModelDesc* Models;
+		static const uint32 MaxModels = 10;
+		static const uint32 MaxLights = 5;
+
+		SceneModelDesc Models[MaxModels];
 		uint32 NumModels;
 
-		SceneLightDesc* Lights;
+		SceneLightDesc Lights[MaxLights];
 		uint32 NumLights;
 	};
 
@@ -80,6 +85,7 @@ namespace Game
 
 		static void CreateScene(SceneDesc* desc);
 		static bool CreateScene(const char* sceneFile);
+		static bool LoadSceneDesc(const char* sceneFile, SceneDesc* result);
 
 		static void Process();
 		static void Render(Nxna::Matrix* modelview);

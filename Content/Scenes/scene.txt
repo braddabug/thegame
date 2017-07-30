@@ -9,4 +9,5 @@ b: 1000.0
 
 [model]
 file: Content/Models/room_uv.obj
-#lightmap: debug.tga
+lightmap: debug.tga
+diffuse: untitled.png
