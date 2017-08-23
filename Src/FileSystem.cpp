@@ -46,12 +46,21 @@ void FileSystem::Shutdown()
 	m_data = nullptr;
 }
 
-void FileSystem::searchPathRecursive(const char* path, uint32 depth)
+void FileSystem::searchPathRecursive(const char* root, const char* path, uint32 depth)
 {
+	char rootAndPath[256];
+#ifdef _MSC_VER
+	strcpy_s(rootAndPath, root);
+	strcat_s(rootAndPath, path);
+#else
+	strcpy(rootAndPath, root);
+	strcat(rootAndPath, path);
+#endif
+
 	auto pathLen = strlen(path);
 
 	tfDIR dir;
-	tfDirOpen(&dir, path);
+	tfDirOpen(&dir, rootAndPath);
 
 	while (dir.has_next)
 	{
@@ -62,37 +71,55 @@ void FileSystem::searchPathRecursive(const char* path, uint32 depth)
 		{
 			if (file.name[0] != '.' && depth > 0)
 			{
-				char buffer[256];
+				char buffer[256]; buffer[0] = 0;
+
+				if (path[0] != 0)
+				{
+#ifdef _MSC_VER
+					strncpy_s(buffer, path, 256);
+					strcat_s(buffer, "/");
+#else
+					strncpy(buffer, path, 256);
+					strcat(buffer, "/");
+#endif
+				}
+
 #ifdef _WIN32
-				strncpy_s(buffer, path, 256);
-				strcat_s(buffer, "/");
 				strncat_s(buffer, file.name, 256);
 #else
-				strncpy(buffer, path, 256);
-				strcat(buffer, "/");
 				strncat(buffer, file.name, 256);
 #endif
 
-				searchPathRecursive(buffer, depth - 1);
+				searchPathRecursive(root, buffer, depth - 1);
 			}
 		}
 		else if (file.is_reg)
 		{
-			auto len = pathLen + strlen(file.name) + 2;
+			auto len = strlen(rootAndPath) + strlen(file.name) + 2;
 			auto name = (char*)g_memory->AllocAndKeep(len, __FILE__, __LINE__);
 #ifdef _WIN32
-			strcpy_s(name, len, path);
+			strcpy_s(name, len, rootAndPath);
 			strcat_s(name, len, "/");
 			strcat_s(name, len, file.name);
 #else
-			strcpy(name, path);
+			strcpy(name, rootAndPath);
 			strcat(name, "/");
 			strcat(name, file.name);
+#endif
+			char pathAndName[256]; pathAndName[0] = 0;
+#ifdef _MSC_VER
+			strcpy_s(pathAndName, path);
+			strcat_s(pathAndName, "/");
+			strcat_s(pathAndName, file.name);
+#else
+			strcpy(pathAndName, path);
+			strcat(pathAndName, "/");
+			strcat(pathAndName, file.name);
 #endif
 
 			FileInfo info;
 			info.Filename = name;
-			m_data->Files.Add(Utils::CalcHash((uint8*)name), info);
+			m_data->Files.Add(Utils::CalcHash(pathAndName), info);
 		}
 
 		tfDirNext(&dir);
@@ -105,7 +132,7 @@ void FileSystem::SetSearchPaths(SearchPathInfo* paths, uint32 numPaths)
 {
 	for (uint32 i = 0; i < numPaths; i++)
 	{
-		searchPathRecursive(paths[i].Path, paths[i].MaxDepth - 1);
+		searchPathRecursive(paths[i].Path, "", paths[i].MaxDepth - 1);
 	}
 
 	LOG("%u files added to search path", m_data->Files.GetCount());

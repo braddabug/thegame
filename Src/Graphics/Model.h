@@ -11,7 +11,8 @@ namespace Graphics
 	{	
 		uint32 NumTriangles;
 		uint32 FirstIndex;
-		uint32 TextureIndex;
+		uint32 DiffuseTextureIndex;
+		uint32 LightmapTextureIndex;
 	};
 
 	struct ModelData
@@ -28,7 +29,8 @@ namespace Graphics
 		ModelMesh* Meshes;
 
 		uint32 NumTextures;
-		Nxna::Graphics::Texture2D* Textures;
+		static const uint32 MAX_TEXTURES = 10;
+		uint32 Textures[MAX_TEXTURES];
 
 		uint32 VertexStride;
 		uint32 NumVertices;

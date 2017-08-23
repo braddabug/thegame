@@ -1,0 +1,18 @@
+There are some 3rd party libraries included within this code that deserve mentioning.
+
+# MIT License #
+
+Note: The MIT license says a copyright notice "shall be included in all copies or substantial portions of the Software." It's up to you to follow that in whatever derivative works you produce with this code.
+
+* noc_file_dialog - https://github.com/guillaumechereau/noc
+* tinyobjloader - https://github.com/syoyo/tinyobjloader
+
+# ZLib License #
+
+* tinyfiles - https://github.com/RandyGaul/tinyheaders
+
+# Public Domain #
+
+* stb_image - https://github.com/nothings/stb
+* stb_image_write - https://github.com/nothings/stb
+* stb_truetype - https://github.com/nothings/stb

@@ -12,7 +12,8 @@ namespace Audio
 		static bool LoadWav(Content::ContentLoaderParams* params)
 		{
 			File f;
-			if (FileSystem::OpenAndMap(params->Filename, &f) == nullptr)
+			auto filename = FileSystem::GetFilenameByHash(params->FilenameHash);
+			if (FileSystem::OpenAndMap(filename, &f) == nullptr)
 			{
 				params->State = Content::ContentState::NotFound;
 				return false;

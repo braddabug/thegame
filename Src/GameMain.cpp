@@ -68,6 +68,8 @@ void LibLoaded(GlobalData* data, bool initial)
 	// we always expect the log data to be created
 	g_log = data->Log;
 
+	Utils::Stopwatch::SetGlobalData(&data->StopwatchData);
+	FileSystem::SetGlobalData(&data->FileSystem);
 	StringManager::SetGlobalData(&data->StringData);
 	JobQueue::SetGlobalData(&data->JobQueue);
 	Audio::AudioEngine::SetGlobalData(&data->Audio);
@@ -86,6 +88,11 @@ void LibLoaded(GlobalData* data, bool initial)
 int Init(WindowInfo* window)
 {
 	g_globals->DevMode = true;
+
+	FileSystem::SearchPathInfo searchPaths[] = {
+		{ "Content/", 10 }
+	};
+	FileSystem::SetSearchPaths(searchPaths, 1);
 
 	Nxna::Graphics::GraphicsDeviceDesc gdesc = {};
 	gdesc.Type = Nxna::Graphics::GraphicsDeviceType::OpenGl41;

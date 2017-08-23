@@ -17,7 +17,7 @@ namespace Utils
 
 	int CompareI(const char* strA, uint32 strALength, const char* strB);
 
-	uint32 CalcHash(const uint8 *str);
+	constexpr uint32 CalcHash(const char *str);
 
 	template<typename T, size_t size>
 	class HashTable
@@ -86,6 +86,8 @@ namespace Utils
 			for (uint32 i = 0; i < size; i++)
 			{
 				uint32 index = (hash + i) % size;
+				if (index >= size)
+					return false;
 
 				if (m_active[index] == false)
 					return false;
@@ -101,6 +103,38 @@ namespace Utils
 		}
 
 		uint32 GetCount() { return m_count; }
+
+		void Clear()
+		{
+			m_count = 0;
+			memset(m_active, 0, sizeof(m_active));
+		}
+	};
+
+	struct StopwatchData;
+
+	class Stopwatch
+	{
+		bool m_running;
+		uint64_t m_timeElapsed;
+		uint64_t m_timeStarted;
+		static StopwatchData* m_data;
+
+	public:
+		static void SetGlobalData(StopwatchData** data);
+		static uint64_t GetCurrentTicks();
+
+		Stopwatch();
+		void Start();
+		void Stop();
+		void Reset();
+
+		uint64_t GetElapsedTicks();
+		uint64_t GetElapsedMilliseconds();
+		unsigned int GetElapsedMilliseconds32();
+
+	private:
+		void getFrequency();
 	};
 }
 

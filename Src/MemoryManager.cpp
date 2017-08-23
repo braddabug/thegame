@@ -19,12 +19,13 @@ namespace MemoryManagerInternal
 	{
 		size_t TotalSize;
 		size_t RequestedSize;
+		size_t Alignment;
 		char Filename[128];
 		uint32 Line;
 		uint32 Timestamp;
 		AllocInfoMini* Mini;
 
-		static const uint32 PaddingAmount = (32 - (sizeof(size_t) * 2 + 128 + sizeof(uint32) * 2 + sizeof(AllocInfoMini*)) % 32) % 32;
+		static const uint32 PaddingAmount = (32 - (sizeof(size_t) * 3 + 128 + sizeof(uint32) * 2 + sizeof(AllocInfoMini*)) % 32) % 32;
 		char Padding[PaddingAmount];
 	};
 
@@ -105,6 +106,8 @@ namespace MemoryManagerInternal
 	{
 		manager->Alloc = MemoryManagerInternal::Alloc;
 		manager->AllocTrack = MemoryManagerInternal::AllocTrack;
+		manager->AlignedAlloc = MemoryManagerInternal::AlignedAlloc;
+		manager->AlignedAllocTrack = MemoryManagerInternal::AlignedAllocTrack;
 		manager->Realloc = MemoryManagerInternal::Realloc;
 		manager->ReallocTrack = MemoryManagerInternal::ReallocTrack;
 		manager->Free = MemoryManagerInternal::Free;
@@ -116,8 +119,26 @@ namespace MemoryManagerInternal
 	{
 		return AllocTrack(amount, nullptr, 0);
 	}
+	
+	void* AlignedAlloc(size_t amount, size_t alignment)
+	{
+		return AlignedAllocTrack(amount, alignment, nullptr, 0);
+	}
 
 	void* AllocTrack(size_t amount, const char* filename, int line)
+	{
+		size_t alignment;
+		if (amount <= 4)
+			alignment = alignof(float);
+		else if (amount <= 8)
+			alignment = alignof(double);
+		else
+			alignment = 16;
+
+		return AlignedAllocTrack(amount, alignment, filename, line);
+	}
+
+	void* AlignedAllocTrack(size_t amount, size_t alignment, const char* filename, int line)
 	{
 		g_requestedMemoryUsed += amount;
 
@@ -125,7 +146,8 @@ namespace MemoryManagerInternal
 
 		g_requestedMemoryUsed += amount;
 
-		size_t amountToAllocate = sizeof(AllocInfo) + 64 + amount + 64;
+		size_t preSize = sizeof(AllocInfo) + 64;
+		size_t amountToAllocate = preSize + amount + 64;
 		g_actualMemoryUsed += amountToAllocate;
 
 		void* memory = malloc(amountToAllocate);
@@ -134,6 +156,7 @@ namespace MemoryManagerInternal
 		AllocInfo* info = (AllocInfo*)memory;
 		info->TotalSize = amountToAllocate;
 		info->RequestedSize = amount;
+		info->Alignment = alignment;
 		if (filename != nullptr)
 		{
 #ifdef _WIN32
@@ -158,8 +181,11 @@ namespace MemoryManagerInternal
 		log->RequestedSize = amount;
 		info->Mini = log;
 
-		return (uint8*)memory + sizeof(AllocInfo) + 64;
+		return (uint8*)memory + preSize;
 	}
+
+	
+	
 
 	void* Realloc(void* original, size_t amount)
 	{

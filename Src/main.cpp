@@ -145,13 +145,14 @@ int main(int argc, char* argv[])
 	MemoryManager mem;
 	g_memory = &mem;
 
-	mem.Alloc = MemoryManagerInternal::Alloc;
+	MemoryManagerInternal::SetDefaults(g_memory);
+	/*mem.Alloc = MemoryManagerInternal::Alloc;
 	mem.AllocTrack = MemoryManagerInternal::AllocTrack;
 	mem.Realloc = MemoryManagerInternal::Realloc;
 	mem.ReallocTrack = MemoryManagerInternal::ReallocTrack;
 	mem.Free = MemoryManagerInternal::Free;
 	mem.FreeTrack = MemoryManagerInternal::FreeTrack;
-	mem.AllocAndKeep = MemoryManagerInternal::AllocAndKeep;
+	mem.AllocAndKeep = MemoryManagerInternal::AllocAndKeep;*/
 
 	memset(&gd, 0, sizeof(GlobalData));
 	gd.Memory = g_memory;

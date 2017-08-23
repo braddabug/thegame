@@ -84,7 +84,7 @@ public:
 	}
 
 private:
-	static void searchPathRecursive(const char* path, uint32 depth);
+	static void searchPathRecursive(const char* root, const char* path, uint32 depth);
 };
 
 #endif // FILESYSTEM_H

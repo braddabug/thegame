@@ -39,16 +39,12 @@ namespace Graphics
 		Model* result = (Model*)params->Destination;
 
 		File f;
-		if (FileSystem::OpenAndMap(params->Filename, &f) == nullptr)
+		auto filename = FileSystem::GetFilenameByHash(params->FilenameHash);
+		if (FileSystem::OpenAndMap(filename, &f) == nullptr)
 		{
-			StringManager::Release(params->Filename);
-			params->Filename = nullptr;
-
 			params->State = Content::ContentState::NotFound;
 			return false;
 		}
-		StringManager::Release(params->Filename);
-		params->Filename = nullptr;
 
 		std::string str((char*)f.Memory, f.FileSize);
 		std::stringstream ss(str);
@@ -144,7 +140,7 @@ namespace Graphics
 				indices[index_offset] = index_offset; index_offset++;
 
 				// per-face material
-				result->Meshes[s].TextureIndex = shapes[s].mesh.material_ids[f];
+				//result->Meshes[s].TextureIndex = shapes[s].mesh.material_ids[f];
 			}
 
 			result->Meshes[s].NumTriangles = (uint32)shapes[s].mesh.num_face_vertices.size();
@@ -163,42 +159,8 @@ namespace Graphics
 
 		storage->Indices = indices;
 		result->NumIndices = numVertices;
-
-		// load the textures
-		result->NumTextures = (uint32)materials.size();
-		result->Textures = new Nxna::Graphics::Texture2D[result->NumTextures];
-		for (size_t i = 0; i < materials.size(); i++)
-		{
-			char buffer[256];
-#ifdef _WIN32
-			strcpy_s(buffer, "Content/Models/");
-			strncat_s(buffer, materials[i].diffuse_texname.c_str(), 256);
-#else
-			strcpy(buffer, "Content/Models/");
-			strncat(buffer, materials[i].diffuse_texname.c_str(), 256);
-#endif
-			buffer[255] = 0;
-
-			Content::ContentState r;
-			if (params->Asynchronous)
-			{
-				PersistantString s = StringManager::Create(buffer);
-				if (s == nullptr) continue;
-
-				r = Content::ContentLoader::BeginLoad(s, Content::LoaderType::Texture2D, &result->Textures[i], nullptr, params->Job);
-			}
-			else
-			{
-				r = Content::ContentLoader::Load(buffer, Content::LoaderType::Texture2D, &result->Textures[i]);
-			}
-
-			if (r != Content::ContentState::Loaded && r != Content::ContentState::Incomplete)
-			{
-				printf("Error while loading %s\n", materials[i].diffuse_texname.c_str());
-				result->Textures[i] = TextureLoader::GetErrorTexture(true);
-			}
-		}
 		
+		result->NumTextures = 0;
 
 		return true;
 	}
@@ -285,6 +247,10 @@ namespace Graphics
 
 	void Model::Render(Nxna::Graphics::GraphicsDevice* device, Nxna::Matrix* transform, Model* model)
 	{
+		assert(device != nullptr);
+		assert(transform != nullptr);
+		assert(model != nullptr);
+
 		device->UpdateConstantBuffer(m_data->Constants, transform->C, 16 * sizeof(float));
 
 		device->SetRasterizerState(&model->RasterState);
@@ -296,8 +262,12 @@ namespace Graphics
 
 		for (uint32 j = 0; j < model->NumMeshes; j++)
 		{
-			device->BindTexture(&model->Textures[model->Meshes[j].TextureIndex], 0);
-			device->DrawIndexed(Nxna::Graphics::PrimitiveType::TriangleList, 0, 0, model->NumVertices, model->Meshes[j].FirstIndex, model->Meshes[j].NumTriangles * 3);
+			Nxna::Graphics::Texture2D* texture = (Nxna::Graphics::Texture2D*)Content::ContentManager::Get(model->Textures[model->Meshes[j].DiffuseTextureIndex], Content::ResourceType::Texture2D);
+			if (texture != nullptr)
+			{
+				device->BindTexture(texture, 0);
+				device->DrawIndexed(Nxna::Graphics::PrimitiveType::TriangleList, 0, 0, model->NumVertices, model->Meshes[j].FirstIndex, model->Meshes[j].NumTriangles * 3);
+			}
 		}
 	}
 }

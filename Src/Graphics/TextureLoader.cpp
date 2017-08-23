@@ -56,20 +56,16 @@ namespace Graphics
 		static_assert(sizeof(TextureLoaderStorage) <= sizeof(Content::ContentLoaderParams::LocalDataStorage), "TextureLoaderData is too big");
 
 		int w, h, d;
-		auto img = stbi_load(params->Filename, &w, &h, &d, 4);
+		auto filename = FileSystem::GetFilenameByHash(params->FilenameHash);
+		auto img = stbi_load(filename, &w, &h, &d, 4);
 
 		if (img == nullptr)
 		{
-			LOG_ERROR("Unable to load texture %s", params->Filename);
-			StringManager::Release(params->Filename);
-			params->Filename = nullptr;
+			LOG_ERROR("Unable to load texture %s", filename);
 
 			params->State = Content::ContentState::NotFound;
 			return false;
 		}
-
-		StringManager::Release(params->Filename);
-		params->Filename = nullptr;
 
 		TextureLoaderStorage* storage = (TextureLoaderStorage*)params->LocalDataStorage;
 

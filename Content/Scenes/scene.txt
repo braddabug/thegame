@@ -8,6 +8,6 @@ g: 1000.0
 b: 1000.0
 
 [model]
-file: Content/Models/room_uv.obj
-lightmap: debug.tga
-diffuse: untitled.png
+file: Models/room_uv.obj
+lightmap_0: Models/debug.tga
+diffuse_0: Models/untitled.png

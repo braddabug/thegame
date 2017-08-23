@@ -13,7 +13,7 @@ namespace Game
 		uint32 NumModels;
 		uint32 ModelNameHash[SceneDesc::MaxModels];
 		Nxna::Matrix ModelTransforms[SceneDesc::MaxModels];
-		Graphics::Model Models[SceneDesc::MaxModels];
+		Graphics::Model* Models[SceneDesc::MaxModels];
 
 		SceneLightDesc Lights[SceneDesc::MaxLights];
 		uint32 NumLights;
@@ -44,12 +44,42 @@ namespace Game
 		m_data = nullptr;
 	}
 
-	void SceneManager::CreateScene(SceneDesc* desc)
+	bool SceneManager::CreateScene(SceneDesc* desc)
 	{
 		assert(desc->NumModels <= SceneDesc::MaxModels);
 		assert(desc->NumLights <= SceneDesc::MaxLights);
 
-		// TODO: do we own the models or not?
+		// create a list of files to load
+		{
+			uint32 files[Content::ContentManager::MaxLoadedFiles];
+			Content::ResourceType types[Content::ContentManager::MaxLoadedFiles];
+			uint32 numFiles = 0;
+
+			for (uint32 i = 0; i < desc->NumModels; i++)
+			{
+				types[numFiles] = Content::ResourceType::Model;
+				files[numFiles++] = Utils::CalcHash(desc->Models[i].Name);
+
+				if (desc->Models[i].Diffuse[0][0] != 0) { types[numFiles] = Content::ResourceType::Texture2D; files[numFiles++] = Utils::CalcHash(desc->Models[i].Diffuse[0]); }
+				if (desc->Models[i].Diffuse[1][0] != 0) { types[numFiles] = Content::ResourceType::Texture2D; files[numFiles++] = Utils::CalcHash(desc->Models[i].Diffuse[1]);	}
+				if (desc->Models[i].Diffuse[2][0] != 0) { types[numFiles] = Content::ResourceType::Texture2D; files[numFiles++] = Utils::CalcHash(desc->Models[i].Diffuse[2]);	}
+				if (desc->Models[i].Diffuse[3][0] != 0) { types[numFiles] = Content::ResourceType::Texture2D; files[numFiles++] = Utils::CalcHash(desc->Models[i].Diffuse[3]);	}
+													  
+				if (desc->Models[i].Lightmap[0][0] != 0) { types[numFiles] = Content::ResourceType::Texture2D; files[numFiles++] = Utils::CalcHash(desc->Models[i].Lightmap[0]); }
+				if (desc->Models[i].Lightmap[1][0] != 0) { types[numFiles] = Content::ResourceType::Texture2D; files[numFiles++] = Utils::CalcHash(desc->Models[i].Lightmap[1]); }
+				if (desc->Models[i].Lightmap[2][0] != 0) { types[numFiles] = Content::ResourceType::Texture2D; files[numFiles++] = Utils::CalcHash(desc->Models[i].Lightmap[2]); }
+				if (desc->Models[i].Lightmap[3][0] != 0) { types[numFiles] = Content::ResourceType::Texture2D; files[numFiles++] = Utils::CalcHash(desc->Models[i].Lightmap[3]); }
+			}
+
+			Content::ContentManager::BeginLoad(files, types, numFiles);
+		}
+
+		Content::LoadResult result;
+		while ((result = Content::ContentManager::PendingLoads(true, nullptr)) == Content::LoadResult::Pending)
+		{ }
+		//if (result == Content::LoadResult::Error)
+		//	return false;
+
 
 		m_data->NumModels = desc->NumModels;
 		for (uint32 i = 0; i < desc->NumModels; i++)
@@ -57,12 +87,30 @@ namespace Game
 			if (desc->Models[i].Name == nullptr)
 				m_data->ModelNameHash[i] = 0;
 			else
-				m_data->ModelNameHash[i] = Utils::CalcHash((const uint8*)desc->Models[i].Name);
+				m_data->ModelNameHash[i] = Utils::CalcHash(desc->Models[i].Name);
 
-			Content::ContentLoader::Load<Graphics::Model>(desc->Models[i].Name, Content::LoaderType::ModelObj, &m_data->Models[i]);
+			m_data->Models[i] = (Graphics::Model*)Content::ContentManager::Get(m_data->ModelNameHash[i], Content::ResourceType::Model);
+			if (m_data->Models[i] == nullptr)
+				return false;
 
-			//m_data->Models[i] = *desc->Models[i].Model;
 			m_data->ModelTransforms[i] = Nxna::Matrix::Identity;
+
+			m_data->Models[i]->NumTextures = 0;
+			for (uint32 j = 0; j < SceneModelDesc::MaxMeshes; j++)
+			{
+				if (desc->Models[i].Diffuse[j][0] != 0)
+				{
+					m_data->Models[i]->Textures[m_data->Models[i]->NumTextures] = Utils::CalcHash(desc->Models[i].Diffuse[j]);
+					m_data->Models[i]->Meshes[j].DiffuseTextureIndex = m_data->Models[i]->NumTextures;
+					m_data->Models[i]->NumTextures++;
+				}
+				if (desc->Models[i].Lightmap[j][0] != 0)
+				{
+					m_data->Models[i]->Textures[m_data->Models[i]->NumTextures] = Utils::CalcHash(desc->Models[i].Lightmap[j]);
+					m_data->Models[i]->Meshes[j].LightmapTextureIndex = m_data->Models[i]->NumTextures;
+					m_data->Models[i]->NumTextures++;
+				}
+			}
 		}
 
 		m_data->NumLights = desc->NumLights;
@@ -70,15 +118,17 @@ namespace Game
 		{
 			m_data->Lights[i] = desc->Lights[i];
 		}
+
+		return true;
 	}
 
 	bool SceneManager::CreateScene(const char* sceneFile)
 	{
-		SceneDesc desc;
+		SceneDesc desc = {};
 		if (LoadSceneDesc(sceneFile, &desc) == false)
 			return false;
 
-		CreateScene(&desc);
+		return CreateScene(&desc);
 	}
 
 	bool SceneManager::LoadSceneDesc(const char* sceneFile, SceneDesc* result)
@@ -143,15 +193,39 @@ namespace Game
 					{
 						if (ini_key_equals(&ctx, &item, "file"))
 						{
-							ini_value_copy(&ctx, &item, result->Models[result->NumModels].Name, 128);
+							ini_value_copy(&ctx, &item, result->Models[result->NumModels].Name, 64);
 						}
-						else if (ini_key_equals(&ctx, &item, "diffuse"))
+						else if (ini_key_equals(&ctx, &item, "diffuse_0"))
 						{
-							ini_value_copy(&ctx, &item, result->Models[result->NumModels].Diffuse, 128);
+							ini_value_copy(&ctx, &item, result->Models[result->NumModels].Diffuse[0], 64);
 						}
-						else if (ini_key_equals(&ctx, &item, "lightmap"))
+						else if (ini_key_equals(&ctx, &item, "diffuse_1"))
 						{
-							ini_value_copy(&ctx, &item, result->Models[result->NumModels].Lightmap, 128);
+							ini_value_copy(&ctx, &item, result->Models[result->NumModels].Diffuse[1], 64);
+						}
+						else if (ini_key_equals(&ctx, &item, "diffuse_2"))
+						{
+							ini_value_copy(&ctx, &item, result->Models[result->NumModels].Diffuse[2], 64);
+						}
+						else if (ini_key_equals(&ctx, &item, "diffuse_3"))
+						{
+							ini_value_copy(&ctx, &item, result->Models[result->NumModels].Diffuse[3], 64);
+						}
+						else if (ini_key_equals(&ctx, &item, "lightmap_0"))
+						{
+							ini_value_copy(&ctx, &item, result->Models[result->NumModels].Lightmap[0], 64);
+						}
+						else if (ini_key_equals(&ctx, &item, "lightmap_1"))
+						{
+							ini_value_copy(&ctx, &item, result->Models[result->NumModels].Lightmap[1], 64);
+						}
+						else if (ini_key_equals(&ctx, &item, "lightmap_2"))
+						{
+							ini_value_copy(&ctx, &item, result->Models[result->NumModels].Lightmap[2], 64);
+						}
+						else if (ini_key_equals(&ctx, &item, "lightmap_3"))
+						{
+							ini_value_copy(&ctx, &item, result->Models[result->NumModels].Lightmap[3], 64);
 						}
 					}
 
@@ -194,7 +268,7 @@ namespace Game
 		for (uint32 i = 0; i < m_data->NumModels; i++)
 		{
 			Nxna::Matrix transform = m_data->ModelTransforms[i] * *modelview;
-			Graphics::Model::Render(m_device, &transform, &m_data->Models[i]);
+			Graphics::Model::Render(m_device, &transform, m_data->Models[i]);
 
 			if (g_globals->DevMode)
 			{
@@ -204,7 +278,7 @@ namespace Game
 					color.G = 0; color.B = 0;
 				}
 
-				Graphics::DrawUtils::DrawBoundingBox(m_data->Models[i].BoundingBox, &transform, color);
+				Graphics::DrawUtils::DrawBoundingBox(m_data->Models[i]->BoundingBox, &transform, color);
 			}
 		}
 

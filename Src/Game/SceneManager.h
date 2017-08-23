@@ -15,9 +15,11 @@ namespace Game
 
 	struct SceneModelDesc
 	{
-		char Name[128];
-		char Diffuse[128];
-		char Lightmap[128];
+		char Name[64];
+
+		static const uint32 MaxMeshes = 4;
+		char Diffuse[MaxMeshes][64];
+		char Lightmap[MaxMeshes][64];
 
 		float Position[3];
 		float EulerOrientation[3];
@@ -83,7 +85,7 @@ namespace Game
 		static void SetGlobalData(SceneManagerData** data, Nxna::Graphics::GraphicsDevice* device);
 		static void Shutdown();
 
-		static void CreateScene(SceneDesc* desc);
+		static bool CreateScene(SceneDesc* desc);
 		static bool CreateScene(const char* sceneFile);
 		static bool LoadSceneDesc(const char* sceneFile, SceneDesc* result);
 

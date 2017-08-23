@@ -21,21 +21,39 @@ namespace Content
 		NotLoaded = -5
 	};
 
+#define DEFINE_LOADER_TYPE(t) t,
+#define DEFINE_LOADER_TYPES \
+	DEFINE_LOADER_TYPE(ModelObj) \
+	DEFINE_LOADER_TYPE(Texture2D) \
+	DEFINE_LOADER_TYPE(Audio)
+
 	enum class LoaderType
 	{
-		ModelObj,
+		DEFINE_LOADER_TYPES
 
+		LAST
+	};
+
+	enum class ResourceType
+	{
+		Model,
 		Texture2D,
+		Audio,
 
-		Audio
+		LAST
 	};
 
 	struct Loader
 	{
-		LoaderType Type;
+		ResourceType Type;
 		JobFunc AsyncLoader;
 		JobFunc MainThreadLoader;
+		JobFunc Unloader;
+		JobFunc RefreshRefs;
 		void* LoaderParam;
+
+		uint32 ResourceSize;
+		uint32 ResourceAlignment;
 	};
 
 	struct ContentLoaderParams
@@ -43,9 +61,8 @@ namespace Content
 		uint8 LocalDataStorage[32];
 
 		// input
-		PersistantString Filename;
+		uint32 FilenameHash;
 		void* LoaderParam;
-		bool Asynchronous;
 		JobHandle Job;
 
 		// output
@@ -63,64 +80,16 @@ namespace Content
 		static void SetGlobalData(ContentLoaderData** data, Nxna::Graphics::GraphicsDevice* device);
 		static void Shutdown();
 
-		template<typename T>
-		static ContentState Load(const char* filename, LoaderType type, T* destination)
+		static Loader* FindLoader(ResourceType type)
 		{
-			auto loader = findLoader(type);
-			if (loader == nullptr)
-			{
-				WriteLog(LogSeverityType::Error, LogChannelType::Content, "No loader found for %s (type %d)", filename, (int)type);
-				return ContentState::NoLoader;
-			}
-
-			ContentLoaderParams p = {};
-			p.Destination = destination;
-			p.Filename = filename;
-			p.LoaderParam = loader->LoaderParam;
-
-			if (loader->AsyncLoader(&p) == true && (loader->MainThreadLoader == nullptr || loader->MainThreadLoader(&p)))
-			{
-				WriteLog(LogSeverityType::Info, LogChannelType::Content, "Loaded %s (untracked)", filename);
-				return ContentState::Loaded;
-			}
-
-			WriteLog(LogSeverityType::Error, LogChannelType::Content, "Error when loading %s (untracked)...", filename);
-			return ContentState::UnknownError;
+			return findLoader(type);
 		}
 
-		template<typename T>
-		static ContentState BeginLoad(PersistantString filename, LoaderType type, T* destination, P_OUT_OPTIONAL JobInfo* result, JobHandle parent = (JobHandle)-1)
-		{
-			static_assert(sizeof(ContentLoaderParams) < Job::MaxDataSize, "ContentLoaderParams is too big");
-
-			auto loader = findLoader(type);
-			if (loader == nullptr)
-			{
-				WriteLog(LogSeverityType::Error, LogChannelType::Content, "No loader found for %s (type %d)", filename, (int)type);
-				return ContentState::NoLoader;
-			}
-
-			ContentLoaderParams p = {};
-			p.Destination = destination;
-			p.Filename = filename;
-			p.LoaderParam = loader->LoaderParam;
-			p.Asynchronous = true;
-
-			StringManager::Acquire(filename);
-			
-			JobHandle job = JobQueue::AddDependantJob(parent, loader->AsyncLoader, loader->MainThreadLoader, result, &p, sizeof(ContentLoaderParams));
-
-			if (job == (uint32)-1)
-			{
-				StringManager::Release(filename);
-				return ContentState::UnknownError;
-			}
-
-			return ContentState::Incomplete;
-		}
+		static ResourceType GetLoaderResourceType(LoaderType type);
+		static LoaderType GetLoaderByNameHash(uint32 hash);
 
 	private:
-		static Loader* findLoader(LoaderType type);
+		static Loader* findLoader(ResourceType type);
 	};
 }
 

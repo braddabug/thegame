@@ -55,6 +55,11 @@ struct MemoryManager;
 struct PlatformInfo;
 struct FileSystemData;
 
+namespace Utils
+{
+	struct StopwatchData;
+}
+
 struct PlatformInfo
 {
 	const char* (*GetClipboardText)();
@@ -83,6 +88,7 @@ struct GlobalData
 	Graphics::ShaderLibraryData* ShaderLibraryData;
 	Graphics::DrawUtilsData* DrawUtilsData;
 	Game::SceneManagerData* SceneData;
+	Utils::StopwatchData* StopwatchData;
 };
 
 

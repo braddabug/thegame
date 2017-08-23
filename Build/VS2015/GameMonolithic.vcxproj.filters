@@ -33,6 +33,14 @@
     <ClInclude Include="..\..\Src\Game\SceneManager.h">
       <Filter>Game</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Src\Utils.h" />
+    <ClInclude Include="..\..\src\Content\FileManifest.h">
+      <Filter>Content</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Src\Content\ContentLoader.h">
+      <Filter>Content</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Src\JobQueue.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Gui">
