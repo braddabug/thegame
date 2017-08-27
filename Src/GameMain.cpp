@@ -166,9 +166,6 @@ int Unload()
 
 void Shutdown()
 {
-	g_memory->FreeTrack(g_inputState, __FILE__, __LINE__);
-	g_memory->FreeTrack(g_device, __FILE__, __LINE__);
-
 	Game::SceneManager::Shutdown();
 	Graphics::Model::Shutdown();
 	Graphics::TextureLoader::Shutdown();
@@ -183,6 +180,9 @@ void Shutdown()
 	SpriteBatchHelper::Destroy();
 
 	Nxna::Graphics::GraphicsDevice::DestroyGraphicsDevice(g_device);
+
+	g_memory->FreeTrack(g_inputState, __FILE__, __LINE__);
+	g_memory->FreeTrack(g_device, __FILE__, __LINE__);
 }
 
 
