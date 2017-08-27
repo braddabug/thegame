@@ -5,6 +5,8 @@
 
 #ifdef _WIN32
 #include "CleanWindows.h"
+#else
+#include <time.h>
 #endif
 
 namespace Utils
