@@ -2,6 +2,7 @@
 #include "TextPrinter.h"
 #include "../Logging.h"
 #include "../GlobalData.h"
+#include "../utf8.h"
 
 extern PlatformInfo* g_platform;
 
@@ -58,7 +59,7 @@ namespace Gui
 
 	void injectText(ConsoleData* data, const char* text)
 	{
-		uint32 len = strlen(text);
+		uint32 len = (uint32)strlen(text);
 		uint32 toCopy = ConsoleData::MaxInputBufferSize - 1 - data->InputBufferSize;
 		if (toCopy > len) toCopy = len;
 
@@ -126,7 +127,7 @@ namespace Gui
 #else
 					strcpy(m_data->InputBuffer, m_data->History[history]);
 #endif
-					m_data->InputBufferCursor = m_data->InputBufferSize = strlen(m_data->InputBuffer);
+					m_data->InputBufferCursor = m_data->InputBufferSize = (int)strlen(m_data->InputBuffer);
 				}
 			}
 		}

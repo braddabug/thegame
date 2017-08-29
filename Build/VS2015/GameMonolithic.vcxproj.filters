@@ -41,6 +41,9 @@
       <Filter>Content</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Src\JobQueue.h" />
+    <ClInclude Include="..\..\Src\Game\CharacterManager.h">
+      <Filter>Game</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Gui">

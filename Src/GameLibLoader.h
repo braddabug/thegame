@@ -12,7 +12,7 @@ struct GameLib
 	void(*LibLoaded)(GlobalData* data, bool initial);
 	int(*Init)(WindowInfo* window);
 	void(*ContentLoaded)();
-	void(*Tick)();
+	void(*Tick)(float elapsed);
 	void(*Shutdown)();
 	void(*Unloading)();
 	void(*HandleExternalEvent)(ExternalEvent e);

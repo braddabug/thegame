@@ -46,9 +46,9 @@ void LocalShutdown(Nxna::Graphics::GraphicsDevice* device, SpriteBatchData* sbd,
 	GAME_LIB_CALL(Shutdown)();
 }
 
-void LocalTick(Nxna::Graphics::GraphicsDevice* device, SpriteBatchData* sbd, Gui::TextPrinterData* tpd)
+void LocalTick(Nxna::Graphics::GraphicsDevice* device, SpriteBatchData* sbd, Gui::TextPrinterData* tpd, float elapsed)
 {
-	GAME_LIB_CALL(Tick)();
+	GAME_LIB_CALL(Tick)(elapsed);
 }
 
 void LocalHandleEvent(ExternalEvent e)
@@ -253,8 +253,13 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
+	uint32 prevTicks = SDL_GetTicks();
 	while (true)
 	{
+		uint32 elapsedTicks = SDL_GetTicks();
+		float elapsedTime = (elapsedTicks - prevTicks) / 1000.0f;
+		prevTicks = elapsedTicks;
+
 		{
 			ExternalEvent ee = {};
 			ee.Type = ExternalEventType::FrameStart;
@@ -335,7 +340,7 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		LocalTick(&device, &sbd, &td);
+		LocalTick(&device, &sbd, &td, elapsedTime);
 
 		SDL_GL_SwapWindow(window);
 	}

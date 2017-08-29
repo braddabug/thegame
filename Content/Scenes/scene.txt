@@ -1,3 +1,11 @@
+[ego]
+file: Models/chr_knight.obj
+diffuse_0: Models/untitled.png
+x: 0
+y: 0
+z: 0
+scale: 0.5
+
 [light]
 type: sun
 x: 0
@@ -8,6 +16,6 @@ g: 1000.0
 b: 1000.0
 
 [model]
-file: Models/room_uv.obj
+file: Models/room2.obj
 lightmap_0: Models/debug.tga
 diffuse_0: Models/untitled.png

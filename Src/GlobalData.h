@@ -34,6 +34,7 @@ namespace Audio
 namespace Game
 {
 	struct SceneManagerData;
+	struct CharacterManagerData;
 }
 
 namespace Nxna
@@ -88,6 +89,7 @@ struct GlobalData
 	Graphics::ShaderLibraryData* ShaderLibraryData;
 	Graphics::DrawUtilsData* DrawUtilsData;
 	Game::SceneManagerData* SceneData;
+	Game::CharacterManagerData* CharacterData;
 	Utils::StopwatchData* StopwatchData;
 };
 

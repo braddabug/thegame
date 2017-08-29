@@ -1,4 +1,5 @@
 #include "SceneManager.h"
+#include "CharacterManager.h"
 #include "../FileSystem.h"
 #include "../Graphics/Model.h"
 #include "../Graphics/DrawUtils.h"
@@ -55,20 +56,44 @@ namespace Game
 			Content::ResourceType types[Content::ContentManager::MaxLoadedFiles];
 			uint32 numFiles = 0;
 
+			auto addFile = [&files, &types, &numFiles](Content::ResourceType type, uint32 hash) -> bool
+			{
+				// has this already been added?
+				for (uint32 i = 0; i < numFiles; i++)
+				{
+					if (files[i] == hash)
+						return false;
+				}
+
+				files[numFiles] = hash;
+				types[numFiles++] = type;
+
+				return true;
+			};
+
+			if (desc->Ego.Name[0] != 0)
+			{
+				addFile(Content::ResourceType::Model, Utils::CalcHash(desc->Ego.Name));
+
+				if (desc->Ego.Diffuse[0][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Ego.Diffuse[0]));
+				if (desc->Ego.Diffuse[1][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Ego.Diffuse[1]));
+				if (desc->Ego.Diffuse[2][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Ego.Diffuse[2]));
+				if (desc->Ego.Diffuse[3][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Ego.Diffuse[3]));
+			}
+
 			for (uint32 i = 0; i < desc->NumModels; i++)
 			{
-				types[numFiles] = Content::ResourceType::Model;
-				files[numFiles++] = Utils::CalcHash(desc->Models[i].Name);
+				addFile(Content::ResourceType::Model, Utils::CalcHash(desc->Models[i].Name));
 
-				if (desc->Models[i].Diffuse[0][0] != 0) { types[numFiles] = Content::ResourceType::Texture2D; files[numFiles++] = Utils::CalcHash(desc->Models[i].Diffuse[0]); }
-				if (desc->Models[i].Diffuse[1][0] != 0) { types[numFiles] = Content::ResourceType::Texture2D; files[numFiles++] = Utils::CalcHash(desc->Models[i].Diffuse[1]);	}
-				if (desc->Models[i].Diffuse[2][0] != 0) { types[numFiles] = Content::ResourceType::Texture2D; files[numFiles++] = Utils::CalcHash(desc->Models[i].Diffuse[2]);	}
-				if (desc->Models[i].Diffuse[3][0] != 0) { types[numFiles] = Content::ResourceType::Texture2D; files[numFiles++] = Utils::CalcHash(desc->Models[i].Diffuse[3]);	}
+				if (desc->Models[i].Diffuse[0][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Diffuse[0]));
+				if (desc->Models[i].Diffuse[1][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Diffuse[1]));
+				if (desc->Models[i].Diffuse[2][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Diffuse[2]));
+				if (desc->Models[i].Diffuse[3][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Diffuse[3]));
 													  
-				if (desc->Models[i].Lightmap[0][0] != 0) { types[numFiles] = Content::ResourceType::Texture2D; files[numFiles++] = Utils::CalcHash(desc->Models[i].Lightmap[0]); }
-				if (desc->Models[i].Lightmap[1][0] != 0) { types[numFiles] = Content::ResourceType::Texture2D; files[numFiles++] = Utils::CalcHash(desc->Models[i].Lightmap[1]); }
-				if (desc->Models[i].Lightmap[2][0] != 0) { types[numFiles] = Content::ResourceType::Texture2D; files[numFiles++] = Utils::CalcHash(desc->Models[i].Lightmap[2]); }
-				if (desc->Models[i].Lightmap[3][0] != 0) { types[numFiles] = Content::ResourceType::Texture2D; files[numFiles++] = Utils::CalcHash(desc->Models[i].Lightmap[3]); }
+				if (desc->Models[i].Lightmap[0][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Lightmap[0]));
+				if (desc->Models[i].Lightmap[1][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Lightmap[1]));
+				if (desc->Models[i].Lightmap[2][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Lightmap[2]));
+				if (desc->Models[i].Lightmap[3][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Lightmap[3]));
 			}
 
 			Content::ContentManager::BeginLoad(files, types, numFiles);
@@ -119,6 +144,29 @@ namespace Game
 			m_data->Lights[i] = desc->Lights[i];
 		}
 
+		CharacterManager::Reset();
+		if (desc->Ego.Name[0] != 0)
+		{
+			auto egoModel = (Graphics::Model*)Content::ContentManager::Get(Utils::CalcHash(desc->Ego.Name), Content::ResourceType::Model);
+			if (egoModel == nullptr)
+				return false;
+
+			egoModel->NumTextures = 0;
+
+			for (uint32 j = 0; j < SceneModelDesc::MaxMeshes; j++)
+			{
+				if (desc->Ego.Diffuse[j][0] != 0)
+				{
+					egoModel->Textures[egoModel->NumTextures] = Utils::CalcHash(desc->Ego.Diffuse[j]);
+					egoModel->Meshes[j].DiffuseTextureIndex = egoModel->NumTextures;
+					egoModel->NumTextures++;
+				}
+			}
+
+
+			CharacterManager::AddCharacter(egoModel, desc->Ego.Position, desc->Ego.Rotation, desc->Ego.Scale, true);
+		}
+
 		return true;
 	}
 
@@ -151,7 +199,35 @@ namespace Game
 		{
 			if (item.type == ini_itemtype::section)
 			{
-				if (ini_section_equals(&ctx, &item, "light"))
+				if (ini_section_equals(&ctx, &item, "ego"))
+				{
+					while (ini_next_within_section(&ctx, &item) == ini_result_success)
+					{
+						if (ini_key_equals(&ctx, &item, "file"))
+							ini_value_copy(&ctx, &item, result->Ego.Name, 64);
+						else if (ini_key_equals(&ctx, &item, "x"))
+							ini_value_float(&ctx, &item, &result->Ego.Position[0]);
+						else if (ini_key_equals(&ctx, &item, "y"))
+							ini_value_float(&ctx, &item, &result->Ego.Position[1]);
+						else if (ini_key_equals(&ctx, &item, "z"))
+							ini_value_float(&ctx, &item, &result->Ego.Position[2]);
+						else if (ini_key_equals(&ctx, &item, "rotation"))
+							ini_value_float(&ctx, &item, &result->Ego.Rotation);
+						else if (ini_key_equals(&ctx, &item, "diffuse_0"))
+							ini_value_copy(&ctx, &item, result->Ego.Diffuse[0], 64);
+						else if (ini_key_equals(&ctx, &item, "diffuse_1"))
+							ini_value_copy(&ctx, &item, result->Ego.Diffuse[1], 64);
+						else if (ini_key_equals(&ctx, &item, "diffuse_2"))
+							ini_value_copy(&ctx, &item, result->Ego.Diffuse[2], 64);
+						else if (ini_key_equals(&ctx, &item, "diffuse_3"))
+							ini_value_copy(&ctx, &item, result->Ego.Diffuse[3], 64);
+						else if (ini_key_equals(&ctx, &item, "scale"))
+							ini_value_float(&ctx, &item, &result->Ego.Scale);
+					}
+
+					goto parse;
+				}
+				else if (ini_section_equals(&ctx, &item, "light"))
 				{
 					float x = 0, y = 0, z = 0;
 					float r = 1.0f, g = 1.0f, b = 1.0f;
@@ -241,8 +317,10 @@ namespace Game
 		return true;
 	}
 
-	void SceneManager::Process()
+	void SceneManager::Process(float elapsed)
 	{
+		CharacterManager::Process(elapsed);
+
 		if (g_globals->DevMode)
 		{
 			if (m_data->SelectedModelIndex >= 0)
@@ -298,5 +376,7 @@ namespace Game
 				}
 			}
 		}
+
+		CharacterManager::Render(modelview);
 	}
 }

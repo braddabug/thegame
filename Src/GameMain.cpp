@@ -13,6 +13,7 @@
 #include "Content/ContentManager.h"
 #include "Audio/AudioEngine.h"
 #include "Game/SceneManager.h"
+#include "Game/CharacterManager.h"
 #include "MemoryManager.h"
 
 
@@ -83,6 +84,7 @@ void LibLoaded(GlobalData* data, bool initial)
 	Graphics::ShaderLibrary::SetGlobalData(&data->ShaderLibraryData, g_device);
 	Graphics::DrawUtils::SetGlobalData(&data->DrawUtilsData, g_device);
 	Game::SceneManager::SetGlobalData(&data->SceneData, g_device);
+	Game::CharacterManager::SetGlobalData(&data->CharacterData, g_device);
 }
 
 int Init(WindowInfo* window)
@@ -166,6 +168,7 @@ int Unload()
 
 void Shutdown()
 {
+	Game::CharacterManager::Shutdown();
 	Game::SceneManager::Shutdown();
 	Graphics::Model::Shutdown();
 	Graphics::TextureLoader::Shutdown();
@@ -191,7 +194,7 @@ float cameraPitch = 0;
 float cameraYaw = 0;
 
 
-void Tick()
+void Tick(float elapsed)
 {
 	JobQueue::Tick();
 
@@ -299,7 +302,7 @@ void Tick()
 	Nxna::Matrix view = Nxna::Matrix::CreateLookAt(Nxna::Vector3(cameraPos.X, 0, cameraPos.Y), Nxna::Vector3(0, 0, 0), Nxna::Vector3(0, 1.0f, 0));
 	auto transform = view * projection;*/
 	
-	Game::SceneManager::Process();
+	Game::SceneManager::Process(elapsed);
 	Game::SceneManager::Render(&cameraTransform);
 	//if (mj.Result == JobResult::Completed)
 		//Graphics::Model::Render(g_device, &transform, &m, 1);

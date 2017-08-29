@@ -168,6 +168,8 @@ namespace Content
 
 					auto resourceType = types[i];
 					m_data->Loaded.Data[index] = (char*)resourceData[(int)resourceType] + resourceCount[(int)resourceType] * resourceSize[(int)resourceType];
+					assert(m_data->Loaded.Data[index] < (char*)resourceData[(int)resourceType] + totalResourceCount[(int)resourceType] * resourceSize[(int)resourceType]);
+					resourceCount[(int)resourceType]++;
 					m_data->Loaded.Count++;
 				}
 			}
@@ -270,6 +272,8 @@ namespace Content
 
 		if (m_data->Loaded.State[*index] != LoadState::Completed)
 			return nullptr;
+
+		assert(m_data->Loaded.Name[*index] == hash);
 
 		return m_data->Loaded.Data[*index];
 	}
