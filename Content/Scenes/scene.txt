@@ -16,6 +16,6 @@ g: 1000.0
 b: 1000.0
 
 [model]
-file: Models/room2.obj
+file: Models/test_room.obj
 lightmap_0: Models/debug.tga
 diffuse_0: Models/untitled.png
