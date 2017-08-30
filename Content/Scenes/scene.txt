@@ -1,5 +1,5 @@
 [ego]
-file: Models/chr_knight.obj
+file: Models/test_guy.obj
 diffuse_0: Models/untitled.png
 x: 0
 y: 0

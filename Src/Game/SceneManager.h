@@ -102,7 +102,7 @@ namespace Game
 		static bool CreateScene(const char* sceneFile);
 		static bool LoadSceneDesc(const char* sceneFile, SceneDesc* result);
 
-		static void Process(float elapsed);
+		static void Process(Nxna::Matrix* modelview, float elapsed);
 		static void Render(Nxna::Matrix* modelview);
 	};
 }

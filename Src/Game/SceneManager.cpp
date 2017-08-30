@@ -317,9 +317,9 @@ namespace Game
 		return true;
 	}
 
-	void SceneManager::Process(float elapsed)
+	void SceneManager::Process(Nxna::Matrix* modelview, float elapsed)
 	{
-		CharacterManager::Process(elapsed);
+		CharacterManager::Process(modelview, elapsed);
 
 		if (g_globals->DevMode)
 		{

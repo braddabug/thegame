@@ -20,7 +20,7 @@ namespace Game
 		static void Reset();
 		static void AddCharacter(Graphics::Model* model, float position[3], float rotation, float scale, bool isEgo);
 
-		static void Process(float elapsed);
+		static void Process(Nxna::Matrix* modelview, float elapsed);
 		static void Render(Nxna::Matrix* modelview);
 
 	private:

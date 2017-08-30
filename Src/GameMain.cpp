@@ -302,7 +302,7 @@ void Tick(float elapsed)
 	Nxna::Matrix view = Nxna::Matrix::CreateLookAt(Nxna::Vector3(cameraPos.X, 0, cameraPos.Y), Nxna::Vector3(0, 0, 0), Nxna::Vector3(0, 1.0f, 0));
 	auto transform = view * projection;*/
 	
-	Game::SceneManager::Process(elapsed);
+	Game::SceneManager::Process(&cameraTransform, elapsed);
 	Game::SceneManager::Render(&cameraTransform);
 	//if (mj.Result == JobResult::Completed)
 		//Graphics::Model::Render(g_device, &transform, &m, 1);

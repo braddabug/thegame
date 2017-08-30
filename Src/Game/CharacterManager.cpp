@@ -62,9 +62,52 @@ namespace Game
 		m_data->NumCharacters++;
 	}
 
-	void CharacterManager::Process(float elapsed)
+	static bool intersect_ray_plane(const Nxna::Vector3& pnormal, const Nxna::Vector3& porigin, const Nxna::Vector3& rorigin, const Nxna::Vector3& rdirection, float& t) \
+	{
+		float denom = Nxna::Vector3::Dot(pnormal, rdirection);
+		if (denom > 1e-6 || denom < -1e-6) {
+			auto p = porigin - rorigin;
+			t = Nxna::Vector3::Dot(p, pnormal) / denom;
+			return t >= 0;
+		}
+
+		return false;
+	}
+
+	void CharacterManager::Process(Nxna::Matrix* modelview, float elapsed)
 	{
 		bool transformDirty = false;
+
+		if (NXNA_BUTTON_CLICKED_UP(g_inputState->MouseButtonData[1]))
+		{
+			Nxna::Vector3 mouse0(g_inputState->MouseX, g_inputState->MouseY, 0);
+			Nxna::Vector3 mouse1(g_inputState->MouseX, g_inputState->MouseY, 1.0f);
+
+			auto viewport = m_device->GetViewport();
+			auto mp0 = viewport.Unproject(mouse0, *modelview, Nxna::Matrix::Identity, Nxna::Matrix::Identity);
+			auto mp1 = viewport.Unproject(mouse1, *modelview, Nxna::Matrix::Identity, Nxna::Matrix::Identity);
+
+			auto toPoint = Nxna::Vector3::Normalize(mp1 - mp0);
+
+			float t;
+			if (intersect_ray_plane(Nxna::Vector3(0, 1.0f, 0), Nxna::Vector3::Zero, mp0, toPoint, t))
+			{
+				auto dest = mp0 + toPoint * t;
+				m_data->Positions[0][0] = dest.X;
+				m_data->Positions[0][1] = dest.Y;
+				m_data->Positions[0][2] = dest.Z;
+
+				transformDirty = true;
+			}
+		}
+
+		// project the mouse, figure out where they clicked
+
+		// find a path from the current location to the spot the player clicked
+
+		// if a path exits, start walking, otherwise walk as close as possible
+
+
 		if (Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::Up))
 		{
 			transformDirty = true;
