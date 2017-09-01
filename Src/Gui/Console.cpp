@@ -1,5 +1,7 @@
+#include "../Common.h"
 #include "Console.h"
 #include "TextPrinter.h"
+#include "../ConsoleCommand.h"
 #include "../Logging.h"
 #include "../GlobalData.h"
 #include "../utf8.h"
@@ -23,6 +25,12 @@ namespace Gui
 
 		int FirstVisibleLine;
 		bool Visible;
+
+		static const int MaxCommands = 100;
+		static const int MaxCommandLength = 32;
+		uint32 NumCommands;
+		char Commands[MaxCommands][MaxCommandLength];
+		CommandCallback CommandCallbacks[MaxCommands];
 	};
 
 	ConsoleData* Console::m_data = nullptr;
@@ -36,6 +44,15 @@ namespace Gui
 
 			// default to locked to the last line
 			(*data)->FirstVisibleLine = -1;
+
+			// add the default "help" command
+			(*data)->NumCommands = 1;
+#ifdef _MSC_VER
+			strcpy_s((*data)->Commands[0], "help");
+#else
+			strcpy((*data)->Commands[0], "help");
+#endif
+			(*data)->CommandCallbacks[0] = cmd_help;
 		}
 
 		m_data = *data;
@@ -45,6 +62,22 @@ namespace Gui
 	{
 		g_memory->FreeTrack(m_data, __FILE__, __LINE__);
 		m_data = nullptr;
+	}
+
+	void Console::AddCommands(ConsoleCommand* commands, uint32 numCommands)
+	{
+		assert(m_data->NumCommands + numCommands < ConsoleData::MaxCommands);
+
+		for (uint32 i = 0; i < numCommands; i++)
+		{
+#ifdef _MSC_VER
+			strcpy_s(m_data->Commands[m_data->NumCommands], commands[i].Command);
+#else
+			strcpy(m_data->Commands[m_data->NumCommands], commands[i].Command);
+#endif
+			m_data->CommandCallbacks[m_data->NumCommands] = commands[i].Callback;
+			m_data->NumCommands++;
+		}
 	}
 
 	bool Console::IsVisible()
@@ -185,7 +218,6 @@ namespace Gui
 		{
 			WriteLog(LogSeverityType::Normal, LogChannelType::ConsoleInput, ">%s", m_data->InputBuffer);
 			
-
 			m_data->HistorySize++;
 			
 			if (m_data->HistorySize > m_data->MaxHistorySize)
@@ -201,6 +233,30 @@ namespace Gui
 			m_data->HistoryNext++;
 			if (m_data->HistoryNext >= m_data->MaxHistorySize)
 				m_data->HistoryNext = 0;
+
+			// find and execute the command
+			{
+				const char* commandEnd = m_data->InputBuffer;
+				while (commandEnd[0] != 0 && commandEnd[0] != ' ')
+					commandEnd++;
+
+				for (uint32 i = 0; i < m_data->NumCommands; i++)
+				{
+					if (Utils::CompareI(m_data->InputBuffer, commandEnd - m_data->InputBuffer, m_data->Commands[i]) == 0)
+					{
+						const char* argsStart = commandEnd;
+						while (argsStart[0] == ' ') argsStart++;
+
+						m_data->CommandCallbacks[i](argsStart);
+
+						goto after;
+					}
+				}
+
+				// didn't find the command :(
+				WriteLog(LogSeverityType::Error, LogChannelType::ConsoleOutput, "Unknown command: %s", m_data->InputBuffer);
+			}
+			after:
 						
 			m_data->InputBuffer[0] = 0;
 			m_data->InputBufferSize = 0;
@@ -273,5 +329,15 @@ namespace Gui
 		// draw the cursor
 		auto size = TextPrinter::MeasureString(consoleFont, m_data->InputBuffer, m_data->InputBuffer + m_data->InputBufferCursor);
 		TextPrinter::PrintScreen(sb, size.X, linesToDraw * consoleFont->LineHeight, consoleFont, "_");
+	}
+
+	void Console::cmd_help(const char* args)
+	{
+		WriteLog(LogSeverityType::Normal, LogChannelType::ConsoleOutput, "List of available commands:");
+
+		for (uint32 i = 0; i < m_data->NumCommands; i++)
+		{
+			WriteLog(LogSeverityType::Normal, LogChannelType::ConsoleOutput, "   %s", m_data->Commands[i]);
+		}
 	}
 }

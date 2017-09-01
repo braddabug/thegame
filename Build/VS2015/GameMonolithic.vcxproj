@@ -22,6 +22,7 @@
     <ClCompile Include="..\..\Src\Build.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Src\ConsoleCommand.h" />
     <ClInclude Include="..\..\Src\Content\ContentLoader.h" />
     <ClInclude Include="..\..\src\Content\ContentManager.h" />
     <ClInclude Include="..\..\src\Content\FileManifest.h" />

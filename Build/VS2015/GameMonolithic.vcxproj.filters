@@ -44,6 +44,7 @@
     <ClInclude Include="..\..\Src\Game\CharacterManager.h">
       <Filter>Game</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Src\ConsoleCommand.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Gui">
