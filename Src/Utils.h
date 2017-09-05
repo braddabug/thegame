@@ -17,6 +17,16 @@ namespace Utils
 
 	int CompareI(const char* strA, uint32 strALength, const char* strB);
 
+	float AngleDiff(float angle1, float angle2)
+	{
+		// based on https://stackoverflow.com/questions/1878907/the-smallest-difference-between-2-angles
+		float a = angle1 - angle2;
+		float a1 = (a + 3.14159265359f);
+		const float twopi = 3.14159265359f * 2.0f;
+
+		return (a1 - floor(a1 / twopi) * twopi) - 3.14159265359f;
+	}
+
 	constexpr uint32 CalcHash(const char *str);
 
 	template<typename T, size_t size>
