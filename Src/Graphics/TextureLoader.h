@@ -7,6 +7,8 @@
 
 namespace Graphics
 {
+	struct Bitmap;
+
 	struct TextureLoaderData
 	{
 		Nxna::Graphics::GraphicsDevice* Device;
@@ -27,6 +29,8 @@ namespace Graphics
 
 		static bool LoadPixels(Content::ContentLoaderParams* params);
 		static bool ConvertPixelsToTexture(Content::ContentLoaderParams* params);
+
+		static bool ConvertBitmapToTexture(Bitmap* bitmap, Nxna::Graphics::Texture2D* result);
 
 	private:
 

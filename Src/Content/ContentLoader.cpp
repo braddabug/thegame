@@ -24,6 +24,7 @@ namespace Content
 		m_data->Loaders.clear();
 		m_data->Loaders.push_back(Loader{ ResourceType::Model, (JobFunc)Graphics::Model::LoadObj, (JobFunc)Graphics::Model::FinalizeLoadObj, nullptr, nullptr, device, sizeof(Graphics::Model), alignof(Graphics::Model) });
 		m_data->Loaders.push_back(Loader{ ResourceType::Texture2D, (JobFunc)Graphics::TextureLoader::LoadPixels, (JobFunc)Graphics::TextureLoader::ConvertPixelsToTexture, nullptr });
+		m_data->Loaders.push_back(Loader{ ResourceType::Bitmap, (JobFunc)Graphics::TextureLoader::LoadPixels, nullptr, nullptr });
 		m_data->Loaders.push_back(Loader{ ResourceType::Audio, (JobFunc)Audio::AudioLoader::LoadWav, nullptr, nullptr });
 	}
 

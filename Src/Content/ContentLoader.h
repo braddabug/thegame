@@ -38,6 +38,7 @@ namespace Content
 	{
 		Model,
 		Texture2D,
+		Bitmap,
 		Audio,
 
 		LAST

@@ -1,4 +1,5 @@
 #include "TextureLoader.h"
+#include "Bitmap.h"
 #include "../MemoryManager.h"
 #include "../StringManager.h"
 
@@ -45,15 +46,9 @@ namespace Graphics
 		}
 	}
 
-	struct TextureLoaderStorage
-	{
-		uint32 Width, Height;
-		uint8* Pixels;
-	};
-
 	bool TextureLoader::LoadPixels(Content::ContentLoaderParams* params)
 	{
-		static_assert(sizeof(TextureLoaderStorage) <= sizeof(Content::ContentLoaderParams::LocalDataStorage), "TextureLoaderData is too big");
+		static_assert(sizeof(Bitmap) <= sizeof(Content::ContentLoaderParams::LocalDataStorage), "Bitmap is too big");
 
 		int w, h, d;
 		auto filename = FileSystem::GetFilenameByHash(params->FilenameHash);
@@ -67,7 +62,7 @@ namespace Graphics
 			return false;
 		}
 
-		TextureLoaderStorage* storage = (TextureLoaderStorage*)params->LocalDataStorage;
+		Bitmap* storage = (Bitmap*)params->LocalDataStorage;
 
 		storage->Width = (uint32)w;
 		storage->Height = (uint32)h;
@@ -78,24 +73,34 @@ namespace Graphics
 
 	bool TextureLoader::ConvertPixelsToTexture(Content::ContentLoaderParams* params)
 	{
-		TextureLoaderStorage* storage = (TextureLoaderStorage*)params->LocalDataStorage;
+		Bitmap* storage = (Bitmap*)params->LocalDataStorage;
+		Nxna::Graphics::Texture2D* destination = (Nxna::Graphics::Texture2D*)params->Destination;
 
-		Nxna::Graphics::TextureCreationDesc desc = {};
-		desc.Width = storage->Width;
-		desc.Height = storage->Height;
-		desc.ArraySize = 1;
-		Nxna::Graphics::SubresourceData srd = {};
-		srd.Data = storage->Pixels;
-		srd.DataPitch = storage->Width * 4;
-		if (m_data->Device->CreateTexture2D(&desc, &srd, (Nxna::Graphics::Texture2D*)params->Destination) != Nxna::NxnaResult::Success)
+		if (ConvertBitmapToTexture(storage, destination))
 		{
 			stbi_image_free(storage->Pixels);
-			params->State = Content::ContentState::UnknownError;
+			params->State = Content::ContentState::Loaded;
+			return true;
+		}
+
+		stbi_image_free(storage->Pixels);
+		params->State = Content::ContentState::UnknownError;
+		return false;
+	}
+
+	bool TextureLoader::ConvertBitmapToTexture(Bitmap* bitmap, Nxna::Graphics::Texture2D* result)
+	{
+		Nxna::Graphics::TextureCreationDesc desc = {};
+		desc.Width = bitmap->Width;
+		desc.Height = bitmap->Height;
+		desc.ArraySize = 1;
+		Nxna::Graphics::SubresourceData srd = {};
+		srd.Data = bitmap->Pixels;
+		srd.DataPitch = bitmap->Width * 4;
+		if (m_data->Device->CreateTexture2D(&desc, &srd, result) != Nxna::NxnaResult::Success)
+		{
 			return false;
 		}
-		stbi_image_free(storage->Pixels);
-
-		params->State = Content::ContentState::Loaded;
 
 		return true;
 	}

@@ -31,6 +31,7 @@
     <ClInclude Include="..\..\Src\Game\CharacterManager.h" />
     <ClInclude Include="..\..\Src\Game\SceneManager.h" />
     <ClInclude Include="..\..\src\GlobalData.h" />
+    <ClInclude Include="..\..\Src\Graphics\Bitmap.h" />
     <ClInclude Include="..\..\Src\Graphics\Model.h" />
     <ClInclude Include="..\..\src\Graphics\TextureLoader.h" />
     <ClInclude Include="..\..\Src\Gui\Console.h" />

@@ -45,6 +45,9 @@
       <Filter>Game</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Src\ConsoleCommand.h" />
+    <ClInclude Include="..\..\Src\Graphics\Bitmap.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Gui">

@@ -329,6 +329,12 @@ namespace Content
 				*alignment = alignof(Nxna::Graphics::Texture2D);
 				return true;
 			}
+			case ResourceType::Bitmap:
+			{
+				*size = sizeof(Graphics::Bitmap);
+				*alignment = alignof(Graphics::Bitmap);
+				return true;
+			}
 			case ResourceType::Audio:
 			{
 				*size = sizeof(Audio::Buffer);
