@@ -270,4 +270,30 @@ namespace Graphics
 			}
 		}
 	}
+
+	void Model::UpdateAABB(float* boundingBox, Nxna::Matrix* transform, float* result)
+	{
+		// shamelessly stolen from http://dev.theomader.com/transform-bounding-boxes/
+
+		auto right = Nxna::Vector3(transform->M11, transform->M12, transform->M13);
+		auto up = Nxna::Vector3(transform->M21, transform->M22, transform->M23);
+		auto backward = Nxna::Vector3(transform->M31, transform->M32, transform->M33);
+
+		auto xa = right * boundingBox[0];
+		auto xb = right * boundingBox[3];
+
+		auto ya = up * boundingBox[1];
+		auto yb = up * boundingBox[4];
+
+		auto za = backward * boundingBox[2];
+		auto zb = backward * boundingBox[5];
+
+		result[0] = (xa.X < xb.X ? xa.X : xb.X) + (ya.X < yb.X ? ya.X : yb.X) + (za.X < zb.X ? za.X : zb.X) + transform->M41;
+		result[1] = (xa.Y < xb.Y ? xa.Y : xb.Y) + (ya.Y < yb.Y ? ya.Y : yb.Y) + (za.Y < zb.Y ? za.Y : zb.Y) + transform->M42;
+		result[2] = (xa.Z < xb.Z ? xa.Z : xb.Z) + (ya.Z < yb.Z ? ya.Z : yb.Z) + (za.Z < zb.Z ? za.Z : zb.Z) + transform->M43;
+
+		result[3] = (xa.X > xb.X ? xa.X : xb.X) + (ya.X > yb.X ? ya.X : yb.X) + (za.X > zb.X ? za.X : zb.X) + transform->M41;
+		result[4] = (xa.Y > xb.Y ? xa.Y : xb.Y) + (ya.Y > yb.Y ? ya.Y : yb.Y) + (za.Y > zb.Y ? za.Y : zb.Y) + transform->M42;
+		result[5] = (xa.Z > xb.Z ? xa.Z : xb.Z) + (ya.Z > yb.Z ? ya.Z : yb.Z) + (za.Z > zb.Z ? za.Z : zb.Z) + transform->M43;
+	}
 }

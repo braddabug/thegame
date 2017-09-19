@@ -13,9 +13,11 @@ namespace Game
 {
 	struct SceneManagerData;
 
-	struct SceneEgoDesc
+	struct SceneCharacterDesc
 	{
 		char Name[64];
+		char ModelFile[64];
+		uint32 NounHash;
 		float Position[3];
 		float Rotation;
 		float Scale;
@@ -27,6 +29,8 @@ namespace Game
 	struct SceneModelDesc
 	{
 		char Name[64];
+		char File[64];
+		uint32 NounHash;
 
 		static const uint32 MaxMeshes = 4;
 		char Diffuse[MaxMeshes][64];
@@ -34,6 +38,8 @@ namespace Game
 
 		float Position[3];
 		float EulerOrientation[3];
+
+		bool IsStatic;
 	};
 
 	enum class LightType
@@ -74,18 +80,75 @@ namespace Game
 		};
 	};
 
+	struct SceneNounDesc
+	{
+		uint32 NameHash;
+		uint32 TargetIndex;
+		uint32 ModelMeshIndex;
+		bool IsCharacter;
+	};
+
 	struct SceneDesc
 	{
+		static const uint32 MaxCharacters = 10;
 		static const uint32 MaxModels = 10;
 		static const uint32 MaxLights = 5;
+		static const uint32 MaxNouns = 100;
 
-		SceneEgoDesc Ego;
+		SceneCharacterDesc Characters[MaxCharacters];
+		uint32 NumCharacters;
 
 		SceneModelDesc Models[MaxModels];
 		uint32 NumModels;
 
 		SceneLightDesc Lights[MaxLights];
 		uint32 NumLights;
+
+		char WalkMap[64];
+		int WalkMapX;
+		int WalkMapZ;
+
+		uint32 EgoCharacterIndex;
+	};
+
+	enum class SceneIntersectionTestTarget
+	{
+		None = 0,
+
+		Ground = 1,
+		Model = 2,
+		ModelMesh = 4,
+		Character = 8,
+
+		All = Ground | ModelMesh | Character
+	};
+
+	struct SceneIntersectionTestResult
+	{
+		SceneIntersectionTestTarget ResultType;
+		float Distance;
+		uint32 NounHash;
+
+		union
+		{
+			struct
+			{
+				uint32 ModelNameHash;
+				Graphics::Model* Model;
+				uint32 ModelMeshIndex;
+			} Model;
+			struct
+			{
+				uint32 CharacterNameHash;
+			} Character;
+		};
+	};
+
+	struct SceneModelInfo
+	{
+		Graphics::Model* Model;
+		Nxna::Matrix* Transform;
+		float* AABB;
 	};
 
 	class SceneManager
@@ -101,6 +164,8 @@ namespace Game
 		static bool CreateScene(SceneDesc* desc);
 		static bool CreateScene(const char* sceneFile);
 		static bool LoadSceneDesc(const char* sceneFile, SceneDesc* result);
+
+		static SceneIntersectionTestResult QueryRayIntersection(Nxna::Vector3 start, Nxna::Vector3 direction, SceneIntersectionTestTarget target);
 
 		static void Process(Nxna::Matrix* modelview, float elapsed);
 		static void Render(Nxna::Matrix* modelview);

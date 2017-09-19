@@ -13,8 +13,11 @@ namespace Game
 	{
 		uint32 NumModels;
 		uint32 ModelNameHash[SceneDesc::MaxModels];
+		uint32 ModelNounHash[SceneDesc::MaxModels];
 		Nxna::Matrix ModelTransforms[SceneDesc::MaxModels];
 		Graphics::Model* Models[SceneDesc::MaxModels];
+		float ModelAABB[SceneDesc::MaxModels][6];
+		bool IsCharacterModel[SceneDesc::MaxModels];
 
 		SceneLightDesc Lights[SceneDesc::MaxLights];
 		uint32 NumLights;
@@ -71,19 +74,19 @@ namespace Game
 				return true;
 			};
 
-			if (desc->Ego.Name[0] != 0)
+			for(uint32 i = 0; i < desc->NumCharacters; i++)
 			{
-				addFile(Content::ResourceType::Model, Utils::CalcHash(desc->Ego.Name));
+				addFile(Content::ResourceType::Model, Utils::CalcHash(desc->Characters[i].ModelFile));
 
-				if (desc->Ego.Diffuse[0][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Ego.Diffuse[0]));
-				if (desc->Ego.Diffuse[1][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Ego.Diffuse[1]));
-				if (desc->Ego.Diffuse[2][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Ego.Diffuse[2]));
-				if (desc->Ego.Diffuse[3][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Ego.Diffuse[3]));
+				if (desc->Characters[i].Diffuse[0][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Characters[i].Diffuse[0]));
+				if (desc->Characters[i].Diffuse[1][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Characters[i].Diffuse[1]));
+				if (desc->Characters[i].Diffuse[2][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Characters[i].Diffuse[2]));
+				if (desc->Characters[i].Diffuse[3][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Characters[i].Diffuse[3]));
 			}
 
 			for (uint32 i = 0; i < desc->NumModels; i++)
 			{
-				addFile(Content::ResourceType::Model, Utils::CalcHash(desc->Models[i].Name));
+				addFile(Content::ResourceType::Model, Utils::CalcHash(desc->Models[i].File));
 
 				if (desc->Models[i].Diffuse[0][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Diffuse[0]));
 				if (desc->Models[i].Diffuse[1][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Diffuse[1]));
@@ -95,6 +98,9 @@ namespace Game
 				if (desc->Models[i].Lightmap[2][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Lightmap[2]));
 				if (desc->Models[i].Lightmap[3][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Lightmap[3]));
 			}
+
+			if (desc->WalkMap[0] != 0)
+				addFile(Content::ResourceType::Bitmap, Utils::CalcHash(desc->WalkMap));
 
 			Content::ContentManager::BeginLoad(files, types, numFiles);
 		}
@@ -112,7 +118,9 @@ namespace Game
 			if (desc->Models[i].Name == nullptr)
 				m_data->ModelNameHash[i] = 0;
 			else
-				m_data->ModelNameHash[i] = Utils::CalcHash(desc->Models[i].Name);
+				m_data->ModelNameHash[i] = Utils::CalcHash(desc->Models[i].File);
+
+			m_data->ModelNounHash[i] = desc->Models[i].NounHash;
 
 			m_data->Models[i] = (Graphics::Model*)Content::ContentManager::Get(m_data->ModelNameHash[i], Content::ResourceType::Model);
 			if (m_data->Models[i] == nullptr)
@@ -145,26 +153,49 @@ namespace Game
 		}
 
 		CharacterManager::Reset();
-		if (desc->Ego.Name[0] != 0)
+		for (uint32 i = 0; i < desc->NumCharacters; i++)
 		{
-			auto egoModel = (Graphics::Model*)Content::ContentManager::Get(Utils::CalcHash(desc->Ego.Name), Content::ResourceType::Model);
-			if (egoModel == nullptr)
+			auto model = (Graphics::Model*)Content::ContentManager::Get(Utils::CalcHash(desc->Characters[i].ModelFile), Content::ResourceType::Model);
+			if (model == nullptr)
 				return false;
 
-			egoModel->NumTextures = 0;
+			model->NumTextures = 0;
 
 			for (uint32 j = 0; j < SceneModelDesc::MaxMeshes; j++)
 			{
-				if (desc->Ego.Diffuse[j][0] != 0)
+				if (desc->Characters[i].Diffuse[j][0] != 0)
 				{
-					egoModel->Textures[egoModel->NumTextures] = Utils::CalcHash(desc->Ego.Diffuse[j]);
-					egoModel->Meshes[j].DiffuseTextureIndex = egoModel->NumTextures;
-					egoModel->NumTextures++;
+					model->Textures[model->NumTextures] = Utils::CalcHash(desc->Characters[i].Diffuse[j]);
+					model->Meshes[j].DiffuseTextureIndex = model->NumTextures;
+					model->NumTextures++;
 				}
 			}
 
+			m_data->ModelNounHash[i] = desc->Models[i].NounHash;
 
-			CharacterManager::AddCharacter(egoModel, desc->Ego.Position, desc->Ego.Rotation, desc->Ego.Scale, true);
+			m_data->Models[m_data->NumModels] = model;
+
+			m_data->ModelTransforms[i] = Nxna::Matrix::Identity;
+
+			model->NumTextures = 0;
+			for (uint32 j = 0; j < SceneModelDesc::MaxMeshes; j++)
+			{
+				if (desc->Characters[i].Diffuse[j][0] != 0)
+				{
+					model->Textures[model->NumTextures] = Utils::CalcHash(desc->Characters[i].Diffuse[j]);
+					model->Meshes[j].DiffuseTextureIndex = model->NumTextures;
+					model->NumTextures++;
+				}
+			}
+
+			SceneModelInfo info;
+			info.Model = model;
+			info.Transform = &m_data->ModelTransforms[m_data->NumModels];
+			info.AABB = m_data->ModelAABB[m_data->NumModels];
+			CharacterManager::AddCharacter(info, desc->Characters[i].Position, desc->Characters[i].Rotation, desc->Characters[i].Scale, desc->EgoCharacterIndex == i);
+
+			m_data->IsCharacterModel[m_data->NumModels] = true;
+			m_data->NumModels++;
 		}
 
 		return true;
@@ -187,6 +218,8 @@ namespace Game
 		if (FileSystem::OpenAndMap(sceneFile, &f) == false)
 			return false;
 
+		bool success = true;
+
 		const char* txt = (char*)f.Memory;
 
 		ini_context ctx;
@@ -199,31 +232,37 @@ namespace Game
 		{
 			if (item.type == ini_itemtype::section)
 			{
-				if (ini_section_equals(&ctx, &item, "ego"))
+				if (ini_section_equals(&ctx, &item, "character"))
 				{
 					while (ini_next_within_section(&ctx, &item) == ini_result_success)
 					{
-						if (ini_key_equals(&ctx, &item, "file"))
-							ini_value_copy(&ctx, &item, result->Ego.Name, 64);
+						if (ini_key_equals(&ctx, &item, "name"))
+							ini_value_copy(&ctx, &item, result->Characters[result->NumCharacters].Name, 64);
+						else if (ini_key_equals(&ctx, &item, "noun"))
+							result->Characters[result->NumCharacters].NounHash = Utils::CalcHash((const uint8*)ctx.source + item.keyvalue.value_start, item.keyvalue.value_end - item.keyvalue.value_start);
+						else if (ini_key_equals(&ctx, &item, "file"))
+							ini_value_copy(&ctx, &item, result->Characters[result->NumCharacters].ModelFile, 64);
 						else if (ini_key_equals(&ctx, &item, "x"))
-							ini_value_float(&ctx, &item, &result->Ego.Position[0]);
+							ini_value_float(&ctx, &item, &result->Characters[result->NumCharacters].Position[0]);
 						else if (ini_key_equals(&ctx, &item, "y"))
-							ini_value_float(&ctx, &item, &result->Ego.Position[1]);
+							ini_value_float(&ctx, &item, &result->Characters[result->NumCharacters].Position[1]);
 						else if (ini_key_equals(&ctx, &item, "z"))
-							ini_value_float(&ctx, &item, &result->Ego.Position[2]);
+							ini_value_float(&ctx, &item, &result->Characters[result->NumCharacters].Position[2]);
 						else if (ini_key_equals(&ctx, &item, "rotation"))
-							ini_value_float(&ctx, &item, &result->Ego.Rotation);
+							ini_value_float(&ctx, &item, &result->Characters[result->NumCharacters].Rotation);
 						else if (ini_key_equals(&ctx, &item, "diffuse_0"))
-							ini_value_copy(&ctx, &item, result->Ego.Diffuse[0], 64);
+							ini_value_copy(&ctx, &item, result->Characters[result->NumCharacters].Diffuse[0], 64);
 						else if (ini_key_equals(&ctx, &item, "diffuse_1"))
-							ini_value_copy(&ctx, &item, result->Ego.Diffuse[1], 64);
+							ini_value_copy(&ctx, &item, result->Characters[result->NumCharacters].Diffuse[1], 64);
 						else if (ini_key_equals(&ctx, &item, "diffuse_2"))
-							ini_value_copy(&ctx, &item, result->Ego.Diffuse[2], 64);
+							ini_value_copy(&ctx, &item, result->Characters[result->NumCharacters].Diffuse[2], 64);
 						else if (ini_key_equals(&ctx, &item, "diffuse_3"))
-							ini_value_copy(&ctx, &item, result->Ego.Diffuse[3], 64);
+							ini_value_copy(&ctx, &item, result->Characters[result->NumCharacters].Diffuse[3], 64);
 						else if (ini_key_equals(&ctx, &item, "scale"))
-							ini_value_float(&ctx, &item, &result->Ego.Scale);
+							ini_value_float(&ctx, &item, &result->Characters[result->NumCharacters].Scale);
 					}
+
+					result->NumCharacters++;
 
 					goto parse;
 				}
@@ -267,9 +306,21 @@ namespace Game
 				{
 					while (ini_next_within_section(&ctx, &item) == ini_result_success)
 					{
-						if (ini_key_equals(&ctx, &item, "file"))
+						if (ini_key_equals(&ctx, &item, "name"))
 						{
 							ini_value_copy(&ctx, &item, result->Models[result->NumModels].Name, 64);
+						}
+						else if (ini_key_equals(&ctx, &item, "file"))
+						{
+							ini_value_copy(&ctx, &item, result->Models[result->NumModels].File, 64);
+						}
+						else if (ini_key_equals(&ctx, &item, "noun"))
+							result->Models[result->NumCharacters].NounHash = Utils::CalcHash((const uint8*)ctx.source + item.keyvalue.value_start, item.keyvalue.value_end - item.keyvalue.value_start);
+						else if (ini_key_equals(&ctx, &item, "static"))
+						{
+							int v;
+							if (ini_value_int(&ctx, &item, &v))
+								result->Models[result->NumModels].IsStatic = (v != 0);
 						}
 						else if (ini_key_equals(&ctx, &item, "diffuse_0"))
 						{
@@ -309,12 +360,134 @@ namespace Game
 
 					goto parse;
 				}
+				else if (ini_section_equals(&ctx, &item, "walk"))
+				{
+					while (ini_next_within_section(&ctx, &item) == ini_result_success)
+					{
+						if (ini_key_equals(&ctx, &item, "file"))
+							ini_value_copy(&ctx, &item, result->WalkMap, 64);
+						else if (ini_key_equals(&ctx, &item, "x"))
+							ini_value_int(&ctx, &item, &result->WalkMapX);
+						else if (ini_key_equals(&ctx, &item, "z"))
+							ini_value_int(&ctx, &item, &result->WalkMapZ);
+					}
+
+					goto parse;
+				}
+				else if (ini_section_equals(&ctx, &item, "global"))
+				{
+					while (ini_next_within_section(&ctx, &item) == ini_result_success)
+					{
+						if (ini_key_equals(&ctx, &item, "ego"))
+						{
+							for (uint32 i = 0; i < result->NumCharacters; i++)
+							{
+								if (ini_value_equals(&ctx, &item, result->Characters[i].Name))
+								{
+									result->EgoCharacterIndex = i;
+									goto parse;
+								}
+							}
+
+							// oops, couldn't find the ego character!
+							char buffer[64];
+							ini_value_copy(&ctx, &item, buffer, 64);
+							WriteLog(LogSeverityType::Error, LogChannelType::Content, "Unable to set ego to character %s because it was not found", buffer);
+							goto end;
+						}
+					}
+				}
 			}
 		}
 
+	end:
 		FileSystem::Close(&f);
 
+		return success;
+	}
+
+	static bool intersect_ray_plane(const Nxna::Vector3& pnormal, const Nxna::Vector3& porigin, const Nxna::Vector3& rorigin, const Nxna::Vector3& rdirection, float& t) \
+	{
+		float denom = Nxna::Vector3::Dot(pnormal, rdirection);
+		if (denom > 1e-6 || denom < -1e-6) {
+			auto p = porigin - rorigin;
+			t = Nxna::Vector3::Dot(p, pnormal) / denom;
+			return t >= 0;
+		}
+
+		return false;
+	}
+
+	static bool intersect_ray_aabb(Nxna::Vector3 bounds[2], Nxna::Vector3 rayOrigin, Nxna::Vector3 rayDirection)
+	{
+		// shamelessly stolen from https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
+
+		float tmin, tmax, tymin, tymax, tzmin, tzmax;
+
+		Nxna::Vector3 invDir(1.0f / rayDirection.X, 1.0f / rayDirection.Y, 1.f / rayDirection.Z);
+		int sign[3] = { invDir.X < 0 ? 1 : 0, invDir.Y < 0 ? 1 : 0, invDir.Z < 0 ? 1 : 0 };
+
+		tmin = (bounds[sign[0]].X - rayOrigin.X) * invDir.X;
+		tmax = (bounds[1 - sign[0]].X - rayOrigin.X) * invDir.X;
+		tymin = (bounds[sign[1]].Y - rayOrigin.Y) * invDir.Y;
+		tymax = (bounds[1 - sign[1]].Y - rayOrigin.Y) * invDir.Y;
+
+		if ((tmin > tymax) || (tymin > tmax))
+			return false;
+		if (tymin > tmin)
+			tmin = tymin;
+		if (tymax < tmax)
+			tmax = tymax;
+
+		tzmin = (bounds[sign[2]].Z - rayOrigin.Z) * invDir.Z;
+		tzmax = (bounds[1 - sign[2]].Z - rayOrigin.Z) * invDir.Z;
+
+		if ((tmin > tzmax) || (tzmin > tmax))
+			return false;
+		if (tzmin > tmin)
+			tmin = tzmin;
+		if (tzmax < tmax)
+			tmax = tzmax;
+
 		return true;
+	}
+
+	SceneIntersectionTestResult SceneManager::QueryRayIntersection(Nxna::Vector3 start, Nxna::Vector3 direction, SceneIntersectionTestTarget target)
+	{
+		// TODO: make this a triangle interesction test, but for now an AABB is ok.
+
+		SceneIntersectionTestResult result = {};
+		
+		if (((uint32)target & (uint32)SceneIntersectionTestTarget::Ground) == (uint32)SceneIntersectionTestTarget::Ground)
+		{
+			float t;
+			if (intersect_ray_plane(Nxna::Vector3(0, 1.0f, 0), Nxna::Vector3::Zero, start, direction, t))
+			{
+				result.ResultType = SceneIntersectionTestTarget::Ground;
+				result.Distance = t;
+			}
+		}
+
+		if (((uint32)target & (uint32)SceneIntersectionTestTarget::Character) == (uint32)SceneIntersectionTestTarget::Character)
+		{
+			for (uint32 i = 0; i < m_data->NumModels; i++)
+			{
+				if (m_data->IsCharacterModel[i])
+				{
+					Nxna::Vector3 aabb[2] = {
+						Nxna::Vector3(m_data->ModelAABB[i][0], m_data->ModelAABB[i][1], m_data->ModelAABB[i][2]),
+						Nxna::Vector3(m_data->ModelAABB[i][3], m_data->ModelAABB[i][4], m_data->ModelAABB[i][5]),
+					};
+					if (intersect_ray_aabb(aabb, start, direction))
+					{
+						result.ResultType = SceneIntersectionTestTarget::Character;
+						result.NounHash = m_data->ModelNounHash[i];
+					}
+				}
+			}
+		}
+
+		return result;
 	}
 
 	void SceneManager::Process(Nxna::Matrix* modelview, float elapsed)
@@ -342,7 +515,7 @@ namespace Game
 	void SceneManager::Render(Nxna::Matrix* modelview)
 	{
 		Graphics::Model::BeginRender(m_device);
-
+		
 		for (uint32 i = 0; i < m_data->NumModels; i++)
 		{
 			Nxna::Matrix transform = m_data->ModelTransforms[i] * *modelview;
@@ -357,6 +530,8 @@ namespace Game
 				}
 
 				Graphics::DrawUtils::DrawBoundingBox(m_data->Models[i]->BoundingBox, &transform, color);
+
+				Graphics::Model::BeginRender(m_device);
 			}
 		}
 
@@ -376,7 +551,5 @@ namespace Game
 				}
 			}
 		}
-
-		CharacterManager::Render(modelview);
 	}
 }

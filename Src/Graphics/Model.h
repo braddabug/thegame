@@ -57,6 +57,8 @@ namespace Graphics
 
 		static void BeginRender(Nxna::Graphics::GraphicsDevice* device);
 		static void Render(Nxna::Graphics::GraphicsDevice* device, Nxna::Matrix* transform, Model* model);
+
+		static void UpdateAABB(float* boundingBox, Nxna::Matrix* transform, float* result);
 	};
 }
 

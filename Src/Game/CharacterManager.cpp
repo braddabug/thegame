@@ -29,11 +29,10 @@ namespace Game
 		static const uint32 MaxCharacters = 10;
 
 		uint32 NumCharacters;
-		Graphics::Model* Models[MaxCharacters];
+		SceneModelInfo Models[MaxCharacters];
 		Nxna::Vector3 Positions[MaxCharacters];
 		float Rotations[MaxCharacters];
 		float Scales[MaxCharacters];
-		Nxna::Matrix Transforms[MaxCharacters];
 		CharacterBrain Brains[MaxCharacters];
 	};
 
@@ -63,7 +62,7 @@ namespace Game
 		m_data->NumCharacters = 0;
 	}
 
-	void CharacterManager::AddCharacter(Graphics::Model* model, float position[3], float rotation, float scale, bool isEgo)
+	void CharacterManager::AddCharacter(SceneModelInfo model, float position[3], float rotation, float scale, bool isEgo)
 	{
 		if (m_data->NumCharacters >= CharacterManagerData::MaxCharacters)
 			return;
@@ -77,28 +76,18 @@ namespace Game
 
 		auto translation = Nxna::Matrix::CreateTranslation(position[0], position[1], position[2]);
 		auto scalem = Nxna::Matrix::CreateScale(scale);
-		m_data->Transforms[m_data->NumCharacters] = scalem * translation;
+		*model.Transform = scalem * translation;
+		Graphics::Model::UpdateAABB(model.Model->BoundingBox, model.Transform, model.AABB);
 
 		m_data->NumCharacters++;
-	}
-
-	static bool intersect_ray_plane(const Nxna::Vector3& pnormal, const Nxna::Vector3& porigin, const Nxna::Vector3& rorigin, const Nxna::Vector3& rdirection, float& t) \
-	{
-		float denom = Nxna::Vector3::Dot(pnormal, rdirection);
-		if (denom > 1e-6 || denom < -1e-6) {
-			auto p = porigin - rorigin;
-			t = Nxna::Vector3::Dot(p, pnormal) / denom;
-			return t >= 0;
-		}
-
-		return false;
 	}
 
 	void CharacterManager::Process(Nxna::Matrix* modelview, float elapsed)
 	{
 		bool transformDirty = false;
 
-		if (NXNA_BUTTON_CLICKED_UP(g_inputState->MouseButtonData[1]))
+		if (NXNA_BUTTON_CLICKED_UP(g_inputState->MouseButtonData[1]) ||
+			NXNA_BUTTON_CLICKED_UP(g_inputState->MouseButtonData[3]))
 		{
 			Nxna::Vector3 mouse0(g_inputState->MouseX, g_inputState->MouseY, 0);
 			Nxna::Vector3 mouse1(g_inputState->MouseX, g_inputState->MouseY, 1.0f);
@@ -109,16 +98,27 @@ namespace Game
 
 			auto toPoint = Nxna::Vector3::Normalize(mp1 - mp0);
 
-			float t;
-			if (intersect_ray_plane(Nxna::Vector3(0, 1.0f, 0), Nxna::Vector3::Zero, mp0, toPoint, t))
+			if (NXNA_BUTTON_CLICKED_UP(g_inputState->MouseButtonData[1]))
 			{
-				auto dest = mp0 + toPoint * t;
+				float t;
+				if (intersect_ray_plane(Nxna::Vector3(0, 1.0f, 0), Nxna::Vector3::Zero, mp0, toPoint, t))
+				{
+					auto dest = mp0 + toPoint * t;
 
-				m_data->Brains[0].CurrentState = CharacterBrain::State::WalkTo;
-				m_data->Brains[0].WalkTo.X = dest.X;
-				m_data->Brains[0].WalkTo.Z = dest.Z;
+					m_data->Brains[0].CurrentState = CharacterBrain::State::WalkTo;
+					m_data->Brains[0].WalkTo.X = dest.X;
+					m_data->Brains[0].WalkTo.Z = dest.Z;
 
-				transformDirty = true;
+					transformDirty = true;
+				}
+			}
+			else
+			{
+				auto r = SceneManager::QueryRayIntersection(mp0, toPoint, SceneIntersectionTestTarget::Character);
+				if (r.ResultType == SceneIntersectionTestTarget::Character)
+				{
+					LOG("Clicked character");
+				}
 			}
 		}
 
@@ -180,18 +180,9 @@ namespace Game
 			auto translation = Nxna::Matrix::CreateTranslation(m_data->Positions[0].X, m_data->Positions[0].Y, m_data->Positions[0].Z);
 			auto scalem = Nxna::Matrix::CreateScale(m_data->Scales[0]);
 			auto rotationm = Nxna::Matrix::CreateRotationY(m_data->Rotations[0]);
-			m_data->Transforms[0] = scalem * rotationm * translation;
-		}
-	}
+			*m_data->Models[0].Transform = scalem * rotationm * translation;
 
-	void CharacterManager::Render(Nxna::Matrix* modelview)
-	{
-		Graphics::Model::BeginRender(m_device);
-
-		for (uint32 i = 0; i < m_data->NumCharacters; i++)
-		{
-			Nxna::Matrix transform = m_data->Transforms[i] * *modelview;
-			Graphics::Model::Render(m_device, &transform, m_data->Models[i]);
+			Graphics::Model::UpdateAABB(m_data->Models[0].Model->BoundingBox, m_data->Models[0].Transform, m_data->Models[0].AABB);
 		}
 	}
 }

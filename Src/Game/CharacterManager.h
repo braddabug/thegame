@@ -18,10 +18,9 @@ namespace Game
 		static void Shutdown();
 
 		static void Reset();
-		static void AddCharacter(Graphics::Model* model, float position[3], float rotation, float scale, bool isEgo);
+		static void AddCharacter(SceneModelInfo model, float position[3], float rotation, float scale, bool isEgo);
 
 		static void Process(Nxna::Matrix* modelview, float elapsed);
-		static void Render(Nxna::Matrix* modelview);
 
 	private:
 		static void updateTransform();
