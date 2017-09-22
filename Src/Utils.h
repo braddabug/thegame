@@ -2,6 +2,7 @@
 #define UTILS_H
 
 #include <cstdlib>
+#include <cmath>
 #include "Common.h"
 
 namespace Utils
