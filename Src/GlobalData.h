@@ -61,10 +61,20 @@ namespace Utils
 	struct StopwatchData;
 }
 
+struct Cursor
+{
+	void* pCursor;
+	void* pSurface;
+};
+
 struct PlatformInfo
 {
 	const char* (*GetClipboardText)();
 	void(*FreeClipboardText)(const char*);
+
+	bool (*CreateCursor)(uint8 width, uint8 height, uint32 hotX, uint32 hotY, byte* pixels, Cursor* result);
+	void (*FreeCursor)(Cursor* cursor);
+	void (*SetCursor)(Cursor* cursor);
 };
 
 struct GlobalData

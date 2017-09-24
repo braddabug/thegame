@@ -36,6 +36,33 @@ void LocalFreeClipboardText(const char* text)
 	SDL_free((char*)text);
 }
 
+bool LocalCreateCursor(uint8 width, uint8 height, uint32 hotX, uint32 hotY, byte* pixels, Cursor* cursor)
+{
+	if (cursor == nullptr)
+		return false;
+
+	cursor->pSurface = SDL_CreateRGBSurfaceFrom(pixels, (int)width, (int)height, 32, (int)(width * 4), 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+	if (cursor->pSurface == nullptr)
+		return false;
+
+	cursor->pCursor = SDL_CreateColorCursor((SDL_Surface*)cursor->pSurface, (int)hotX, (int)hotY);
+	if (cursor->pCursor == nullptr)
+		return false;
+
+	return true;
+}
+
+void LocalFreeCursor(Cursor* cursor)
+{
+	SDL_FreeCursor((SDL_Cursor*)cursor->pCursor);
+	SDL_FreeSurface((SDL_Surface*)cursor->pSurface);
+}
+
+void LocalSetCursor(Cursor* cursor)
+{
+	SDL_SetCursor((SDL_Cursor*)cursor->pCursor);
+}
+
 int LocalInit(Nxna::Graphics::GraphicsDevice* device, WindowInfo* window, SpriteBatchData* sbd, Gui::TextPrinterData* tpd)
 {
 	return GAME_LIB_CALL(Init)(window);
@@ -140,8 +167,57 @@ Nxna::Input::Key ConvertSDLKey(SDL_Keycode key)
 	}
 }
 
+struct CommandLineOptions
+{
+	uint32 ScreenWidth;
+	uint32 ScreenHeight;
+	uint32 MultisampleLevel;
+};
+
+void ParseCommandLineOptions(int argc, char* argv[], CommandLineOptions* result)
+{
+	// first set the defaults
+	result->ScreenWidth = 640;
+	result->ScreenHeight = 480;
+	result->MultisampleLevel = 16;
+
+	for (int i = 1; i < argc; i++)
+	{
+		if (strcmp(argv[i], "-w") == 0)
+		{
+			i++;
+
+			if (i < argc)
+			{
+				result->ScreenWidth = (uint32)strtol(argv[i], nullptr, 10);
+			}
+		}
+		else if (strcmp(argv[i], "-h") == 0)
+		{
+			i++;
+
+			if (i < argc)
+			{
+				result->ScreenHeight = (uint32)strtol(argv[i], nullptr, 10);
+			}
+		}
+		else if (strcmp(argv[i], "-m") == 0)
+		{
+			i++;
+
+			if (i < argc)
+			{
+				result->MultisampleLevel = (uint32)strtol(argv[i], nullptr, 10);
+			}
+		}
+	}
+}
+
 int main(int argc, char* argv[])
 {
+	CommandLineOptions options;
+	ParseCommandLineOptions(argc, argv, &options);
+
 	MemoryManager mem;
 	g_memory = &mem;
 
@@ -162,6 +238,9 @@ int main(int argc, char* argv[])
 	PlatformInfo platform;
 	platform.GetClipboardText = LocalGetClipboardText;
 	platform.FreeClipboardText = LocalFreeClipboardText;
+	platform.CreateCursor = LocalCreateCursor;
+	platform.FreeCursor = LocalFreeCursor;
+	platform.SetCursor = LocalSetCursor;
 	g_platform = &platform;
 	gd.Platform = g_platform;
 
@@ -195,11 +274,14 @@ int main(int argc, char* argv[])
 	const char* title = "The Game (monolithic)";
 #endif
 
-	int screenWidth = 640;
-	int screenHeight = 480;
+	int screenWidth = options.ScreenWidth;
+	int screenHeight = options.ScreenHeight;
 
-	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
+	if (options.MultisampleLevel > 0)
+	{
+		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
+	}
 
 	WriteLog(gd.Log, LogSeverityType::Normal, LogChannelType::Unknown, "Creating window...");
 	auto window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
