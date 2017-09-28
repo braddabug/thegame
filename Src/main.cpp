@@ -36,7 +36,7 @@ void LocalFreeClipboardText(const char* text)
 	SDL_free((char*)text);
 }
 
-bool LocalCreateCursor(uint8 width, uint8 height, uint32 hotX, uint32 hotY, byte* pixels, Cursor* cursor)
+bool LocalCreateCursor(uint8 width, uint8 height, uint32 hotX, uint32 hotY, uint8* pixels, CursorInfo* cursor)
 {
 	if (cursor == nullptr)
 		return false;
@@ -52,13 +52,13 @@ bool LocalCreateCursor(uint8 width, uint8 height, uint32 hotX, uint32 hotY, byte
 	return true;
 }
 
-void LocalFreeCursor(Cursor* cursor)
+void LocalFreeCursor(CursorInfo* cursor)
 {
 	SDL_FreeCursor((SDL_Cursor*)cursor->pCursor);
 	SDL_FreeSurface((SDL_Surface*)cursor->pSurface);
 }
 
-void LocalSetCursor(Cursor* cursor)
+void LocalSetCursor(CursorInfo* cursor)
 {
 	SDL_SetCursor((SDL_Cursor*)cursor->pCursor);
 }
