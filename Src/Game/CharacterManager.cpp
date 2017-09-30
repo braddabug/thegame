@@ -1,6 +1,7 @@
 #include "CharacterManager.h"
 #include "../MemoryManager.h"
 #include "../Graphics/Model.h"
+#include "ScriptManager.h"
 #include <cstring>
 
 namespace Game
@@ -10,7 +11,8 @@ namespace Game
 		enum class State
 		{
 			Idle,
-			WalkTo
+			WalkTo,
+			Halt
 		};
 
 		State CurrentState;
@@ -21,6 +23,10 @@ namespace Game
 			{
 				float X, Z;
 			} WalkTo;
+			struct
+			{
+				float GoalRotation;
+			} Idle;
 		};
 	};
 
@@ -31,6 +37,7 @@ namespace Game
 		uint32 NumCharacters;
 		SceneModelInfo Models[MaxCharacters];
 		Nxna::Vector3 Positions[MaxCharacters];
+		Nxna::Vector3 Velocities[MaxCharacters];
 		float Rotations[MaxCharacters];
 		float Scales[MaxCharacters];
 		CharacterBrain Brains[MaxCharacters];
@@ -117,20 +124,31 @@ namespace Game
 				auto r = SceneManager::QueryRayIntersection(mp0, toPoint, SceneIntersectionTestTarget::Character);
 				if (r.ResultType == SceneIntersectionTestTarget::Character)
 				{
-					LOG("Clicked character");
+					Game::VerbInfo verbs[10];
+					auto numVerbs = ScriptManager::GetActiveVerbs(r.NounHash, verbs, 10);
+
+					LOG("Clicked character, got %u verbs", numVerbs);
+					
+					if (numVerbs == 1)
+					{
+						// automatically do the 1 verb
+						ScriptManager::DoVerb(r.NounHash, verbs[0].VerbHash);
+					}
 				}
 			}
 		}
 
 		for (uint32 i = 0; i < m_data->NumCharacters; i++)
 		{
+			const float rvelocity = 15.0f;
+			
 			if (m_data->Brains[i].CurrentState == CharacterBrain::State::WalkTo)
 			{
 				auto to = Nxna::Vector3(m_data->Brains[i].WalkTo.X - m_data->Positions[i].X, 0, m_data->Brains[i].WalkTo.Z - m_data->Positions[i].Z);
 		
-				float velocity = 20.0f;
-				const float rvelocity = 15.0f;
+				const float maxVelocity = 20.0f;
 				const float slowingRadius = 3.0f;
+				float velocity = maxVelocity;
 
 				float distance = to.Length();
 
@@ -139,7 +157,7 @@ namespace Game
 					float scale = (distance) / (slowingRadius);
 					float damping = 1.0f - scale;
 
-					velocity *= 1.0f - (damping * damping * damping);
+					velocity *= (1.0f - (damping * damping * damping));
 				}
 				
 				float toTravel = velocity * elapsed;
@@ -148,14 +166,17 @@ namespace Game
 				{
 					m_data->Positions[i].X = m_data->Brains[i].WalkTo.X;
 					m_data->Positions[i].Z = m_data->Brains[i].WalkTo.Z;
+					m_data->Velocities[i] = Nxna::Vector3::Zero;
 					m_data->Brains[i].CurrentState = CharacterBrain::State::Idle;
+					m_data->Brains[i].Idle.GoalRotation = m_data->Rotations[i];
 				}
 				else
 				{
-					toTravel /= distance;
+					velocity /= distance;
 
-					m_data->Positions[i].X += to.X * toTravel;
-					m_data->Positions[i].Z += to.Z * toTravel;
+					m_data->Velocities[i] = to * velocity;
+					m_data->Positions[i].X += m_data->Velocities[i].X * elapsed;
+					m_data->Positions[i].Z += m_data->Velocities[i].Z * elapsed;
 
 
 					float goalRotation = 1.57079632679f + atan2(-to.Z, to.X);
@@ -165,6 +186,29 @@ namespace Game
 				}
 
 				transformDirty = true;
+			}
+			else if (m_data->Brains[i].CurrentState == CharacterBrain::State::Halt)
+			{
+				m_data->Velocities[i] += -m_data->Velocities[i] * 20 * elapsed;
+				m_data->Positions[i].X += m_data->Velocities[i].X * elapsed;
+				m_data->Positions[i].Z += m_data->Velocities[i].Z * elapsed;
+				transformDirty = true;
+
+				if (m_data->Velocities[i].LengthSquared() < 0.1f)
+				{
+					m_data->Velocities[i] = Nxna::Vector3::Zero;
+					m_data->Brains[i].CurrentState = CharacterBrain::State::Idle;
+				}
+			}
+			else if (m_data->Brains[i].CurrentState == CharacterBrain::State::Idle)
+			{
+				float angleDiff = -Utils::AngleDiff(m_data->Rotations[0], m_data->Brains[i].Idle.GoalRotation);
+				float rotate = angleDiff * elapsed;
+				if (rotate > 0.01f || rotate <= 0.01f)
+				{
+					m_data->Rotations[i] += angleDiff * rvelocity * elapsed;
+					transformDirty = true;
+				}
 			}
 		}
 
@@ -183,6 +227,25 @@ namespace Game
 			*m_data->Models[0].Transform = scalem * rotationm * translation;
 
 			Graphics::Model::UpdateAABB(m_data->Models[0].Model->BoundingBox, m_data->Models[0].Transform, m_data->Models[0].AABB);
+		}
+	}
+
+	void CharacterManager::Idle(uint32 character)
+	{
+		if (character < CharacterManagerData::MaxCharacters)
+		{
+			Idle(character, m_data->Rotations[character]);
+		}
+	}
+
+	void CharacterManager::Idle(uint32 character, float faceDirection)
+	{
+		if (character < CharacterManagerData::MaxCharacters)
+		{
+			if (m_data->Brains[character].CurrentState == CharacterBrain::State::WalkTo)
+				m_data->Brains[character].CurrentState = CharacterBrain::State::Halt;
+
+			m_data->Brains[character].Idle.GoalRotation = faceDirection;
 		}
 	}
 }

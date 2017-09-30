@@ -177,8 +177,7 @@ namespace Game
 				}
 			}
 
-			m_data->ModelNounHash[i] = desc->Models[i].NounHash;
-
+			m_data->ModelNounHash[m_data->NumModels] = desc->Characters[i].NounHash;
 			m_data->Models[m_data->NumModels] = model;
 
 			m_data->ModelTransforms[i] = Nxna::Matrix::Identity;

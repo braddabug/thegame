@@ -18,17 +18,19 @@ namespace Utils
 
 	int CompareI(const char* strA, uint32 strALength, const char* strB);
 
-	float AngleDiff(float angle1, float angle2)
+	float AngleDiff(float angle1, float angle2);
+
+	constexpr uint32 CalcHash(const char *str)
 	{
-		// based on https://stackoverflow.com/questions/1878907/the-smallest-difference-between-2-angles
-		float a = angle1 - angle2;
-		float a1 = (a + 3.14159265359f);
-		const float twopi = 3.14159265359f * 2.0f;
+		// this is djb2: http://www.cse.yorku.ca/~oz/hash.html
+		uint32 hash = 5381;
+		int c = 0;
 
-		return (a1 - floor(a1 / twopi) * twopi) - 3.14159265359f;
+		while (c = *str++)
+			hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+		return hash;
 	}
-
-	constexpr uint32 CalcHash(const char *str);
 
 	template<typename T, size_t size>
 	class HashTable

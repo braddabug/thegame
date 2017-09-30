@@ -35,6 +35,7 @@ namespace Game
 {
 	struct SceneManagerData;
 	struct CharacterManagerData;
+	struct ScriptManagerData;
 }
 
 namespace Nxna
@@ -100,6 +101,7 @@ struct GlobalData
 	Graphics::DrawUtilsData* DrawUtilsData;
 	Game::SceneManagerData* SceneData;
 	Game::CharacterManagerData* CharacterData;
+	Game::ScriptManagerData* ScriptData;
 	Utils::StopwatchData* StopwatchData;
 };
 

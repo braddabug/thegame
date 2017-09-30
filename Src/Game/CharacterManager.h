@@ -3,6 +3,7 @@
 
 #include "../Common.h"
 #include "../MyNxna2.h"
+#include "SceneManager.h"
 
 namespace Game
 {
@@ -22,6 +23,9 @@ namespace Game
 
 		static void Process(Nxna::Matrix* modelview, float elapsed);
 
+		static uint32 GetEgo() { return 0; }
+		static void Idle(uint32 character);
+		static void Idle(uint32 character, float faceDirection);
 	private:
 		static void updateTransform();
 	};

@@ -29,6 +29,7 @@
 #include "Audio/AudioEngine.cpp"
 #include "Game/SceneManager.cpp"
 #include "Game/CharacterManager.cpp"
+#include "Game/ScriptManager.cpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "Graphics/tiny_obj_loader.h"

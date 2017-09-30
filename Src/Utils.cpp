@@ -26,16 +26,14 @@ namespace Utils
 #endif
 	}
 
-	constexpr uint32 CalcHash(const char* str)
+	float AngleDiff(float angle1, float angle2)
 	{
-		// this is djb2: http://www.cse.yorku.ca/~oz/hash.html
-		uint32 hash = 5381;
-		int c = 0;
+		// based on https://stackoverflow.com/questions/1878907/the-smallest-difference-between-2-angles
+		float a = angle1 - angle2;
+		float a1 = (a + 3.14159265359f);
+		const float twopi = 3.14159265359f * 2.0f;
 
-		while (c = *str++)
-			hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
-		return hash;
+		return (a1 - floor(a1 / twopi) * twopi) - 3.14159265359f;
 	}
 
 	uint32 CalcHash(const uint8* bytes, size_t length)

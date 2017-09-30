@@ -14,6 +14,7 @@
 #include "Audio/AudioEngine.h"
 #include "Game/SceneManager.h"
 #include "Game/CharacterManager.h"
+#include "Game/ScriptManager.h"
 #include "MemoryManager.h"
 
 
@@ -85,6 +86,7 @@ void LibLoaded(GlobalData* data, bool initial)
 	Graphics::DrawUtils::SetGlobalData(&data->DrawUtilsData, g_device);
 	Game::SceneManager::SetGlobalData(&data->SceneData, g_device);
 	Game::CharacterManager::SetGlobalData(&data->CharacterData, g_device);
+	Game::ScriptManager::SetGlobalData(&data->ScriptData);
 }
 
 int Init(WindowInfo* window)
