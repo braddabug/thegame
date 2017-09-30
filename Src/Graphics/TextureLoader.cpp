@@ -121,7 +121,6 @@ namespace Graphics
 		Nxna::Graphics::SubresourceData srd = {};
 		srd.Data = pixels;
 		srd.DataPitch = 2 * 4;
-		Nxna::Graphics::Texture2D errorTex;
 		return m_data->Device->CreateTexture2D(&desc, &srd, result) == Nxna::NxnaResult::Success;
 	}
 }

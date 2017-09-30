@@ -349,6 +349,9 @@ namespace Content
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
+
+		// keep the compiler happy
+		return false;
 	}
 
 #if 0

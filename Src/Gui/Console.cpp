@@ -92,7 +92,7 @@ namespace Gui
 
 	void injectText(ConsoleData* data, const char* text)
 	{
-		uint32 len = (uint32)strlen(text);
+		uint32 len = (uint32)strlen(text); // get byte length, not character length
 		uint32 toCopy = ConsoleData::MaxInputBufferSize - 1 - data->InputBufferSize;
 		if (toCopy > len) toCopy = len;
 
@@ -121,8 +121,13 @@ namespace Gui
 			auto key = input->BufferedKeys[i];
 			if (key >= 32)
 			{
-				char buffer[2] = { key, 0 };
-				injectText(m_data, buffer);
+				char buffer[8]; buffer[0] = 0;
+				auto end = (char*)utf8catcodepoint(buffer, key, 8);
+				if (end != nullptr)
+				{
+					end[0] = 0;
+					injectText(m_data, buffer);
+				}
 			}
 		}
 
@@ -242,7 +247,7 @@ namespace Gui
 
 				for (uint32 i = 0; i < m_data->NumCommands; i++)
 				{
-					if (Utils::CompareI(m_data->InputBuffer, commandEnd - m_data->InputBuffer, m_data->Commands[i]) == 0)
+					if (Utils::CompareI(m_data->InputBuffer, (uint32)(commandEnd - m_data->InputBuffer), m_data->Commands[i]) == 0)
 					{
 						const char* argsStart = commandEnd;
 						while (argsStart[0] == ' ') argsStart++;

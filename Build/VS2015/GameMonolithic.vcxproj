@@ -125,6 +125,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(ProjectDir)../../Libs/SDL/Windows/include;$(ProjectDir)../../Libs/Nxna;$(ProjectDir)../../Libs/OpenAL/Windows/include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>SDL_HEADER=&lt;SDL.h&gt;;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
     </ClCompile>
     <PostBuildEvent>
       <Command>xcopy /y "$(ProjectDir)..\..\Libs\SDL\Windows\lib\x64\SDL2.dll" "$(OutDir)"</Command>

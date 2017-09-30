@@ -120,9 +120,9 @@ namespace Graphics
 	{
 		Nxna::Graphics::ShaderBytecode vertexShaderBytecode, pixelShaderBytecode;
 		vertexShaderBytecode.Bytecode = vertexBytecode;
-		vertexShaderBytecode.BytecodeLength = sizeOfVertexBytecode;
+		vertexShaderBytecode.BytecodeLength = (uint32)sizeOfVertexBytecode;
 		pixelShaderBytecode.Bytecode = pixelBytecode;
-		pixelShaderBytecode.BytecodeLength = sizeOfPixelBytecode;
+		pixelShaderBytecode.BytecodeLength = (uint32)sizeOfPixelBytecode;
 
 		Nxna::Graphics::Shader vs, ps;
 		if (m_data->Device->CreateShader(Nxna::Graphics::ShaderType::Vertex, vertexShaderBytecode.Bytecode, vertexShaderBytecode.BytecodeLength, &vs) != Nxna::NxnaResult::Success)

@@ -13,7 +13,7 @@ namespace Utils
 {
 	int CompareI(const char* strA, uint32 strALength, const char* strB)
 	{
-		int strBLength = strlen(strB);
+		int strBLength = (int)strlen(strB);
 		int lenDiff = strALength - strBLength;
 
 		if (lenDiff != 0)

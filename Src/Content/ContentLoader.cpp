@@ -50,6 +50,9 @@ namespace Content
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
+
+		// keep the compiler happy
+		return ResourceType::LAST;
 	}
 
 	LoaderType ContentLoader::GetLoaderByNameHash(uint32 hash)

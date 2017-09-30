@@ -89,8 +89,8 @@ namespace Game
 		if (NXNA_BUTTON_CLICKED_UP(g_inputState->MouseButtonData[1]) ||
 			NXNA_BUTTON_CLICKED_UP(g_inputState->MouseButtonData[3]))
 		{
-			Nxna::Vector3 mouse0(g_inputState->MouseX, g_inputState->MouseY, 0);
-			Nxna::Vector3 mouse1(g_inputState->MouseX, g_inputState->MouseY, 1.0f);
+			Nxna::Vector3 mouse0((float)g_inputState->MouseX, (float)g_inputState->MouseY, 0);
+			Nxna::Vector3 mouse1((float)g_inputState->MouseX, (float)g_inputState->MouseY, 1.0f);
 
 			auto viewport = m_device->GetViewport();
 			auto mp0 = viewport.Unproject(mouse0, *modelview, Nxna::Matrix::Identity, Nxna::Matrix::Identity);

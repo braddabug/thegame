@@ -124,7 +124,10 @@ namespace Game
 
 			m_data->Models[i] = (Graphics::Model*)Content::ContentManager::Get(m_data->ModelNameHash[i], Content::ResourceType::Model);
 			if (m_data->Models[i] == nullptr)
+			{
+				LOG_ERROR("Unable to add model with hash %u to scene", m_data->ModelNameHash[i]);
 				return false;
+			}
 
 			m_data->ModelTransforms[i] = Nxna::Matrix::Identity;
 
@@ -157,7 +160,10 @@ namespace Game
 		{
 			auto model = (Graphics::Model*)Content::ContentManager::Get(Utils::CalcHash(desc->Characters[i].ModelFile), Content::ResourceType::Model);
 			if (model == nullptr)
+			{
+				LOG_ERROR("Unable to add character model %s to scene", desc->Characters[i].ModelFile);
 				return false;
+			}
 
 			model->NumTextures = 0;
 
@@ -216,7 +222,10 @@ namespace Game
 
 		File f;
 		if (FileSystem::OpenAndMap(sceneFile, &f) == false)
+		{
+			LOG_ERROR("Unable to open scene file %s", sceneFile);
 			return false;
+		}
 
 		bool success = true;
 

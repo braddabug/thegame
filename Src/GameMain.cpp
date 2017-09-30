@@ -254,20 +254,20 @@ void Tick(float elapsed)
 		if (mrb && mlb)
 		{
 			// strafe (straif? straife? strayph? streigh?)
-			cameraPosition.Y -= g_inputState->RelMouseY;
-			cameraPosition += right * g_inputState->RelMouseX;
+			cameraPosition.Y -= (float)g_inputState->RelMouseY;
+			cameraPosition += right * (float)g_inputState->RelMouseX;
 		}
 		else if (mrb)
 		{
 			// move
-			cameraPosition -= forward * g_inputState->RelMouseY;
-			cameraYaw -= g_inputState->RelMouseX * 0.01f;
+			cameraPosition -= forward * (float)g_inputState->RelMouseY;
+			cameraYaw -= (float)g_inputState->RelMouseX * 0.01f;
 		}
 		else if (mlb)
 		{
 			// look around
-			cameraPitch -= g_inputState->RelMouseY * 0.01f;
-			cameraYaw -= g_inputState->RelMouseX * 0.01f;
+			cameraPitch -= (float)g_inputState->RelMouseY * 0.01f;
+			cameraYaw -= (float)g_inputState->RelMouseX * 0.01f;
 		}
 
 		if (shiftb)
