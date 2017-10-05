@@ -7,6 +7,8 @@
 #include "CleanWindows.h"
 #endif
 
+#define MEM_BASIC_ALLOC
+
 std::atomic<size_t> g_requestedMemoryUsed = { 0 };
 std::atomic<size_t> g_actualMemoryUsed = { 0 };
 std::atomic<uint32> g_timestamp = { 0 };
@@ -140,6 +142,9 @@ namespace MemoryManagerInternal
 
 	void* AlignedAllocTrack(size_t amount, size_t alignment, const char* filename, int line)
 	{
+#ifdef MEM_BASIC_ALLOC
+		return malloc(amount);
+#else
 		g_requestedMemoryUsed += amount;
 
 		static_assert(sizeof(AllocInfo) % 32 == 0, "Size of AllocInfo is not a multiple of 32 bytes");
@@ -182,6 +187,7 @@ namespace MemoryManagerInternal
 		info->Mini = log;
 
 		return (uint8*)memory + preSize;
+#endif
 	}
 
 	
@@ -197,6 +203,9 @@ namespace MemoryManagerInternal
 		if (original == nullptr)
 			return AllocTrack(amount, filename, line);
 
+#ifdef MEM_BASIC_ALLOC
+		return realloc(original, amount);
+#else
 		size_t amountToAllocate = sizeof(AllocInfo) + 64 + amount + 64;
 
 		AllocInfo* info = (AllocInfo*)((uint8*)original - 64 - sizeof(AllocInfo));
@@ -242,6 +251,7 @@ namespace MemoryManagerInternal
 		
 
 		return (uint8*)memory + sizeof(AllocInfo) + 64;
+#endif
 	}
 
 	void Free(void* memory)
@@ -251,6 +261,9 @@ namespace MemoryManagerInternal
 
 	void FreeTrack(void* memory, const char* filename, int line)
 	{
+#ifdef MEM_BASIC_ALLOC
+		free(memory);
+#else
 		AllocInfo* info = (AllocInfo*)((uint8*)memory - 64 - sizeof(AllocInfo));
 
 		// check the sentinels
@@ -269,6 +282,7 @@ namespace MemoryManagerInternal
 		info->Mini->Info = nullptr;
 
 		free((uint8*)memory - 64 - sizeof(AllocInfo));
+#endif
 	}
 
 	void* AllocAndKeep(size_t amount, const char* filename, int line)

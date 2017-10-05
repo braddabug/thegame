@@ -33,6 +33,47 @@ namespace Content
 		g_memory->FreeTrack(m_data, __FILE__, __LINE__);
 	}
 
+	ResourceType ContentLoader::GetResourceTypeByFilename(const char* filename, const char* filenameEnd)
+	{
+		if (filename == nullptr) return ResourceType::LAST;
+		if (filenameEnd == nullptr) filenameEnd = filename + strlen(filename);
+
+		const char* ext = filenameEnd - 1;
+		while (ext != filename && *ext != '.')
+			ext--;
+
+		return GetResourceTypeByFileExtension(ext, filenameEnd);
+	}
+
+	ResourceType ContentLoader::GetResourceTypeByFileExtension(const char* ext, const char* extEnd)
+	{
+		if (ext == nullptr || ext[0] == 0)
+			return ResourceType::LAST;
+
+		int extLen;
+		if (extEnd == nullptr)
+			extLen = strlen(ext);
+		else
+			extLen = (int)(extEnd - ext);
+
+		const uint32 maxExtLength = 6;
+		char extBuffer[maxExtLength + 1];
+		strncpy_s(extBuffer, ext, maxExtLength < extLen ? maxExtLength : extLen);
+
+		if (strcmp(extBuffer, ".ttf") == 0)
+			return ResourceType::Font;
+		if (strcmp(extBuffer, ".obj") == 0)
+			return ResourceType::Model;
+		if (strcmp(extBuffer, ".bmp") == 0 ||
+			strcmp(extBuffer, ".png") == 0 ||
+			strcmp(extBuffer, ".tga") == 0)
+			return ResourceType::Texture2D;
+		if (strcmp(extBuffer, ".wav") == 0)
+			return ResourceType::Audio;
+
+		return ResourceType::LAST;
+	}
+
 	ResourceType ContentLoader::GetLoaderResourceType(LoaderType type)
 	{
 #ifdef _MSC_VER

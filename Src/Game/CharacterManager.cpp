@@ -41,6 +41,8 @@ namespace Game
 		float Rotations[MaxCharacters];
 		float Scales[MaxCharacters];
 		CharacterBrain Brains[MaxCharacters];
+
+		int EgoIndex;
 	};
 
 	CharacterManagerData* CharacterManager::m_data;
@@ -52,6 +54,7 @@ namespace Game
 		{
 			*data = (CharacterManagerData*)g_memory->AllocTrack(sizeof(CharacterManagerData), __FILE__, __LINE__);
 			memset(*data, 0, sizeof(CharacterManagerData));
+			(*data)->EgoIndex = -1;
 		}
 
 		m_data = *data;
@@ -67,6 +70,7 @@ namespace Game
 	void CharacterManager::Reset()
 	{
 		m_data->NumCharacters = 0;
+		m_data->EgoIndex = -1;
 	}
 
 	void CharacterManager::AddCharacter(SceneModelInfo model, float position[3], float rotation, float scale, bool isEgo)
@@ -86,53 +90,59 @@ namespace Game
 		*model.Transform = scalem * translation;
 		Graphics::Model::UpdateAABB(model.Model->BoundingBox, model.Transform, model.AABB);
 
+		if (isEgo)
+			m_data->EgoIndex = m_data->NumCharacters;
+
 		m_data->NumCharacters++;
 	}
 
 	void CharacterManager::Process(Nxna::Matrix* modelview, float elapsed)
 	{
-		bool transformDirty = false;
+		bool transformDirty[CharacterManagerData::MaxCharacters] = { false };
 
-		if (NXNA_BUTTON_CLICKED_UP(g_inputState->MouseButtonData[1]) ||
-			NXNA_BUTTON_CLICKED_UP(g_inputState->MouseButtonData[3]))
+		if (m_data->EgoIndex >= 0)
 		{
-			Nxna::Vector3 mouse0((float)g_inputState->MouseX, (float)g_inputState->MouseY, 0);
-			Nxna::Vector3 mouse1((float)g_inputState->MouseX, (float)g_inputState->MouseY, 1.0f);
-
-			auto viewport = m_device->GetViewport();
-			auto mp0 = viewport.Unproject(mouse0, *modelview, Nxna::Matrix::Identity, Nxna::Matrix::Identity);
-			auto mp1 = viewport.Unproject(mouse1, *modelview, Nxna::Matrix::Identity, Nxna::Matrix::Identity);
-
-			auto toPoint = Nxna::Vector3::Normalize(mp1 - mp0);
-
-			if (NXNA_BUTTON_CLICKED_UP(g_inputState->MouseButtonData[1]))
+			if (NXNA_BUTTON_CLICKED_UP(g_inputState->MouseButtonData[1]) ||
+				NXNA_BUTTON_CLICKED_UP(g_inputState->MouseButtonData[3]))
 			{
-				float t;
-				if (intersect_ray_plane(Nxna::Vector3(0, 1.0f, 0), Nxna::Vector3::Zero, mp0, toPoint, t))
+				Nxna::Vector3 mouse0((float)g_inputState->MouseX, (float)g_inputState->MouseY, 0);
+				Nxna::Vector3 mouse1((float)g_inputState->MouseX, (float)g_inputState->MouseY, 1.0f);
+
+				auto viewport = m_device->GetViewport();
+				auto mp0 = viewport.Unproject(mouse0, *modelview, Nxna::Matrix::Identity, Nxna::Matrix::Identity);
+				auto mp1 = viewport.Unproject(mouse1, *modelview, Nxna::Matrix::Identity, Nxna::Matrix::Identity);
+
+				auto toPoint = Nxna::Vector3::Normalize(mp1 - mp0);
+
+				if (NXNA_BUTTON_CLICKED_UP(g_inputState->MouseButtonData[1]))
 				{
-					auto dest = mp0 + toPoint * t;
-
-					m_data->Brains[0].CurrentState = CharacterBrain::State::WalkTo;
-					m_data->Brains[0].WalkTo.X = dest.X;
-					m_data->Brains[0].WalkTo.Z = dest.Z;
-
-					transformDirty = true;
-				}
-			}
-			else
-			{
-				auto r = SceneManager::QueryRayIntersection(mp0, toPoint, SceneIntersectionTestTarget::Character);
-				if (r.ResultType == SceneIntersectionTestTarget::Character)
-				{
-					Game::VerbInfo verbs[10];
-					auto numVerbs = ScriptManager::GetActiveVerbs(r.NounHash, verbs, 10);
-
-					LOG("Clicked character, got %u verbs", numVerbs);
-					
-					if (numVerbs == 1)
+					float t;
+					if (intersect_ray_plane(Nxna::Vector3(0, 1.0f, 0), Nxna::Vector3::Zero, mp0, toPoint, t))
 					{
-						// automatically do the 1 verb
-						ScriptManager::DoVerb(r.NounHash, verbs[0].VerbHash);
+						auto dest = mp0 + toPoint * t;
+
+						m_data->Brains[m_data->EgoIndex].CurrentState = CharacterBrain::State::WalkTo;
+						m_data->Brains[m_data->EgoIndex].WalkTo.X = dest.X;
+						m_data->Brains[m_data->EgoIndex].WalkTo.Z = dest.Z;
+
+						transformDirty[m_data->EgoIndex] = true;
+					}
+				}
+				else
+				{
+					auto r = SceneManager::QueryRayIntersection(mp0, toPoint, SceneIntersectionTestTarget::Character);
+					if (r.ResultType == SceneIntersectionTestTarget::Character)
+					{
+						Game::VerbInfo verbs[10];
+						auto numVerbs = ScriptManager::GetActiveVerbs(r.NounHash, verbs, 10);
+
+						LOG("Clicked character, got %u verbs", numVerbs);
+
+						if (numVerbs == 1)
+						{
+							// automatically do the 1 verb
+							ScriptManager::DoVerb(r.NounHash, verbs[0].VerbHash);
+						}
 					}
 				}
 			}
@@ -185,14 +195,14 @@ namespace Game
 					m_data->Rotations[i] += angleDiff * rvelocity * elapsed;
 				}
 
-				transformDirty = true;
+				transformDirty[i] = true;
 			}
 			else if (m_data->Brains[i].CurrentState == CharacterBrain::State::Halt)
 			{
 				m_data->Velocities[i] += -m_data->Velocities[i] * 20 * elapsed;
 				m_data->Positions[i].X += m_data->Velocities[i].X * elapsed;
 				m_data->Positions[i].Z += m_data->Velocities[i].Z * elapsed;
-				transformDirty = true;
+				transformDirty[i] = true;
 
 				if (m_data->Velocities[i].LengthSquared() < 0.1f)
 				{
@@ -207,26 +217,19 @@ namespace Game
 				if (rotate > 0.01f || rotate <= 0.01f)
 				{
 					m_data->Rotations[i] += angleDiff * rvelocity * elapsed;
-					transformDirty = true;
+					transformDirty[i] = true;
 				}
 			}
-		}
 
+			if (transformDirty[i])
+			{
+				auto translation = Nxna::Matrix::CreateTranslation(m_data->Positions[i].X, m_data->Positions[i].Y, m_data->Positions[i].Z);
+				auto scalem = Nxna::Matrix::CreateScale(m_data->Scales[i]);
+				auto rotationm = Nxna::Matrix::CreateRotationY(m_data->Rotations[i]);
+				*m_data->Models[i].Transform = scalem * rotationm * translation;
 
-		if (Nxna::Input::InputState::IsKeyDown(g_inputState, Nxna::Input::Key::Up))
-		{
-			transformDirty = true;
-			m_data->Positions[0].Y += elapsed * 1.0f;
-		}
-
-		if (transformDirty)
-		{
-			auto translation = Nxna::Matrix::CreateTranslation(m_data->Positions[0].X, m_data->Positions[0].Y, m_data->Positions[0].Z);
-			auto scalem = Nxna::Matrix::CreateScale(m_data->Scales[0]);
-			auto rotationm = Nxna::Matrix::CreateRotationY(m_data->Rotations[0]);
-			*m_data->Models[0].Transform = scalem * rotationm * translation;
-
-			Graphics::Model::UpdateAABB(m_data->Models[0].Model->BoundingBox, m_data->Models[0].Transform, m_data->Models[0].AABB);
+				Graphics::Model::UpdateAABB(m_data->Models[i].Model->BoundingBox, m_data->Models[i].Transform, m_data->Models[i].AABB);
+			}
 		}
 	}
 

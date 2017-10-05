@@ -3,54 +3,54 @@
 #include "../Graphics/Model.h"
 #include "../Utils.h"
 #include "../MemoryManager.h"
+#include "../iniparse.h"
 
 namespace Content
 {
-	struct ContentInfo
-	{
-		uint32 NameHash;
-		uint32 PathHash;
-		void* Data;
-	};
-
 	enum class LoadState
 	{
+		Free,
+
+		QueuedForLoad,
+		Loaded,
+		QueuedForUnload,
 		Unloaded,
 
-		PendingWorkerThread,
-		PendingMainThread,
-		PendingUnload,
-
-		Completed,
 		Error
 	};
 
-	enum class FileState
+	struct ResourceFile
 	{
-		Dead,
+		uint32 NameHash;
+		ResourceType Type;
+		LoadState State;
+		int RefCount;
 
-		Loaded,
-		PendingUnload
+		void* Data;
+	};
+
+	struct ResourceFileGroup
+	{
+		uint32 NameHash;
+		uint32* FileIndices;
+		uint32 NumFiles;
 	};
 
 	struct ContentManagerData
 	{
-		uint32 ResourceTypeCount[(int)ResourceType::LAST];
-		void* FirstResource[(int)ResourceType::LAST];
+		ResourceFile* Files;
+		uint32 NumFiles;
 
-		static const uint32 MaxManifestFiles = 100;
+		static const uint32 MaxGroups = 100;
+		ResourceFileGroup Groups[MaxGroups];
+		uint32 NumGroups;
 
 		struct
 		{
-			uint32 Count;
-			Utils::HashTable<uint32, ContentManager::MaxLoadedFiles * 2> Files;
-			uint32 Name[ContentManager::MaxLoadedFiles];
-			LoadState State[ContentManager::MaxLoadedFiles];
-			ResourceType Type[ContentManager::MaxLoadedFiles];
-			void* Data[ContentManager::MaxLoadedFiles];
-
-			void* ResourceData[(int)ResourceType::LAST];
-		} Loaded;
+			uint32 Size;
+			ResourceFile** Files;
+			uint32* Hashes;
+		} FileHashTable;
 	};
 
 	ContentManagerData* ContentManager::m_data = nullptr;
@@ -66,128 +66,232 @@ namespace Content
 		m_data = *data;
 	}
 
-	bool ContentManager::BeginLoad(uint32* nameHashes, ResourceType* types, uint32 numFiles)
+	bool ContentManager::LoadManifest(uint32 screenHeight)
 	{
-		// mark all existing files as "to unload"
-		for (uint32 i = 0; i < ContentManager::MaxLoadedFiles; i++)
+		File f;
+		if (FileSystem::OpenAndMap("Content/manifest.txt", &f) == false)
+			return false;
+
+		ini_context ctx;
+		ini_init(&ctx, (const char*)f.Memory, (const char*)f.Memory + f.FileSize);
+
+		ini_item item;
+
+		uint32 fileListCapacity = 0;
+
+	parse:
+		if (ini_next(&ctx, &item) == ini_result_success)
 		{
-			if (m_data->Loaded.State[i] == LoadState::Completed)
+			if (item.type == ini_itemtype::section)
 			{
-				m_data->Loaded.State[i] = LoadState::PendingUnload;
-			}
-		}
-
-		// go through each new file and see if it exists in the already loaded files.
-		for (uint32 i = 0; i < numFiles; i++)
-		{
-			uint32* index;
-			if (m_data->Loaded.Files.GetPtr(nameHashes[i], &index))
-			{
-				// abort the unload and keep it
-				if (m_data->Loaded.State[*index] == LoadState::PendingUnload)
-					m_data->Loaded.State[*index] = LoadState::Completed;
-			}
-		}
-
-		// unload old unused files
-		for (uint32 i = 0; i < ContentManager::MaxLoadedFiles; i++)
-		{
-			if (m_data->Loaded.State[i] == LoadState::PendingUnload)
-			{
-				auto type = m_data->Loaded.Type[i];
-
-				auto loader = ContentLoader::FindLoader(type);
-				if (loader == nullptr)
-					return false;
-
-				if (loader->Unloader(m_data->Loaded.Data[i]) == false)
-					return false;
-
-				m_data->Loaded.Files.Remove(m_data->Loaded.Name[i]);
-				m_data->Loaded.State[i] = LoadState::Unloaded;
-			}
-		}
-		
-		uint32 totalResourceCount[(int)ResourceType::LAST] = {};
-
-		// count how many of each resource type we have
-		for (uint32 i = 0; i < numFiles; i++)
-		{
-			totalResourceCount[(int)types[i]]++;
-		}
-
-		// allocate storage
-		void* resourceData[(int)ResourceType::LAST];
-		uint32 resourceSize[(int)ResourceType::LAST];
-		uint32 resourceCount[(int)ResourceType::LAST];
-		for (uint32 i = 0; i < (uint32)ResourceType::LAST; i++)
-		{
-			uint32 alignment;
-			GetResourceInfo((ResourceType)i, &resourceSize[i], &alignment);
-			resourceData[i] = g_memory->AllocTrack(resourceSize[i] * totalResourceCount[i], __FILE__, __LINE__);
-			resourceCount[i] = 0;
-		}
-
-		// copy the old resources
-		for (uint32 i = 0; i < ContentManager::MaxLoadedFiles; i++)
-		{
-			if (m_data->Loaded.State[i] == LoadState::Completed)
-			{
-				auto type = m_data->Loaded.Type[i];
-
-				uint32 size, alignment;
-				GetResourceInfo(type, &size, &alignment);
-
-				uint32 index = m_data->Loaded.Count;
-				m_data->Loaded.Data[index] = (char*)resourceData[(int)type] + resourceCount[(int)type] * size;
-				memcpy(m_data->Loaded.Data[index], m_data->Loaded.Data[i], size);
-				resourceCount[(int)type]++;
-				m_data->Loaded.Count++;
-			}
-		}
-
-		// find places for the new files
-		for (uint32 i = 0; i < numFiles; i++)
-		{
-			uint32* index;
-			if (m_data->Loaded.Files.GetPtr(nameHashes[i], &index) == false)
-			{
-				// verify that this filename is known
-				if (FileSystem::GetFilenameByHash(nameHashes[i]) == nullptr)
+				if (ini_section_equals(&ctx, &item, "group"))
 				{
-					LOG_ERROR("Unable to find filename associated with hash %u. Cannot load file.", nameHashes[i]);
-				}
-				else
-				{
-					// this is a new file, so find a new spot for it
-					uint32 index = m_data->Loaded.Count;
-					m_data->Loaded.Name[index] = nameHashes[i];
-					m_data->Loaded.Type[index] = types[i];
-					m_data->Loaded.State[index] = LoadState::PendingWorkerThread;
-					m_data->Loaded.Files.Add(nameHashes[i], index);
+					char groupName[64];
+					int32 minResolution = 0;
+					int32 maxResolution = 10000000;
+					uint32 numFiles = 0;
 
-					auto resourceType = types[i];
-					m_data->Loaded.Data[index] = (char*)resourceData[(int)resourceType] + resourceCount[(int)resourceType] * resourceSize[(int)resourceType];
-					assert(m_data->Loaded.Data[index] < (char*)resourceData[(int)resourceType] + totalResourceCount[(int)resourceType] * resourceSize[(int)resourceType]);
-					resourceCount[(int)resourceType]++;
-					m_data->Loaded.Count++;
+					ini_context groupStart = ctx;
+
+					while (ini_next_within_section(&ctx, &item) == ini_result_success)
+					{
+						if (ini_key_equals(&ctx, &item, "name"))
+							ini_value_copy(&ctx, &item, groupName, 64);
+						else if (ini_key_equals(&ctx, &item, "minResolution"))
+						{
+							ini_value_int(&ctx, &item, &minResolution);
+							if ((int)screenHeight < minResolution)
+								goto parse;
+						}
+						else if (ini_key_equals(&ctx, &item, "maxResolution"))
+						{
+							ini_value_int(&ctx, &item, &maxResolution);
+							if ((int)screenHeight >= minResolution)
+								goto parse;
+						}
+						else if (ini_key_equals(&ctx, &item, "file"))
+							numFiles++;
+					}
+
+					m_data->Groups[m_data->NumGroups].NameHash = Utils::CalcHash(groupName);
+					m_data->Groups[m_data->NumGroups].NumFiles = 0;
+					m_data->Groups[m_data->NumGroups].FileIndices = (uint32*)g_memory->AllocTrack(sizeof(uint32) * numFiles, __FILE__, __LINE__);
+
+					// go back and load all the files
+					while (ini_next_within_section(&groupStart, &item) == ini_result_success)
+					{
+						if (ini_key_equals(&groupStart, &item, "file"))
+						{
+							uint32 fileHash = Utils::CalcHash((const uint8*)groupStart.source + item.keyvalue.value_start, item.keyvalue.value_end - item.keyvalue.value_start);
+							auto type = ContentLoader::GetResourceTypeByFilename((const char*)groupStart.source + item.keyvalue.value_start, (const char*)groupStart.source + item.keyvalue.value_end);
+
+							// see if this file already exists in the file list
+							bool found = false;
+							for (uint32 i = 0; i < m_data->NumFiles; i++)
+							{
+								if (m_data->Files[i].NameHash == fileHash &&
+									m_data->Files[i].Type == type)
+								{
+									found = true;
+									m_data->Groups[m_data->NumGroups].FileIndices[m_data->Groups[m_data->NumGroups].NumFiles] = i;
+									m_data->Groups[m_data->NumGroups].NumFiles++;
+									break;
+								}
+							}
+
+							if (found == false)
+							{
+								if (m_data->NumFiles >= fileListCapacity)
+								{
+									// expand the file list
+									auto newCapacity = fileListCapacity + numFiles;
+									m_data->Files = (ResourceFile*)g_memory->ReallocTrack(m_data->Files, sizeof(ResourceFile) * newCapacity, __FILE__, __LINE__);
+									memset(m_data->Files + fileListCapacity, 0, sizeof(ResourceFile) * numFiles);
+									fileListCapacity = newCapacity;
+								}
+
+								m_data->Files[m_data->NumFiles].NameHash = fileHash;
+								m_data->Files[m_data->NumFiles].Type = type;
+								
+								m_data->Groups[m_data->NumGroups].FileIndices[m_data->Groups[m_data->NumGroups].NumFiles] = m_data->NumFiles;
+								m_data->Groups[m_data->NumGroups].NumFiles++;
+								
+								m_data->NumFiles++;
+							}
+						}
+					}
+
+					m_data->NumGroups++;
 				}
 			}
+
+			goto parse;
 		}
 
-		// delete the old memory
-		for (uint32 i = 0; i < (int)ResourceType::LAST; i++)
+		// build a hash table of all the files
 		{
-			if (m_data->Loaded.ResourceData[i] != nullptr)
-				g_memory->FreeTrack(m_data->Loaded.ResourceData[i], __FILE__, __LINE__);
+			m_data->FileHashTable.Size = m_data->NumFiles * 3 / 2;
+			m_data->FileHashTable.Hashes = (uint32*)g_memory->AllocTrack(m_data->FileHashTable.Size * sizeof(uint32), __FILE__, __LINE__);
+			m_data->FileHashTable.Files = (ResourceFile**)g_memory->AllocTrack(m_data->FileHashTable.Size * sizeof(ResourceFile*), __FILE__, __LINE__);
+			memset(m_data->FileHashTable.Files, 0, sizeof(ResourceFile*) * m_data->FileHashTable.Size);
 
-			m_data->Loaded.ResourceData[i] = resourceData[i];
+			for (uint32 i = 0; i < m_data->NumFiles; i++)
+			{
+				uint32 index = m_data->Files[i].NameHash % m_data->FileHashTable.Size;
+
+				for (uint32 j = 0; j < m_data->FileHashTable.Size; j++)
+				{
+					uint32 finalIndex = (index + j) % m_data->FileHashTable.Size;
+					if (m_data->FileHashTable.Files[finalIndex] == nullptr)
+					{
+						m_data->FileHashTable.Files[finalIndex] = &m_data->Files[i];
+						break;
+					}
+				}
+			}
 		}
-		
+
+		FileSystem::Close(&f);
+
 		return true;
 	}
 
-	LoadResult ContentManager::PendingLoads(bool progress, float* percentProgress)
+	// TODO: figure out the best way to handle errored files
+
+	bool ContentManager::QueueGroupLoad(uint32 nameHash, bool forceReload)
+	{
+		// find the group
+		for (uint32 i = 0; i < m_data->NumGroups; i++)
+		{
+			if (m_data->Groups[i].NameHash == nameHash)
+			{
+				// mark every file in the group as pending load if not already loaded
+				for (uint32 j = 0; j < m_data->Groups[i].NumFiles; j++)
+				{
+					uint32 fileIndex = m_data->Groups[i].FileIndices[j];
+					assert(fileIndex < m_data->NumFiles);
+
+					if (m_data->Files[fileIndex].State == LoadState::Unloaded ||
+						m_data->Files[fileIndex].State == LoadState::QueuedForUnload)
+						m_data->Files[fileIndex].State = LoadState::Loaded;
+					else if (m_data->Files[fileIndex].State == LoadState::Free)
+						m_data->Files[fileIndex].State = LoadState::QueuedForLoad;
+				}
+
+				return true;
+			}
+		}
+
+		WriteLog(LogSeverityType::Warning, LogChannelType::Content, "No content group with the hash %u was found", nameHash);
+
+		return false;
+	}
+
+	bool ContentManager::QueueGroupUnload(uint32 nameHash)
+	{
+		// find the group
+		for (uint32 i = 0; i < m_data->NumGroups; i++)
+		{
+			if (m_data->Groups[i].NameHash == nameHash)
+			{
+				// mark every file in the group as pending load if not already loaded
+				for (uint32 j = 0; j < m_data->Groups[i].NumFiles; j++)
+				{
+					uint32 fileIndex = m_data->Groups[i].FileIndices[j];
+					assert(fileIndex < m_data->NumFiles);
+
+					if (m_data->Files[fileIndex].State == LoadState::Loaded)
+						m_data->Files[fileIndex].State = LoadState::QueuedForUnload;
+				}
+
+				return true;
+			}
+		}
+
+		WriteLog(LogSeverityType::Warning, LogChannelType::Content, "No content group with the hash %u was found", nameHash);
+
+		return false;
+	}
+
+	bool ContentManager::BeginLoad()
+	{
+		// unload files that aren't needed anymore
+		for (uint32 i = 0; i < m_data->NumFiles; i++)
+		{
+			if (m_data->Files[i].State == LoadState::QueuedForUnload ||
+				m_data->Files[i].State == LoadState::Unloaded)
+			{
+				if (m_data->Files[i].RefCount > 0)
+				{
+					m_data->Files[i].State = LoadState::Unloaded;
+					WriteLog(LogSeverityType::Warning, LogChannelType::Content, "File %u is queued for unload, but something is still referencing it", m_data->Files[i].NameHash);
+				}
+				else
+				{
+					m_data->Files[i].State = LoadState::Free;
+
+					auto loader = ContentLoader::FindLoader(m_data->Files[i].Type);
+					if (loader == nullptr)
+						return false;
+
+					if (loader->Unloader(m_data->Files[i].Data) == false)
+						return false;
+
+					g_memory->FreeTrack(m_data->Files[i].Data, __FILE__, __LINE__);
+				}
+			}
+			else if (m_data->Files[i].State == LoadState::QueuedForLoad)
+			{
+				uint32 alignment, size;
+				GetResourceInfo(m_data->Files[i].Type, &size, &alignment);
+				m_data->Files[i].Data = g_memory->AllocTrack(size, __FILE__, __LINE__);
+			}
+		}
+
+		return true;
+	}
+
+	bool ContentManager::PendingLoads(uint32* pending, uint32* success, uint32* error)
 	{
 		// TODO: atm this is completely single-threaded. It could be made asynchronous... someday.
 
@@ -198,111 +302,112 @@ namespace Content
 		Utils::Stopwatch sw;
 		sw.Start();
 
-		for (uint32 i = 0; i < ContentManager::MaxLoadedFiles; i++)
+		bool load = true;
+
+		for (uint32 i = 0; i < m_data->NumFiles; i++)
 		{
-			if (m_data->Loaded.State[i] == LoadState::PendingWorkerThread ||
-				m_data->Loaded.State[i] == LoadState::PendingMainThread)
+			if (load && m_data->Files[i].State == LoadState::QueuedForLoad)
 			{
-				if (progress)
+				auto loader = ContentLoader::FindLoader(m_data->Files[i].Type);
+
+				ContentLoaderParams p = {};
+				p.Destination = m_data->Files[i].Data;
+				p.FilenameHash = m_data->Files[i].NameHash;
+				p.LoaderParam = loader->LoaderParam;
+
+				if (loader->AsyncLoader(&p) && (loader->MainThreadLoader == nullptr || loader->MainThreadLoader(&p)))
 				{
-					m_data->Loaded.State[i] = LoadState::Error;
-					auto loader = ContentLoader::FindLoader(m_data->Loaded.Type[i]);
-					
-					if (loader != nullptr)
-					{
-						ContentLoaderParams p = {};
-						p.Destination = m_data->Loaded.Data[i];
-						p.FilenameHash = m_data->Loaded.Name[i];
-						p.LoaderParam = loader->LoaderParam;
-
-						if (loader->AsyncLoader(&p) && (loader->MainThreadLoader == nullptr || loader->MainThreadLoader(&p)))
-						{
-							m_data->Loaded.State[i] = LoadState::Completed;
-						}
-						else
-						{
-							auto filename = FileSystem::GetFilenameByHash(p.FilenameHash);
-							if (filename != nullptr)
-								LOG_ERROR("Error while loading %s", filename);
-							else
-								LOG_ERROR("Error while loading file with hash %u", p.FilenameHash);
-						}
-					}
-
-					// have we done enough work for now?
-					if (sw.GetElapsedMilliseconds32() > 33)
-						progress = false;
+					m_data->Files[i].State = LoadState::Loaded;
 				}
+				else
+				{
+					m_data->Files[i].State = LoadState::Error;
+
+					auto filename = FileSystem::GetFilenameByHash(p.FilenameHash);
+					if (filename != nullptr)
+						LOG_ERROR("Error while loading %s", filename);
+					else
+						LOG_ERROR("Error while loading file with hash %u", p.FilenameHash);
+				}
+
+				// have we done enough work for now?
+				if (sw.GetElapsedMilliseconds32() > 33)
+					load = false;
 			}
 
-			if (m_data->Loaded.State[i] == LoadState::PendingMainThread ||
-				m_data->Loaded.State[i] == LoadState::PendingWorkerThread)
-				pendingCount++;
-			else if (m_data->Loaded.State[i] == LoadState::Error)
-				errorCount++;
-			else if (m_data->Loaded.State[i] != LoadState::Unloaded)
+			if (m_data->Files[i].State == LoadState::Loaded)
 				completedCount++;
+			else if (m_data->Files[i].State == LoadState::QueuedForLoad)
+				pendingCount++;
+			else if (m_data->Files[i].State == LoadState::Error)
+				errorCount++;
 		}
 
-		if (percentProgress != nullptr)
-		{
-			int total = pendingCount + completedCount + errorCount;
-			*percentProgress = (completedCount + errorCount) / (float)total;
-		}
+		if (pending) *pending = pendingCount;
+		if (success) *success = completedCount;
+		if (error) *error = errorCount;
 
-		if (pendingCount == 0)
-		{
-			if (errorCount > 0)
-				return LoadResult::Error;
-			else
-				return LoadResult::Completed;
-		}
-
-		return LoadResult::Pending;
+		return pendingCount > 0;
 	}
 
 	void* ContentManager::Get(uint32 hash, ResourceType type)
 	{
-		uint32* index;
-		if (m_data->Loaded.Files.GetPtr(hash, &index) == false)
-			return nullptr;
+		uint32 index = hash % m_data->FileHashTable.Size;
 
-		if (m_data->Loaded.Type[*index] != type)
-			return nullptr;
+		for (uint32 i = 0; i < m_data->FileHashTable.Size; i++)
+		{
+			uint32 finalIndex = (index + i) % m_data->FileHashTable.Size;
+			if (m_data->FileHashTable.Files[finalIndex] != nullptr)
+			{
+				if (m_data->FileHashTable.Files[finalIndex]->NameHash == hash &&
+					m_data->FileHashTable.Files[finalIndex]->Type == type)
+				{
+					m_data->FileHashTable.Files[finalIndex]->RefCount++;
+					return m_data->FileHashTable.Files[finalIndex]->Data;
+				}
+			}
+			else
+			{
+				return nullptr;
+			}
+		}
 
-		if (m_data->Loaded.State[*index] != LoadState::Completed)
-			return nullptr;
-
-		assert(m_data->Loaded.Name[*index] == hash);
-
-		return m_data->Loaded.Data[*index];
+		return nullptr;
 	}
 
-	void* ContentManager::GetPending(uint32 hash, ResourceType type, LoadResult* status)
+	void ContentManager::Release(void* content)
 	{
-		uint32* index;
-		if (m_data->Loaded.Files.GetPtr(hash, &index) == false)
+		// NOTE: this is suseptible to the ABA problem. If we really want to be safe we should probably have some kind of ContentHandle.
+
+		// TODO: we could build a hash table to make lookups faster
+
+		for (uint32 i = 0; i < m_data->NumFiles; i++)
 		{
-			if (status) *status = LoadResult::Error;
-			return nullptr;
+			if (m_data->Files[i].Data == content)
+			{
+				if (m_data->Files[i].State == LoadState::Loaded ||
+					m_data->Files[i].State == LoadState::Unloaded)
+				{
+					if (m_data->Files[i].RefCount > 0)
+					{
+						m_data->Files[i].RefCount--;
+						return;
+					}
+					else
+					{
+						WriteLog(LogSeverityType::Warning, LogChannelType::Content, "Trying to release content, but no refs were detected");
+						return;
+					}
+				}
+				else
+				{
+					WriteLog(LogSeverityType::Warning, LogChannelType::Content, "Trying to release content, but content isn't loaded");
+					return;
+				}
+			}
 		}
 
-		if (m_data->Loaded.Type[*index] != type)
-		{
-			if (status) *status = LoadResult::Error;
-			return nullptr;
-		}
-
-		if (status)
-		{
-			if (m_data->Loaded.State[*index] == LoadState::Completed)
-				*status = LoadResult::Completed;
-			else if (m_data->Loaded.State[*index] == LoadState::Error)
-				*status = LoadResult::Error;
-			else
-				*status = LoadResult::Pending;
-		}
-		return m_data->Loaded.Data[*index];
+		WriteLog(LogSeverityType::Warning, LogChannelType::Content, "Trying to release content, but content wasn't found");
 	}
 
 	bool ContentManager::GetResourceInfo(ResourceType type, uint32* size, uint32* alignment)
@@ -317,6 +422,12 @@ namespace Content
 #endif
 			switch (type)
 			{
+			case ResourceType::Font:
+			{
+				*size = sizeof(Gui::Font);
+				*alignment = alignof(Gui::Font);
+				return true;
+			}
 			case ResourceType::Model:
 			{
 				*size = sizeof(Graphics::Model);
@@ -353,56 +464,4 @@ namespace Content
 		// keep the compiler happy
 		return false;
 	}
-
-#if 0
-	void* ContentManager::get(uint32 index, uint32 magic, LoadResult* status)
-	{
-		if (index >= ContentManagerData::MaxFiles || m_data->Alive[index] == false || m_data->Check[index] != magic || m_data->State[index] == LoadState::Error)
-		{
-			if (status) *status = LoadResult::Error;
-			return nullptr;
-		}
-
-		if (status)
-		{
-			if (m_data->State[index] == LoadState::Completed)
-				*status = LoadResult::Completed;
-			else
-				*status = LoadResult::Pending;
-		}
-
-		return m_data->Data[index];
-	}
-#endif
-
-	/*
-	Content* ContentManager::Load(const char* filename, ContentType type)
-	{
-		Content* result = Get(filename, type);
-		if (result != nullptr)
-			return result;
-
-		result = new Content();
-		result->State = ContentState::Incomplete;
-#ifdef _WIN32
-		strncpy_s(result->Filename, filename, 256);
-#else
-		strncpy(result->Filename, filename, 256);
-#endif
-		result->Type = type;
-
-		// add to the list of content
-		m_content.push_back(result);
-
-		auto loader = findLoader(type);
-		if (loader == nullptr)
-		{
-			result->State = ContentState::NoLoader;
-			return result;
-		}
-
-		loader->Loader(result, loader->LoaderParam);
-
-		return result;
-	}*/
 }

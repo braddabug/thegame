@@ -53,66 +53,7 @@ namespace Game
 		assert(desc->NumModels <= SceneDesc::MaxModels);
 		assert(desc->NumLights <= SceneDesc::MaxLights);
 
-		// create a list of files to load
-		{
-			uint32 files[Content::ContentManager::MaxLoadedFiles];
-			Content::ResourceType types[Content::ContentManager::MaxLoadedFiles];
-			uint32 numFiles = 0;
-
-			auto addFile = [&files, &types, &numFiles](Content::ResourceType type, uint32 hash) -> bool
-			{
-				// has this already been added?
-				for (uint32 i = 0; i < numFiles; i++)
-				{
-					if (files[i] == hash)
-						return false;
-				}
-
-				files[numFiles] = hash;
-				types[numFiles++] = type;
-
-				return true;
-			};
-
-			for(uint32 i = 0; i < desc->NumCharacters; i++)
-			{
-				addFile(Content::ResourceType::Model, Utils::CalcHash(desc->Characters[i].ModelFile));
-
-				if (desc->Characters[i].Diffuse[0][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Characters[i].Diffuse[0]));
-				if (desc->Characters[i].Diffuse[1][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Characters[i].Diffuse[1]));
-				if (desc->Characters[i].Diffuse[2][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Characters[i].Diffuse[2]));
-				if (desc->Characters[i].Diffuse[3][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Characters[i].Diffuse[3]));
-			}
-
-			for (uint32 i = 0; i < desc->NumModels; i++)
-			{
-				addFile(Content::ResourceType::Model, Utils::CalcHash(desc->Models[i].File));
-
-				if (desc->Models[i].Diffuse[0][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Diffuse[0]));
-				if (desc->Models[i].Diffuse[1][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Diffuse[1]));
-				if (desc->Models[i].Diffuse[2][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Diffuse[2]));
-				if (desc->Models[i].Diffuse[3][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Diffuse[3]));
-													  
-				if (desc->Models[i].Lightmap[0][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Lightmap[0]));
-				if (desc->Models[i].Lightmap[1][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Lightmap[1]));
-				if (desc->Models[i].Lightmap[2][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Lightmap[2]));
-				if (desc->Models[i].Lightmap[3][0] != 0) addFile(Content::ResourceType::Texture2D, Utils::CalcHash(desc->Models[i].Lightmap[3]));
-			}
-
-			if (desc->WalkMap[0] != 0)
-				addFile(Content::ResourceType::Bitmap, Utils::CalcHash(desc->WalkMap));
-
-			Content::ContentManager::BeginLoad(files, types, numFiles);
-		}
-
-		Content::LoadResult result;
-		while ((result = Content::ContentManager::PendingLoads(true, nullptr)) == Content::LoadResult::Pending)
-		{ }
-		//if (result == Content::LoadResult::Error)
-		//	return false;
-
-
-		m_data->NumModels = desc->NumModels;
+		m_data->NumModels = 0;
 		for (uint32 i = 0; i < desc->NumModels; i++)
 		{
 			if (desc->Models[i].Name == nullptr)
@@ -147,6 +88,8 @@ namespace Game
 					m_data->Models[i]->NumTextures++;
 				}
 			}
+
+			m_data->NumModels++;
 		}
 
 		m_data->NumLights = desc->NumLights;

@@ -98,6 +98,12 @@ int Init(WindowInfo* window)
 	};
 	FileSystem::SetSearchPaths(searchPaths, 1);
 
+	if (Content::ContentManager::LoadManifest(window->ScreenHeight) == false)
+	{
+		WriteLog(LogSeverityType::Error, LogChannelType::Unknown, "Unable to load manifest file");
+		return -1;
+	}
+
 	Nxna::Graphics::GraphicsDeviceDesc gdesc = {};
 	gdesc.Type = Nxna::Graphics::GraphicsDeviceType::OpenGl41;
 	gdesc.ScreenWidth = window->ScreenWidth;
@@ -152,6 +158,10 @@ int Init(WindowInfo* window)
 	scene.Lights = lights;
 
 	Game::SceneManager::CreateScene(&scene);*/
+
+	Content::ContentManager::QueueGroupLoad(Utils::CalcHash("scene"), false);
+	Content::ContentManager::BeginLoad();
+	while (Content::ContentManager::PendingLoads(nullptr, nullptr, nullptr)) {}
 
 	Game::SceneManager::CreateScene("Content/Scenes/scene.txt");
 

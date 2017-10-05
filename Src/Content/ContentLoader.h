@@ -36,6 +36,7 @@ namespace Content
 
 	enum class ResourceType
 	{
+		Font,
 		Model,
 		Texture2D,
 		Bitmap,
@@ -85,6 +86,9 @@ namespace Content
 		{
 			return findLoader(type);
 		}
+
+		static ResourceType GetResourceTypeByFilename(const char* filename, const char* filenameEnd = nullptr);
+		static ResourceType GetResourceTypeByFileExtension(const char* ext, const char* extEnd = nullptr);
 
 		static ResourceType GetLoaderResourceType(LoaderType type);
 		static LoaderType GetLoaderByNameHash(uint32 hash);

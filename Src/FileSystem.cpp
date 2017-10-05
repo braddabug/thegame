@@ -153,6 +153,9 @@ const char* FileSystem::GetFilenameByHash(uint32 hash)
 
 bool FileSystem::Open(const char* path, File* file)
 {
+	file->Memory = nullptr;
+	file->FileSize = 0;
+
 #ifdef _WIN32
 	file->Handle = CreateFile(path, GENERIC_READ, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, nullptr);
 	if (file->Handle == INVALID_HANDLE_VALUE)
