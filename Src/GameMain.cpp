@@ -130,35 +130,7 @@ int Init(WindowInfo* window)
 	if (Audio::AudioEngine::Init() == false)
 		return -1;
 
-	//auto c = Content::ContentManager::Load("Content/Models/Shark.obj", Content::LoaderType::ModelObj, &m);
-	//if (c != Content::ContentState::Loaded)
-	//	return -1;
-
-	//auto c = Content::ContentLoader::BeginLoad("Content/Models/Shark.obj", Content::LoaderType::ModelObj, &m, &mj);
-	//auto c = Content::ContentLoader::BeginLoad("Content/Models/out.obj", Content::LoaderType::ModelObj, &m, &mj);
-	//if (c != Content::ContentState::Incomplete)
-	//	return -1;
-
-	/*if (Content::ContentLoader::Load("Content/Models/out.obj", Content::LoaderType::ModelObj, &m) != Content::ContentState::Loaded)
-		return -1;
-	Game::SceneDesc scene = {};
-	Game::SceneModelDesc models[] = { &m, nullptr, {0,0,0}, {0,0,0} };
-	scene.NumModels = 1;
-	scene.Models = models;
-
-	Game::SceneLightDesc lights[1];
-	lights[0].Type = Game::LightType::Point;
-	lights[0].Point.Position[0] = 0;
-	lights[0].Point.Position[1] = 100.0f;
-	lights[0].Point.Position[2] = 0;
-	lights[0].Point.Color[0] = 1.0f;
-	lights[0].Point.Color[1] = 1.0f;
-	lights[0].Point.Color[2] = 0;
-	scene.NumLights = 1;
-	scene.Lights = lights;
-
-	Game::SceneManager::CreateScene(&scene);*/
-
+	Content::ContentManager::QueueGroupLoad(Utils::CalcHash("global"), false);
 	Content::ContentManager::QueueGroupLoad(Utils::CalcHash("scene"), false);
 	Content::ContentManager::BeginLoad();
 	while (Content::ContentManager::PendingLoads(nullptr, nullptr, nullptr)) {}
@@ -201,8 +173,8 @@ void Shutdown()
 }
 
 
-Nxna::Vector3 cameraPosition(0, 2.0f, 100);
-float cameraPitch = 0;
+Nxna::Vector3 cameraPosition(0, 50.0f, 100);
+float cameraPitch = -0.5f;
 float cameraYaw = 0;
 
 
@@ -263,37 +235,25 @@ void Tick(float elapsed)
 		bool mlb = Nxna::Input::InputState::IsMouseButtonDown(g_inputState, 1);
 		bool mrb = Nxna::Input::InputState::IsMouseButtonDown(g_inputState, 3);
 		
-		if (mrb && mlb)
-		{
-			// strafe (straif? straife? strayph? streigh?)
-			cameraPosition.Y -= (float)g_inputState->RelMouseY;
-			cameraPosition += right * (float)g_inputState->RelMouseX;
-		}
-		else if (mrb)
-		{
-			// move
-			cameraPosition -= forward * (float)g_inputState->RelMouseY;
-			cameraYaw -= (float)g_inputState->RelMouseX * 0.01f;
-		}
-		else if (mlb)
-		{
-			// look around
-			cameraPitch -= (float)g_inputState->RelMouseY * 0.01f;
-			cameraYaw -= (float)g_inputState->RelMouseX * 0.01f;
-		}
-
 		if (shiftb)
 		{
-			if (upb)
-				cameraPosition += forward;
-			if (downb)
-				cameraPosition -= forward;
-			if (leftb || rightb)
+			if (mrb && mlb)
 			{
-				if (leftb)
-					cameraPosition -= right;
-				if (rightb)
-					cameraPosition += right;
+				// strafe (straif? straife? strayph? streigh?)
+				cameraPosition.Y -= (float)g_inputState->RelMouseY;
+				cameraPosition += right * (float)g_inputState->RelMouseX;
+			}
+			else if (mrb)
+			{
+				// move
+				cameraPosition -= forward * (float)g_inputState->RelMouseY;
+				cameraYaw -= (float)g_inputState->RelMouseX * 0.01f;
+			}
+			else if (mlb)
+			{
+				// look around
+				cameraPitch -= (float)g_inputState->RelMouseY * 0.01f;
+				cameraYaw -= (float)g_inputState->RelMouseX * 0.01f;
 			}
 		}
 	}

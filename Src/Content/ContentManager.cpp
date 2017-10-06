@@ -106,7 +106,7 @@ namespace Content
 						else if (ini_key_equals(&ctx, &item, "maxResolution"))
 						{
 							ini_value_int(&ctx, &item, &maxResolution);
-							if ((int)screenHeight >= minResolution)
+							if ((int)screenHeight >= maxResolution)
 								goto parse;
 						}
 						else if (ini_key_equals(&ctx, &item, "file"))
@@ -285,6 +285,12 @@ namespace Content
 				uint32 alignment, size;
 				GetResourceInfo(m_data->Files[i].Type, &size, &alignment);
 				m_data->Files[i].Data = g_memory->AllocTrack(size, __FILE__, __LINE__);
+
+				auto filename = FileSystem::GetFilenameByHash(m_data->Files[i].NameHash);
+				if (filename)
+					WriteLog(LogSeverityType::Info, LogChannelType::Content, "Queued %s for loading", filename);
+				else
+					WriteLog(LogSeverityType::Warning, LogChannelType::Content, "Queued file with hash %u for loading, but can't find its filename", m_data->Files[i].NameHash);
 			}
 		}
 
