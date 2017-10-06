@@ -52,6 +52,14 @@ namespace Graphics
 
 		int w, h, d;
 		auto filename = FileSystem::GetFilenameByHash(params->FilenameHash);
+		if (filename == nullptr)
+		{
+			LOG_ERROR("Unable to get filename for texture with hash %u", params->FilenameHash);
+
+			params->State = Content::ContentState::NotFound;
+			return false;
+		}
+
 		auto img = stbi_load(filename, &w, &h, &d, 4);
 
 		if (img == nullptr)

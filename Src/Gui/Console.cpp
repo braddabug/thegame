@@ -285,19 +285,31 @@ namespace Gui
 				}
 			}
 		}
+
+		// handle scroll
+		{
+			int firstVisibleLine = m_data->FirstVisibleLine;
+			if (firstVisibleLine == -1)
+				firstVisibleLine = g_log->NumLines - MaxLinesToDraw;
+
+			int delta = -input->RelWheel * 3;
+
+			m_data->FirstVisibleLine = firstVisibleLine + delta;
+
+			if (m_data->FirstVisibleLine < 0) m_data->FirstVisibleLine = 0;
+			if ((uint32)m_data->FirstVisibleLine >= g_log->NumLines - MaxLinesToDraw) m_data->FirstVisibleLine = -1;
+		}
 	}
 
 	void Console::Draw(SpriteBatchHelper* sb, LogData* log)
 	{
-		const int maxLinesToDraw = 20;
-
 		if (m_data->Visible == false || log->NumLines == 0) return;
 
 		int linesToDraw = log->NumLines;
-		if (linesToDraw > maxLinesToDraw) linesToDraw = maxLinesToDraw;
+		if (linesToDraw > MaxLinesToDraw) linesToDraw = MaxLinesToDraw;
 
 		int firstVisible = m_data->FirstVisibleLine;
-		if (firstVisible == -1 || firstVisible > (int)log->NumLines - linesToDraw)
+		if (firstVisible < 0 || firstVisible > (int)log->NumLines - linesToDraw)
 			firstVisible = log->NumLines - linesToDraw;
 		
 		

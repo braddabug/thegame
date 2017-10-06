@@ -22,6 +22,7 @@
     <ClCompile Include="..\..\Src\Build.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Src\Audio\AudioEngine.h" />
     <ClInclude Include="..\..\Src\ConsoleCommand.h" />
     <ClInclude Include="..\..\Src\Content\ContentLoader.h" />
     <ClInclude Include="..\..\src\Content\ContentManager.h" />
@@ -30,6 +31,8 @@
     <ClInclude Include="..\..\Src\GameMain.h" />
     <ClInclude Include="..\..\Src\Game\CharacterManager.h" />
     <ClInclude Include="..\..\Src\Game\SceneManager.h" />
+    <ClInclude Include="..\..\Src\Game\ScriptManager.h" />
+    <ClInclude Include="..\..\Src\Game\Verbs.h" />
     <ClInclude Include="..\..\src\GlobalData.h" />
     <ClInclude Include="..\..\Src\Graphics\Bitmap.h" />
     <ClInclude Include="..\..\Src\Graphics\Model.h" />
@@ -41,7 +44,11 @@
     <ClInclude Include="..\..\Src\JobQueue.h" />
     <ClInclude Include="..\..\Src\Logging.h" />
     <ClInclude Include="..\..\Src\MyNxna2.h" />
+    <ClInclude Include="..\..\Src\Tweener.h" />
     <ClInclude Include="..\..\Src\Utils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\Src\Game\Verbs.inc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{FB426C21-D985-4111-8EA5-827EAA16AD6A}</ProjectGuid>
@@ -100,6 +107,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\GameMonolithic\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\GameMonolithic\</IntDir>
+    <LibraryPath>C:\Users\bfarris\Documents\Visual Studio 2015\Projects\freetype-2.8.1\objs\vc2010\x64;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\bfarris\Documents\Visual Studio 2015\Projects\freetype-2.8.1\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -124,7 +133,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(ProjectDir)../../Libs/SDL/Windows/include;$(ProjectDir)../../Libs/Nxna;$(ProjectDir)../../Libs/OpenAL/Windows/include</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>SDL_HEADER=&lt;SDL.h&gt;;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ENABLE_FREETYPE;SDL_HEADER=&lt;SDL.h&gt;;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
     </ClCompile>
     <PostBuildEvent>

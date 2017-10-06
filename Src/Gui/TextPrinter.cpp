@@ -1,7 +1,6 @@
 #include <cstdlib>
 #include "TextPrinter.h"
-#include "stb_truetype.h"
-#include "stb_rect_pack.h"
+
 #include "../Common.h"
 #include "../FileSystem.h"
 #include "../SpriteBatchHelper.h"
@@ -9,6 +8,15 @@
 
 #include "../utf8.h"
 #include "../MyNxna2.h"
+
+#ifdef ENABLE_FREETYPE
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#else
+#include "stb_truetype.h"
+#endif
+
+#include "stb_rect_pack.h"
 
 namespace Gui
 {
@@ -25,7 +33,7 @@ namespace Gui
 	bool TextPrinter::Init(Nxna::Graphics::GraphicsDevice* device)
 	{
 		return createFont(device, "Content/Fonts/DroidSans.ttf", 20, 32, 127, '?', &m_data->DefaultFont) &&
-			createFont(device, "Content/Fonts/Inconsolata-Regular.ttf", 14, 32, 255, '?', &m_data->ConsoleFont);
+			createFont(device, "Content/Fonts/Inconsolata-Regular.ttf", 16, 32, 255, '?', &m_data->ConsoleFont);
 	}
 
 	void TextPrinter::Shutdown()
@@ -143,14 +151,157 @@ namespace Gui
 
 	bool TextPrinter::createFont(Nxna::Graphics::GraphicsDevice* device, const char* path, float size, int firstCharacter, int lastCharacter, int defaultCharacter, Font** result)
 	{
-		const int numCharacters = lastCharacter - firstCharacter;
+		const int numCharacters = lastCharacter - firstCharacter + 1;
 
 		const uint32 textureSize = 256;
-		uint8 pixels[textureSize * textureSize];
 
 		File f;
 		if (FileSystem::OpenAndMap(path, &f) == nullptr)
 			return false;
+
+#ifdef ENABLE_FREETYPE
+		const int maxChars = 500;
+		stbrp_rect rects[maxChars];
+
+		uint8 rgbaPixels[textureSize * textureSize * 4];
+		uint8 glyphPixels[textureSize * textureSize];
+
+		if (maxChars < numCharacters)
+			return false;
+
+		FT_Library ft;
+		if (FT_Init_FreeType(&ft))
+		{
+			FileSystem::Close(&f);
+			return false;
+		}
+
+		uint8* memory = nullptr;
+
+		FT_Face face;
+		if (FT_New_Memory_Face(ft, (const FT_Byte*)f.Memory, f.FileSize, 0, &face))
+			goto error;
+
+		if (FT_Set_Pixel_Sizes(face, 0, (uint32)size - 1))
+			goto error;
+
+		stbrp_context c;
+		stbrp_node nodes[textureSize];
+		stbrp_init_target(&c, textureSize, textureSize, nodes, textureSize);
+
+		memory = (uint8*)g_memory->AllocTrack(sizeof(Font) + sizeof(Font::CharInfo) * numCharacters + sizeof(int) * numCharacters, __FILE__, __LINE__);
+		*result = (Font*)memory;
+		(*result)->CharacterMap = (int*)(memory + sizeof(Font));
+		(*result)->Characters = (Font::CharInfo*)(memory + sizeof(Font) + sizeof(int) * numCharacters);
+	
+		auto ascender = face->size->metrics.ascender >> 6;
+
+		auto glyphPixelCursor = glyphPixels;
+		for (int i = firstCharacter; i <= lastCharacter; i++)
+		{
+			if (FT_Load_Char(face, i, FT_LOAD_DEFAULT))
+				goto error;
+
+			if (FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL))
+				goto error;
+
+			int ci = i - firstCharacter;
+
+			(*result)->Characters[ci].SrcX = (float)face->glyph->bitmap_left;
+			(*result)->Characters[ci].SrcY = (float)face->glyph->bitmap_top;
+			(*result)->Characters[ci].SrcW = (float)face->glyph->bitmap.width;
+			(*result)->Characters[ci].SrcH = (float)face->glyph->bitmap.rows;
+			(*result)->Characters[ci].ScreenW = (float)face->glyph->bitmap.width;
+			(*result)->Characters[ci].ScreenH = (float)face->glyph->bitmap.rows;
+			(*result)->Characters[ci].XAdvance = (float)(face->glyph->advance.x >> 6);
+			(*result)->Characters[ci].XOffset = (float)face->glyph->bitmap_left;
+			(*result)->Characters[ci].YOffset = (float)-face->glyph->bitmap_top;
+
+			(*result)->CharacterMap[ci] = i;
+
+			rects[ci].x = 0;
+			rects[ci].y = 0;
+			rects[ci].w = face->glyph->bitmap.width;
+			rects[ci].h = face->glyph->bitmap.rows;
+
+			memcpy(glyphPixelCursor, face->glyph->bitmap.buffer, face->glyph->bitmap.width * face->glyph->bitmap.rows);
+			glyphPixelCursor += face->glyph->bitmap.width * face->glyph->bitmap.rows;
+		}
+
+		if (stbrp_pack_rects(&c, rects, numCharacters) == 0)
+			goto error;
+
+		glyphPixelCursor = glyphPixels;
+		for (int i = firstCharacter; i <= lastCharacter; i++)
+		{
+			int ci = i - firstCharacter;
+
+			for (int row = 0; row < rects[ci].h; row++)
+			{
+				for (int column = 0; column < rects[ci].w; column++)
+				{
+					auto pixel = &rgbaPixels[((rects[ci].y + row) * textureSize + rects[ci].x + column) * 4];
+					assert(pixel + 4 < rgbaPixels + textureSize * textureSize * 4);
+					int value = glyphPixelCursor[row * rects[ci].w + column];
+
+					// TODO: convert value from sRGB to linear
+
+					pixel[0] = value;
+					pixel[1] = value;
+					pixel[2] = value;
+					pixel[3] = value;
+				}
+			}
+
+			(*result)->Characters[ci].SrcX = rects[ci].x;
+			(*result)->Characters[ci].SrcY = rects[ci].y;
+
+			glyphPixelCursor += rects[ci].w * rects[ci].h;
+		}
+
+		// gen texture
+		Nxna::Graphics::Texture2D texture;
+		{
+			Nxna::Graphics::TextureCreationDesc desc = {};
+			desc.ArraySize = 1;
+			desc.MipLevels = 1;
+			desc.Width = textureSize;
+			desc.Height = textureSize;
+			Nxna::Graphics::SubresourceData srdata = {};
+			srdata.Data = rgbaPixels;
+			srdata.DataPitch = textureSize * 4;
+			if (device->CreateTexture2D(&desc, &srdata, &texture) != Nxna::NxnaResult::Success)
+				goto error;
+		}
+
+		(*result)->Texture = texture;
+
+		(*result)->LineHeight = size;
+		(*result)->NumCharacters = numCharacters;
+		(*result)->DefaultCharacterInfoIndex = findCharacter((*result), defaultCharacter);
+		if ((*result)->DefaultCharacterInfoIndex == -1)
+		{
+			goto error;
+		}
+
+		FT_Done_Face(face);
+		FT_Done_FreeType(ft);
+
+		FileSystem::Close(&f);
+
+		return true;
+
+	error:
+		if (memory) g_memory->FreeTrack(memory, __FILE__, __LINE__);
+
+		FileSystem::Close(&f);
+
+		FT_Done_Face(face);
+		FT_Done_FreeType(ft);
+
+		return false;
+#else
+		uint8 pixels[textureSize * textureSize];
 
 		stbtt_pack_context c;
 		stbtt_PackBegin(&c, pixels, textureSize, textureSize, 0, 1, nullptr);
@@ -221,7 +372,8 @@ namespace Gui
 		(*result)->DefaultCharacterInfoIndex = findCharacter((*result), defaultCharacter);
 		if ((*result)->DefaultCharacterInfoIndex == -1)
 			return false;
-		
+#endif
+
 		return true;
 	}
 }
@@ -232,3 +384,9 @@ namespace Gui
 
 #define STB_RECT_PACK_IMPLEMENTATION
 #include "stb_rect_pack.h"
+
+#ifdef ENABLE_FREETYPE
+#ifdef _MSC_VER
+#pragma comment(lib, "freetype281d.lib")
+#endif
+#endif

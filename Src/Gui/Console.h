@@ -12,6 +12,7 @@ namespace Gui
 	class Console
 	{
 		static ConsoleData* m_data;
+		static const uint32 MaxLinesToDraw = 20;
 
 	public:
 		static void SetGlobalData(ConsoleData** data);

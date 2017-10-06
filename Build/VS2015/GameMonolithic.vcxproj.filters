@@ -48,6 +48,16 @@
     <ClInclude Include="..\..\Src\Graphics\Bitmap.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Src\Game\ScriptManager.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Src\Game\Verbs.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Src\Tweener.h" />
+    <ClInclude Include="..\..\Src\Audio\AudioEngine.h">
+      <Filter>Audio</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Gui">
@@ -62,5 +72,13 @@
     <Filter Include="Game">
       <UniqueIdentifier>{80e8e80a-bbed-485f-b807-d36c4bbc5dc2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Audio">
+      <UniqueIdentifier>{ee209507-0ccb-4b51-b184-427bc8e55dbd}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\Src\Game\Verbs.inc">
+      <Filter>Game</Filter>
+    </None>
   </ItemGroup>
 </Project>

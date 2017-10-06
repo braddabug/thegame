@@ -280,8 +280,8 @@ void Tick(float elapsed)
 		//Graphics::Model::Render(g_device, &transform, &m, 1);
 
 	sb.Begin();
-	auto font = Gui::TextPrinter::GetFont(Gui::FontType::Default);
-	Gui::TextPrinter::PrintScreen(&sb, 0, 20, font, "Hello, world!");
+	//auto font = Gui::TextPrinter::GetFont(Gui::FontType::Default);
+	//Gui::TextPrinter::PrintScreen(&sb, 0, 20, font, "Hello, world!");
 
 	Gui::Console::Draw(&sb, g_log);
 
@@ -296,9 +296,14 @@ void HandleExternalEvent(ExternalEvent e)
 	{
 	case ExternalEventType::FrameStart:
 		Nxna::Input::InputState::FrameReset(g_inputState);
+		g_inputState->RelWheel = 0;
 		break;
 	case ExternalEventType::MouseMove:
 		Nxna::Input::InputState::InjectMouseMove(g_inputState, e.MouseMove.X, e.MouseMove.Y);
+		break;
+	case ExternalEventType::MouseWheel:
+		g_inputState->RelWheel += e.MouseWheel.Delta;
+		g_inputState->Wheel += e.MouseWheel.Delta;
 		break;
 	case ExternalEventType::MouseButtonDown:
 		Nxna::Input::InputState::InjectMouseButtonEvent(g_inputState, true, e.MouseButton.Button);

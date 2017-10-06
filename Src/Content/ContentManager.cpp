@@ -315,25 +315,32 @@ namespace Content
 			if (load && m_data->Files[i].State == LoadState::QueuedForLoad)
 			{
 				auto loader = ContentLoader::FindLoader(m_data->Files[i].Type);
-
-				ContentLoaderParams p = {};
-				p.Destination = m_data->Files[i].Data;
-				p.FilenameHash = m_data->Files[i].NameHash;
-				p.LoaderParam = loader->LoaderParam;
-
-				if (loader->AsyncLoader(&p) && (loader->MainThreadLoader == nullptr || loader->MainThreadLoader(&p)))
+				if (loader == nullptr)
 				{
-					m_data->Files[i].State = LoadState::Loaded;
+					m_data->Files[i].State = LoadState::Error;
+					LOG_ERROR("Unable to find loader for file with hash %u", m_data->Files[i].NameHash);
 				}
 				else
 				{
-					m_data->Files[i].State = LoadState::Error;
+					ContentLoaderParams p = {};
+					p.Destination = m_data->Files[i].Data;
+					p.FilenameHash = m_data->Files[i].NameHash;
+					p.LoaderParam = loader->LoaderParam;
 
-					auto filename = FileSystem::GetFilenameByHash(p.FilenameHash);
-					if (filename != nullptr)
-						LOG_ERROR("Error while loading %s", filename);
+					if (loader->AsyncLoader(&p) && (loader->MainThreadLoader == nullptr || loader->MainThreadLoader(&p)))
+					{
+						m_data->Files[i].State = LoadState::Loaded;
+					}
 					else
-						LOG_ERROR("Error while loading file with hash %u", p.FilenameHash);
+					{
+						m_data->Files[i].State = LoadState::Error;
+
+						auto filename = FileSystem::GetFilenameByHash(p.FilenameHash);
+						if (filename != nullptr)
+							LOG_ERROR("Error while loading %s", filename);
+						else
+							LOG_ERROR("Error while loading file with hash %u", p.FilenameHash);
+					}
 				}
 
 				// have we done enough work for now?
