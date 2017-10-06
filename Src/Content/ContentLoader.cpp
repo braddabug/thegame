@@ -58,7 +58,11 @@ namespace Content
 
 		const uint32 maxExtLength = 6;
 		char extBuffer[maxExtLength + 1];
+#ifdef _MSC_VER
 		strncpy_s(extBuffer, ext, maxExtLength < extLen ? maxExtLength : extLen);
+#else
+		strncpy(extBuffer, ext, maxExtLength < extLen ? maxExtLength : extLen);
+#endif
 
 		if (strcmp(extBuffer, ".ttf") == 0)
 			return ResourceType::Font;
