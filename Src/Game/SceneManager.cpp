@@ -185,6 +185,8 @@ namespace Game
 			{
 				if (ini_section_equals(&ctx, &item, "character"))
 				{
+					result->Characters[result->NumCharacters].Scale = 1.0f;
+
 					while (ini_next_within_section(&ctx, &item) == ini_result_success)
 					{
 						if (ini_key_equals(&ctx, &item, "name"))

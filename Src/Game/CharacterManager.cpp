@@ -190,7 +190,7 @@ namespace Game
 
 
 					float goalRotation = 1.57079632679f + atan2(-to.Z, to.X);
-					float angleDiff = -Utils::AngleDiff(m_data->Rotations[0], goalRotation);
+					float angleDiff = -Utils::AngleDiff(m_data->Rotations[i], goalRotation);
 
 					m_data->Rotations[i] += angleDiff * rvelocity * elapsed;
 				}
@@ -212,7 +212,7 @@ namespace Game
 			}
 			else if (m_data->Brains[i].CurrentState == CharacterBrain::State::Idle)
 			{
-				float angleDiff = -Utils::AngleDiff(m_data->Rotations[0], m_data->Brains[i].Idle.GoalRotation);
+				float angleDiff = -Utils::AngleDiff(m_data->Rotations[i], m_data->Brains[i].Idle.GoalRotation);
 				float rotate = angleDiff * elapsed;
 				if (rotate > 0.01f || rotate <= 0.01f)
 				{
