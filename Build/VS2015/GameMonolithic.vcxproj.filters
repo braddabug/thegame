@@ -34,9 +34,6 @@
       <Filter>Game</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Src\Utils.h" />
-    <ClInclude Include="..\..\src\Content\FileManifest.h">
-      <Filter>Content</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Src\Content\ContentLoader.h">
       <Filter>Content</Filter>
     </ClInclude>
@@ -54,10 +51,14 @@
     <ClInclude Include="..\..\Src\Game\Verbs.h">
       <Filter>Game</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Src\Gui\GuiManager.h">
+      <Filter>Gui</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Src\Tweener.h" />
     <ClInclude Include="..\..\Src\Audio\AudioEngine.h">
       <Filter>Audio</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Src\VirtualResolution.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Gui">

@@ -41,7 +41,7 @@ bool LocalCreateCursor(uint8 width, uint8 height, uint32 hotX, uint32 hotY, uint
 	if (cursor == nullptr)
 		return false;
 
-	cursor->pSurface = SDL_CreateRGBSurfaceFrom(pixels, (int)width, (int)height, 32, (int)(width * 4), 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+	cursor->pSurface = SDL_CreateRGBSurfaceFrom(pixels, (int)width, (int)height, 32, (int)(width * 4), 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 	if (cursor->pSurface == nullptr)
 		return false;
 

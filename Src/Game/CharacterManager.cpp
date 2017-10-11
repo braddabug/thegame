@@ -102,18 +102,34 @@ namespace Game
 
 		if (m_data->EgoIndex >= 0)
 		{
+			Gui::CursorType cursor = Gui::CursorType::Pointer;
+
+			Nxna::Vector3 mouse0((float)g_inputState->MouseX, (float)g_inputState->MouseY, 0);
+			Nxna::Vector3 mouse1((float)g_inputState->MouseX, (float)g_inputState->MouseY, 1.0f);
+
+			auto viewport = m_device->GetViewport();
+			auto mp0 = viewport.Unproject(mouse0, *modelview, Nxna::Matrix::Identity, Nxna::Matrix::Identity);
+			auto mp1 = viewport.Unproject(mouse1, *modelview, Nxna::Matrix::Identity, Nxna::Matrix::Identity);
+
+			auto toPoint = Nxna::Vector3::Normalize(mp1 - mp0);
+
+			Game::VerbInfo verbs[10];
+			uint32 numVerbs = 0;
+			auto r = SceneManager::QueryRayIntersection(mp0, toPoint, SceneIntersectionTestTarget::All);
+			if (r.ResultType != SceneIntersectionTestTarget::None)
+			{
+				numVerbs = ScriptManager::GetActiveVerbs(r.NounHash, verbs, 10);
+
+				if (numVerbs > 0)
+				{
+					cursor = Gui::CursorType::PointerHighlight1;
+				}
+			}
+
+
 			if (NXNA_BUTTON_CLICKED_UP(g_inputState->MouseButtonData[1]) ||
 				NXNA_BUTTON_CLICKED_UP(g_inputState->MouseButtonData[3]))
 			{
-				Nxna::Vector3 mouse0((float)g_inputState->MouseX, (float)g_inputState->MouseY, 0);
-				Nxna::Vector3 mouse1((float)g_inputState->MouseX, (float)g_inputState->MouseY, 1.0f);
-
-				auto viewport = m_device->GetViewport();
-				auto mp0 = viewport.Unproject(mouse0, *modelview, Nxna::Matrix::Identity, Nxna::Matrix::Identity);
-				auto mp1 = viewport.Unproject(mouse1, *modelview, Nxna::Matrix::Identity, Nxna::Matrix::Identity);
-
-				auto toPoint = Nxna::Vector3::Normalize(mp1 - mp0);
-
 				if (NXNA_BUTTON_CLICKED_UP(g_inputState->MouseButtonData[1]))
 				{
 					float t;
@@ -130,7 +146,13 @@ namespace Game
 				}
 				else
 				{
-					auto r = SceneManager::QueryRayIntersection(mp0, toPoint, SceneIntersectionTestTarget::Character);
+					if (numVerbs == 1)
+					{
+						// automatically do the 1 verb
+						ScriptManager::DoVerb(r.NounHash, verbs[0].VerbHash);
+					}
+
+					/*auto r = SceneManager::QueryRayIntersection(mp0, toPoint, SceneIntersectionTestTarget::Character);
 					if (r.ResultType == SceneIntersectionTestTarget::Character)
 					{
 						Game::VerbInfo verbs[10];
@@ -143,9 +165,11 @@ namespace Game
 							// automatically do the 1 verb
 							ScriptManager::DoVerb(r.NounHash, verbs[0].VerbHash);
 						}
-					}
+					}*/
 				}
 			}
+
+			Gui::GuiManager::SetCursor(cursor);
 		}
 
 		for (uint32 i = 0; i < m_data->NumCharacters; i++)

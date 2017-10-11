@@ -26,7 +26,6 @@
     <ClInclude Include="..\..\Src\ConsoleCommand.h" />
     <ClInclude Include="..\..\Src\Content\ContentLoader.h" />
     <ClInclude Include="..\..\src\Content\ContentManager.h" />
-    <ClInclude Include="..\..\src\Content\FileManifest.h" />
     <ClInclude Include="..\..\Src\FileSystem.h" />
     <ClInclude Include="..\..\Src\GameMain.h" />
     <ClInclude Include="..\..\Src\Game\CharacterManager.h" />
@@ -38,6 +37,7 @@
     <ClInclude Include="..\..\Src\Graphics\Model.h" />
     <ClInclude Include="..\..\src\Graphics\TextureLoader.h" />
     <ClInclude Include="..\..\Src\Gui\Console.h" />
+    <ClInclude Include="..\..\Src\Gui\GuiManager.h" />
     <ClInclude Include="..\..\Src\Gui\stb_rect_pack.h" />
     <ClInclude Include="..\..\Src\Gui\stb_truetype.h" />
     <ClInclude Include="..\..\Src\Gui\TextPrinter.h" />
@@ -46,6 +46,7 @@
     <ClInclude Include="..\..\Src\MyNxna2.h" />
     <ClInclude Include="..\..\Src\Tweener.h" />
     <ClInclude Include="..\..\Src\Utils.h" />
+    <ClInclude Include="..\..\Src\VirtualResolution.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Src\Game\Verbs.inc" />
@@ -133,7 +134,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(ProjectDir)../../Libs/SDL/Windows/include;$(ProjectDir)../../Libs/Nxna;$(ProjectDir)../../Libs/OpenAL/Windows/include</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>ENABLE_FREETYPE;SDL_HEADER=&lt;SDL.h&gt;;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ENABLE_FREETYPEx;SDL_HEADER=&lt;SDL.h&gt;;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
     </ClCompile>
     <PostBuildEvent>

@@ -48,52 +48,65 @@ namespace Graphics
 
 	bool TextureLoader::LoadPixels(Content::ContentLoaderParams* params)
 	{
-		static_assert(sizeof(Bitmap) <= sizeof(Content::ContentLoaderParams::LocalDataStorage), "Bitmap is too big");
+		static_assert(sizeof(Bitmap) <= Content::ContentLoaderParams::LocalDataStorageSize, "Bitmap is too big");
 
-		int w, h, d;
-		auto filename = FileSystem::GetFilenameByHash(params->FilenameHash);
-		if (filename == nullptr)
+		if (params->Phase == Content::LoaderPhase::AsyncLoad)
 		{
-			LOG_ERROR("Unable to get filename for texture with hash %u", params->FilenameHash);
+			int w, h, d;
+			auto filename = FileSystem::GetFilenameByHash(params->FilenameHash);
+			if (filename == nullptr)
+			{
+				LOG_ERROR("Unable to get filename for texture with hash %u", params->FilenameHash);
 
-			params->State = Content::ContentState::NotFound;
-			return false;
-		}
+				params->State = Content::ContentState::NotFound;
+				return false;
+			}
 
-		auto img = stbi_load(filename, &w, &h, &d, 4);
+			auto img = stbi_load(filename, &w, &h, &d, 4);
 
-		if (img == nullptr)
-		{
-			LOG_ERROR("Unable to load texture %s", filename);
+			if (img == nullptr)
+			{
+				LOG_ERROR("Unable to load texture %s", filename);
 
-			params->State = Content::ContentState::NotFound;
-			return false;
-		}
+				params->State = Content::ContentState::NotFound;
+				return false;
+			}
 
-		Bitmap* storage = (Bitmap*)params->LocalDataStorage;
+			Bitmap* storage = (Bitmap*)params->LocalDataStorage;
 
-		storage->Width = (uint32)w;
-		storage->Height = (uint32)h;
-		storage->Pixels = img;
+			storage->Width = (uint32)w;
+			storage->Height = (uint32)h;
+			storage->Pixels = img;
 
-		return true;
-	}
-
-	bool TextureLoader::ConvertPixelsToTexture(Content::ContentLoaderParams* params)
-	{
-		Bitmap* storage = (Bitmap*)params->LocalDataStorage;
-		Nxna::Graphics::Texture2D* destination = (Nxna::Graphics::Texture2D*)params->Destination;
-
-		if (ConvertBitmapToTexture(storage, destination))
-		{
-			stbi_image_free(storage->Pixels);
-			params->State = Content::ContentState::Loaded;
 			return true;
 		}
+		else if (params->Phase == Content::LoaderPhase::MainThread)
+		{
+			if (params->Type == Content::ResourceType::Bitmap)
+			{
+				memcpy(params->Destination, params->LocalDataStorage, sizeof(Bitmap));
+				params->State = Content::ContentState::Loaded;
+				return true;
+			}
+			else
+			{
+				Bitmap* storage = (Bitmap*)params->LocalDataStorage;
+				Nxna::Graphics::Texture2D* destination = (Nxna::Graphics::Texture2D*)params->Destination;
 
-		stbi_image_free(storage->Pixels);
-		params->State = Content::ContentState::UnknownError;
-		return false;
+				if (ConvertBitmapToTexture(storage, destination))
+				{
+					stbi_image_free(storage->Pixels);
+					params->State = Content::ContentState::Loaded;
+					return true;
+				}
+
+				stbi_image_free(storage->Pixels);
+				params->State = Content::ContentState::UnknownError;
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	bool TextureLoader::ConvertBitmapToTexture(Bitmap* bitmap, Nxna::Graphics::Texture2D* result)

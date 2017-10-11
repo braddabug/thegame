@@ -34,13 +34,18 @@ namespace Content
 		LAST
 	};
 
+#define DEFINE_RESOURCE_TYPE(t) t,
+#define DEFINE_RESOURCE_TYPES \
+	DEFINE_RESOURCE_TYPE(Font) \
+	DEFINE_RESOURCE_TYPE(Cursor) \
+	DEFINE_RESOURCE_TYPE(Model) \
+	DEFINE_RESOURCE_TYPE(Texture2D) \
+	DEFINE_RESOURCE_TYPE(Bitmap) \
+	DEFINE_RESOURCE_TYPE(Audio)
+
 	enum class ResourceType
 	{
-		Font,
-		Model,
-		Texture2D,
-		Bitmap,
-		Audio,
+		DEFINE_RESOURCE_TYPES
 
 		LAST
 	};
@@ -48,21 +53,29 @@ namespace Content
 	struct Loader
 	{
 		ResourceType Type;
-		JobFunc AsyncLoader;
-		JobFunc MainThreadLoader;
-		JobFunc Unloader;
-		JobFunc RefreshRefs;
+		JobFunc LoaderFunc;
+		JobFunc UnloaderFunc;
 		void* LoaderParam;
 
 		uint32 ResourceSize;
 		uint32 ResourceAlignment;
 	};
 
+	enum class LoaderPhase
+	{
+		AsyncLoad,
+		MainThread,
+		Fixup
+	};
+
 	struct ContentLoaderParams
 	{
-		uint8 LocalDataStorage[32];
+		static const uint32 LocalDataStorageSize = 32;
+		uint8* LocalDataStorage;
 
 		// input
+		LoaderPhase Phase;
+		ResourceType Type;
 		uint32 FilenameHash;
 		void* LoaderParam;
 		JobHandle Job;
@@ -92,6 +105,7 @@ namespace Content
 
 		static ResourceType GetLoaderResourceType(LoaderType type);
 		static LoaderType GetLoaderByNameHash(uint32 hash);
+		static ResourceType GetResourceTypeByNameHash(uint32 hash);
 
 	private:
 		static Loader* findLoader(ResourceType type);

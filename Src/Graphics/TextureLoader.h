@@ -29,6 +29,7 @@ namespace Graphics
 
 		static bool LoadPixels(Content::ContentLoaderParams* params);
 		static bool ConvertPixelsToTexture(Content::ContentLoaderParams* params);
+		static bool ConvertPixelsToBitmap(Content::ContentLoaderParams* params);
 
 		static bool ConvertBitmapToTexture(Bitmap* bitmap, Nxna::Graphics::Texture2D* result);
 

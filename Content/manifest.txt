@@ -1,0 +1,33 @@
+[group]
+name: global
+file: Gui/Cursors/cursors.txt, Cursor
+
+[group]
+name: global
+maxResolution: 768
+file: Gui/Cursors/pointer_640.png, Bitmap
+file: Gui/Cursors/pointer_hi_640.png, Bitmap
+file: Gui/Cursors/pointer_hi2_640.png, Bitmap
+
+[group]
+name: global
+minResolution: 768
+maxResolution: 1536
+file: Gui/Cursors/pointer_768.png, Bitmap
+file: Gui/Cursors/pointer_hi_768.png, Bitmap
+file: Gui/Cursors/pointer_hi2_768.png, Bitmap
+
+[group]
+name: global
+minResolution: 1536
+file: Gui/Cursors/pointer_1536.png, Bitmap
+file: Gui/Cursors/pointer_hi_1536.png, Bitmap
+file: Gui/Cursors/pointer_hi2_1536.png, Bitmap
+
+[group]
+name: scene
+file: Models/test_guy.obj
+file: Models/untitled.png
+file: Models/test_room.obj
+file: Models/debug.tga
+file: Models/chr_knight.obj

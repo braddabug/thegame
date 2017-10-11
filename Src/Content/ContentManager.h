@@ -23,8 +23,8 @@ namespace Content
 		static void SetGlobalData(ContentManagerData** data, Nxna::Graphics::GraphicsDevice* device);
 		
 		static bool LoadManifest(uint32 screenHeight);
-		static bool QueueGroupLoad(uint32 nameHash, bool forceReload);
-		static bool QueueGroupUnload(uint32 nameHash);
+		static int QueueGroupLoad(uint32 nameHash, bool forceReload);
+		static int QueueGroupUnload(uint32 nameHash);
 
 		static bool BeginLoad();
 		static bool PendingLoads(uint32* pending, uint32* success, uint32* error);

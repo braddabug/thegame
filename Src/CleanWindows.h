@@ -7,3 +7,4 @@
 #include <Windows.h>
 
 #undef AddJob
+#undef LoadCursor

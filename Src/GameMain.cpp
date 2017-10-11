@@ -3,8 +3,10 @@
 #include "Logging.h"
 #include "StringManager.h"
 #include "SpriteBatchHelper.h"
+#include "VirtualResolution.h"
 #include "Gui/TextPrinter.h"
 #include "Gui/Console.h"
+#include "Gui/GuiManager.h"
 #include "FileSystem.h"
 #include "Graphics/Model.h"
 #include "Graphics/TextureLoader.h"
@@ -74,6 +76,8 @@ void LibLoaded(GlobalData* data, bool initial)
 	FileSystem::SetGlobalData(&data->FileSystem);
 	StringManager::SetGlobalData(&data->StringData);
 	JobQueue::SetGlobalData(&data->JobQueue);
+	Gui::GuiManager::SetGlobalData(&data->GuiData, g_platform);
+	VirtualResolution::SetGlobalData(&data->ResolutionData);
 	Audio::AudioEngine::SetGlobalData(&data->Audio);
 	SpriteBatchHelper::SetGlobalData(&data->SpriteBatch);
 	Gui::TextPrinter::SetGlobalData(&data->TextPrinter);
@@ -122,6 +126,7 @@ int Init(WindowInfo* window)
 		return -1;
 	}
 
+	VirtualResolution::Init(window->ScreenHeight);
 	SpriteBatchHelper::Init(g_device);
 
 	if (Graphics::ShaderLibrary::LoadCoreShaders() == false)
@@ -135,6 +140,7 @@ int Init(WindowInfo* window)
 	Content::ContentManager::BeginLoad();
 	while (Content::ContentManager::PendingLoads(nullptr, nullptr, nullptr)) {}
 
+	Gui::GuiManager::SetCursor(Gui::CursorType::Pointer);
 	Game::SceneManager::CreateScene("Content/Scenes/scene.txt");
 
 	return 0;
@@ -158,6 +164,7 @@ void Shutdown()
 	Graphics::TextureLoader::Shutdown();
 	Content::ContentLoader::Shutdown();
 
+	VirtualResolution::Shutdown();
 	JobQueue::Shutdown(true);
 
 	Audio::AudioEngine::Shutdown();

@@ -1,5 +1,6 @@
 #include "ContentLoader.h"
 #include "../MemoryManager.h"
+#include "../Gui/GuiManager.h"
 #include "../Graphics/TextureLoader.h"
 #include "../Graphics/Model.h"
 #include "../Audio/AudioLoader.h"
@@ -22,10 +23,11 @@ namespace Content
 
 		// function pointers within the lib have to be reset
 		m_data->Loaders.clear();
-		m_data->Loaders.push_back(Loader{ ResourceType::Model, (JobFunc)Graphics::Model::LoadObj, (JobFunc)Graphics::Model::FinalizeLoadObj, nullptr, nullptr, device, sizeof(Graphics::Model), alignof(Graphics::Model) });
-		m_data->Loaders.push_back(Loader{ ResourceType::Texture2D, (JobFunc)Graphics::TextureLoader::LoadPixels, (JobFunc)Graphics::TextureLoader::ConvertPixelsToTexture, nullptr });
-		m_data->Loaders.push_back(Loader{ ResourceType::Bitmap, (JobFunc)Graphics::TextureLoader::LoadPixels, nullptr, nullptr });
-		m_data->Loaders.push_back(Loader{ ResourceType::Audio, (JobFunc)Audio::AudioLoader::LoadWav, nullptr, nullptr });
+		m_data->Loaders.push_back(Loader{ ResourceType::Model, (JobFunc)Graphics::Model::LoadObj, nullptr, device, sizeof(Graphics::Model), alignof(Graphics::Model) });
+		m_data->Loaders.push_back(Loader{ ResourceType::Texture2D, (JobFunc)Graphics::TextureLoader::LoadPixels, nullptr });
+		m_data->Loaders.push_back(Loader{ ResourceType::Bitmap, (JobFunc)Graphics::TextureLoader::LoadPixels, nullptr });
+		m_data->Loaders.push_back(Loader{ ResourceType::Audio, (JobFunc)Audio::AudioLoader::LoadWav, nullptr });
+		m_data->Loaders.push_back(Loader{ ResourceType::Cursor, (JobFunc)Gui::GuiManager::LoadCursor, nullptr });
 	}
 
 	void ContentLoader::Shutdown()
@@ -116,6 +118,24 @@ namespace Content
 		}
 
 		return LoaderType::LAST;
+	}
+
+	ResourceType ContentLoader::GetResourceTypeByNameHash(uint32 hash)
+	{
+#undef DEFINE_RESOURCE_TYPE
+#define DEFINE_RESOURCE_TYPE(t) Utils::CalcHash(#t),
+		uint32 hashes[] = {
+			DEFINE_RESOURCE_TYPES
+		};
+#undef DEFINE_RESOURCE_TYPE
+
+		for (int i = 0; i < (int)ResourceType::LAST; i++)
+		{
+			if (hashes[i] == hash)
+				return (ResourceType)i;
+		}
+
+		return ResourceType::LAST;
 	}
 
 	Loader* ContentLoader::findLoader(ResourceType type)

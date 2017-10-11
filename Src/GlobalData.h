@@ -10,6 +10,7 @@ namespace Gui
 {
 	struct TextPrinterData;
 	struct ConsoleData;
+	struct GuiManagerData;
 }
 
 namespace Content
@@ -56,6 +57,7 @@ struct JobQueueData;
 struct MemoryManager;
 struct PlatformInfo;
 struct FileSystemData;
+struct VirtualResolutionData;
 
 namespace Utils
 {
@@ -87,12 +89,14 @@ struct GlobalData
 	JobQueueData* JobQueue;
 	FileSystemData* FileSystem;
 	StringManagerData* StringData;
+	VirtualResolutionData* ResolutionData;
 	Nxna::Graphics::GraphicsDevice* Device;
 	Nxna::Input::InputState* Input;
 	Audio::AudioEngineData* Audio;
 	SpriteBatchData* SpriteBatch;
 	Gui::TextPrinterData* TextPrinter;
 	Gui::ConsoleData* ConsoleData;
+	Gui::GuiManagerData* GuiData;
 	Content::ContentManagerData* ContentData;
 	Content::ContentLoaderData* ContentLData;
 	Graphics::ModelData* ModelData;

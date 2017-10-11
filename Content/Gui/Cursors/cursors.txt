@@ -1,0 +1,14 @@
+[cursor]
+name: pointer
+image: Gui/Cursors/pointer_%.png
+x: 0.111
+
+[cursor]
+name: PointerHighlight1
+image: Gui/Cursors/pointer_hi_%.png
+x: 0.111
+
+[cursor]
+name: PointerHighlight2
+image: Gui/Cursors/pointer_hi2_%.png
+x: 0.111
