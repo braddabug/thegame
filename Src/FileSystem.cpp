@@ -1,6 +1,9 @@
 #include "FileSystem.h"
+
+#ifndef FILESYSTEM_BASIC_IMPL
 #include "MemoryManager.h"
 #include "Logging.h"
+#endif
 
 #ifdef _WIN32
 #include "CleanWindows.h"
@@ -31,21 +34,26 @@ FileSystemData* FileSystem::m_data;
 
 void FileSystem::SetGlobalData(FileSystemData** data)
 {
+#ifndef FILESYSTEM_BASIC_IMPL
 	if (*data == nullptr)
 	{
 		*data = (FileSystemData*)g_memory->AllocTrack(sizeof(FileSystemData), __FILE__, __LINE__);
 		memset(*data, 0, sizeof(FileSystemData));
 	}
+#endif
 
 	m_data = *data;
 }
 
 void FileSystem::Shutdown()
 {
+#ifndef FILESYSTEM_BASIC_IMPL
 	g_memory->FreeTrack(m_data, __FILE__, __LINE__);
 	m_data = nullptr;
+#endif
 }
 
+#ifndef FILESYSTEM_BASIC_IMPL
 void FileSystem::searchPathRecursive(const char* root, const char* path, uint32 depth)
 {
 	char rootAndPath[256];
@@ -137,6 +145,7 @@ void FileSystem::SetSearchPaths(SearchPathInfo* paths, uint32 numPaths)
 
 	LOG("%u files added to search path", m_data->Files.GetCount());
 }
+#endif
 
 const char* FileSystem::GetFilenameByHash(uint32 hash)
 {
