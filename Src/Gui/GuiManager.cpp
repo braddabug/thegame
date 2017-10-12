@@ -123,8 +123,11 @@ namespace Gui
 
 						// map the name to a cursor type
 #undef DEFINE_CURSOR_TYPE
+#ifdef _MSC_VER
 #define DEFINE_CURSOR_TYPE(t) if (_stricmp(name, #t) == 0) { loadData->Cursors[cursorCount].Type = CursorType:: t; } else
-
+#else
+#define DEFINE_CURSOR_TYPE(t) if (strcasecmp(name, #t) == 0) { loadData->Cursors[cursorCount].Type = CursorType:: t; } else
+#endif
 						DEFINE_CURSOR_TYPES
 						{
 							// else

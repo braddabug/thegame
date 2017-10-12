@@ -19,8 +19,6 @@
 #include "Game/ScriptManager.h"
 #include "MemoryManager.h"
 
-
-
 Graphics::Model m;
 JobInfo mj;
 
@@ -333,3 +331,6 @@ void HandleExternalEvent(ExternalEvent e)
 #define NXNA2_IMPLEMENTATION
 #include "MyNxna2.h"
 #undef NXNA2_IMPLEMENTATION
+
+// TODO: figure out what in Nxna2 is defining "None" because it's breaking the g++ build
+#undef None

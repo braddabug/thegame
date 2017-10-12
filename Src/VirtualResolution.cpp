@@ -56,7 +56,11 @@ bool VirtualResolution::InjectNearestResolution(const char* source, char* destin
 		{
 			int resolution = (int)m_data->NearestResolution;
 			char buffer[10];
+			#ifdef _MSC_VER
 			_itoa_s(resolution, buffer, 10);
+			#else
+			snprintf(buffer, 10, "%d", resolution);
+			#endif
 
 			char* bufferCursor = buffer;
 			while (*bufferCursor != 0 && destCursor < destinationLength - 1)
