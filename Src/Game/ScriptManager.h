@@ -8,6 +8,7 @@ namespace Game
 	struct VerbInfo
 	{
 		uint32 VerbHash;
+		uint32 ActionHash;
 	};
 
 	typedef bool(*TestNounVerbFunc)(uint32 nounHash, uint32 verbHash);
@@ -31,12 +32,9 @@ namespace Game
 		static void SetGlobalData(ScriptManagerData** data);
 		static void Shutdown();
 
-		static void ClearNvcs();
-		static void AddNvc(NvcScript* script);
-
-		static bool TestNounVerb(uint32 nounHash, uint32 verbHash);
-		static uint32 GetActiveVerbs(uint32 nounHash, VerbInfo* verbs, uint32 maxVerbs);
-		static void DoVerb(uint32 nounHash, uint32 verbHash);
+		static bool TestNounVerb(uint32 sceneID, uint32 nounHash, uint32 verbHash);
+		static uint32 GetActiveVerbs(uint32 sceneID, uint32 nounHash, VerbInfo* verbs, uint32 maxVerbs);
+		static void DoVerb(uint32 nounHash, uint32 verbHash, uint32 actionHash);
 	};
 }
 

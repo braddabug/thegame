@@ -11,6 +11,8 @@ namespace Game
 {
 	struct SceneManagerData
 	{
+		uint32 SceneID;
+
 		uint32 NumModels;
 		uint32 ModelNameHash[SceneDesc::MaxModels];
 		uint32 ModelNounHash[SceneDesc::MaxModels];
@@ -52,6 +54,8 @@ namespace Game
 	{
 		assert(desc->NumModels <= SceneDesc::MaxModels);
 		assert(desc->NumLights <= SceneDesc::MaxLights);
+
+		m_data->SceneID = desc->SceneID;
 
 		m_data->NumModels = 0;
 		for (uint32 i = 0; i < desc->NumModels; i++)
@@ -331,7 +335,11 @@ namespace Game
 				{
 					while (ini_next_within_section(&ctx, &item) == ini_result_success)
 					{
-						if (ini_key_equals(&ctx, &item, "ego"))
+						if (ini_key_equals(&ctx, &item, "id"))
+						{
+							result->SceneID = Utils::CalcHash((uint8*)txt + item.keyvalue.value_start, item.keyvalue.value_end - item.keyvalue.value_start);
+						}
+						else if (ini_key_equals(&ctx, &item, "ego"))
 						{
 							for (uint32 i = 0; i < result->NumCharacters; i++)
 							{
@@ -349,6 +357,17 @@ namespace Game
 							goto end;
 						}
 					}
+
+					goto parse;
+				}
+				else
+				{
+					while (ini_next_within_section(&ctx, &item) == ini_result_success)
+					{
+						// nothing
+					}
+
+					goto parse;
 				}
 			}
 		}
@@ -357,6 +376,11 @@ namespace Game
 		FileSystem::Close(&f);
 
 		return success;
+	}
+	
+	uint32 SceneManager::GetSceneID()
+	{
+		return m_data->SceneID;
 	}
 
 	static bool intersect_ray_plane(const Nxna::Vector3& pnormal, const Nxna::Vector3& porigin, const Nxna::Vector3& rorigin, const Nxna::Vector3& rdirection, float& t) \

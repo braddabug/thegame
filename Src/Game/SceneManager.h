@@ -95,6 +95,8 @@ namespace Game
 		static const uint32 MaxLights = 5;
 		static const uint32 MaxNouns = 100;
 
+		uint32 SceneID;
+
 		SceneCharacterDesc Characters[MaxCharacters];
 		uint32 NumCharacters;
 
@@ -164,6 +166,8 @@ namespace Game
 		static bool CreateScene(SceneDesc* desc);
 		static bool CreateScene(const char* sceneFile);
 		static bool LoadSceneDesc(const char* sceneFile, SceneDesc* result);
+
+		static uint32 GetSceneID();
 
 		static SceneIntersectionTestResult QueryRayIntersection(Nxna::Vector3 start, Nxna::Vector3 direction, SceneIntersectionTestTarget target);
 

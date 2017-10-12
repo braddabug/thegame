@@ -118,7 +118,7 @@ namespace Game
 			auto r = SceneManager::QueryRayIntersection(mp0, toPoint, SceneIntersectionTestTarget::All);
 			if (r.ResultType != SceneIntersectionTestTarget::None)
 			{
-				numVerbs = ScriptManager::GetActiveVerbs(r.NounHash, verbs, 10);
+				numVerbs = ScriptManager::GetActiveVerbs(SceneManager::GetSceneID(), r.NounHash, verbs, 10);
 
 				if (numVerbs > 0)
 				{
@@ -149,23 +149,8 @@ namespace Game
 					if (numVerbs == 1)
 					{
 						// automatically do the 1 verb
-						ScriptManager::DoVerb(r.NounHash, verbs[0].VerbHash);
+						ScriptManager::DoVerb(r.NounHash, verbs[0].VerbHash, verbs[0].ActionHash);
 					}
-
-					/*auto r = SceneManager::QueryRayIntersection(mp0, toPoint, SceneIntersectionTestTarget::Character);
-					if (r.ResultType == SceneIntersectionTestTarget::Character)
-					{
-						Game::VerbInfo verbs[10];
-						auto numVerbs = ScriptManager::GetActiveVerbs(r.NounHash, verbs, 10);
-
-						LOG("Clicked character, got %u verbs", numVerbs);
-
-						if (numVerbs == 1)
-						{
-							// automatically do the 1 verb
-							ScriptManager::DoVerb(r.NounHash, verbs[0].VerbHash);
-						}
-					}*/
 				}
 			}
 

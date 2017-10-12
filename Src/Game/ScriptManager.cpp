@@ -72,8 +72,6 @@ namespace Game
 			*data = (ScriptManagerData*)g_memory->AllocTrack(sizeof(ScriptManagerData), __FILE__, __LINE__);
 			memset(*data, 0, sizeof(ScriptManagerData));
 			m_data = *data;
-
-			ClearNvcs();
 		}
 		else
 		{
@@ -87,70 +85,33 @@ namespace Game
 		m_data = nullptr;
 	}
 
-	void ScriptManager::ClearNvcs()
+
+	bool Test(uint32 nounHash, uint32 verbHash, uint32 sceneID);
+	uint32 GetVerbs(uint32 sceneID, uint32 nounHash, VerbInfo* verbs, uint32 maxVerbs);
+	void DoAction(uint32 nounHash, uint32 verbHash, uint32 actionHash);
+
+	bool ScriptManager::TestNounVerb(uint32 sceneID, uint32 nounHash, uint32 verbHash)
 	{
-		// add the default global script, erase the rest
-		m_data->Scripts[0].TestNounVerb = Game::TestNounVerb;
-		m_data->Scripts[0].GetActiveVerbs = Game::GetActiveVerbs;
-		m_data->Scripts[0].DoVerb = Game::DoVerb;
-		m_data->NumScripts = 1;
+		return Test(nounHash, verbHash, sceneID);
 	}
 
-	bool ScriptManager::TestNounVerb(uint32 nounHash, uint32 verbHash)
+	uint32 ScriptManager::GetActiveVerbs(uint32 sceneID, uint32 nounHash, VerbInfo* verbs, uint32 maxVerbs)
 	{
-		// work backwards through the list of scripts. This assumes higher priority scripts are at the end.
-		for (uint32 i = m_data->NumScripts; i-- > 0; )
-		{
-			if (m_data->Scripts[i].TestNounVerb(nounHash, verbHash))
-				return true;
-		}
-
-		return false;
+		return GetVerbs(sceneID, nounHash, verbs, maxVerbs);
 	}
 
-	uint32 ScriptManager::GetActiveVerbs(uint32 nounHash, VerbInfo* verbs, uint32 maxVerbs)
+	void ScriptManager::DoVerb(uint32 nounHash, uint32 verbHash, uint32 actionHash)
 	{
-		uint32 verbCount = 0;
-		for (uint32 i = m_data->NumScripts; i-- > 0; )
-		{
-			VerbInfo tmpVerbs[10];
-			auto tmpVerbCount = m_data->Scripts[i].GetActiveVerbs(nounHash, tmpVerbs, 10);
-
-			// don't add duplicate verbs
-			for (uint32 j = 0; j < tmpVerbCount; j++)
-			{
-				bool found = false;
-				for (uint32 k = 0; k < verbCount; k++)
-				{
-					if (verbs[j].VerbHash == tmpVerbs[k].VerbHash)
-					{
-						found = true;
-						break;
-					}
-				}
-
-				if (!found)
-				{
-					verbs[verbCount++] = tmpVerbs[j];
-				}
-
-				if (verbCount >= maxVerbs)
-					return verbCount;
-			}
-		}
-
-		return verbCount;
+		DoAction(nounHash, verbHash, actionHash);
 	}
 
-	void ScriptManager::DoVerb(uint32 nounHash, uint32 verbHash)
+	// add game scripts here
+	void Speak(uint32 nounHash, uint32 verbHash)
 	{
-		for (uint32 i = m_data->NumScripts; i-- > 0; )
-		{
-			if (m_data->Scripts[i].TestNounVerb(nounHash, verbHash))
-			{
-				m_data->Scripts[i].DoVerb(nounHash, verbHash);
-				break;
-			}
-		}
+		LOG("Speak action activated");
 	}
+
+
+	// make sure to include script.cpp last
+	#include "Script.cpp"
 }	
