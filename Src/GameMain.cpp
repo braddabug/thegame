@@ -124,7 +124,7 @@ int Init(WindowInfo* window)
 		return -1;
 	}
 
-	VirtualResolution::Init(window->ScreenHeight);
+	VirtualResolution::Init(window->ScreenWidth, window->ScreenHeight);
 	SpriteBatchHelper::Init(g_device);
 
 	if (Graphics::ShaderLibrary::LoadCoreShaders() == false)
@@ -190,7 +190,6 @@ void Tick(float elapsed)
 	g_device->ClearColor(0, 0, 0, 0);
 	g_device->ClearDepthStencil(true, true, 1.0f, 0);
 
-	SpriteBatchHelper sb;
 	Nxna::Matrix cameraTransform;
 
 	// setup the camera
@@ -284,13 +283,11 @@ void Tick(float elapsed)
 	//if (mj.Result == JobResult::Completed)
 		//Graphics::Model::Render(g_device, &transform, &m, 1);
 
-	sb.Begin();
-	//auto font = Gui::TextPrinter::GetFont(Gui::FontType::Default);
-	//Gui::TextPrinter::PrintScreen(&sb, 0, 20, font, "Hello, world!");
 
-	Gui::Console::Draw(&sb, g_log);
+	Gui::Console::Draw(Gui::GuiManager::GetSprites(), g_log);
+	Gui::GuiManager::DrawSpeech(Nxna::Vector2::Zero, "This is a test of speech text");
 
-	sb.End();
+	Gui::GuiManager::Render();
 
 	g_device->Present();
 }

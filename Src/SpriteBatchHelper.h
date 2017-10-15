@@ -168,7 +168,7 @@ public:
 		m_data->Device->DestroyBlendState(&m_data->BlendState);
 	}
 
-	void Begin()
+	void Reset()
 	{
 		m_sprites.clear();
 	}
@@ -187,7 +187,7 @@ public:
 		return &m_sprites.back() - count + 1;
 	}
 
-	void End()
+	void Render()
 	{
 		if (m_sprites.empty()) return;
 

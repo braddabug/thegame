@@ -1,6 +1,8 @@
 #ifndef GUI_GUIMANAGER_H
 #define GUI_GUIMANAGER_H
 
+#include "../MyNxna2.h"
+
 struct PlatformInfo;
 
 namespace Content
@@ -35,8 +37,13 @@ namespace Gui
 		static bool SetGlobalData(GuiManagerData** data, PlatformInfo* platform);
 		static void Shutdown();
 
-		static bool LoadCursor(Content::ContentLoaderParams* params);
+		static SpriteBatchHelper* GetSprites();
 
+		static void DrawSpeech(Nxna::Vector2 virtualPosition, const char* text);
+
+		static void Render();
+
+		static bool LoadCursor(Content::ContentLoaderParams* params);
 		static void SetCursor(CursorType cursor);
 	};
 }

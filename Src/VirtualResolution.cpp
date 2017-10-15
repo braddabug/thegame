@@ -1,10 +1,16 @@
 #include "VirtualResolution.h"
 #include "MemoryManager.h"
+#include "MyNxna2.h"
 #include <cstring>
+
+const float VirtualWidth = 1024;
+const float VirtualHeight = 768;
 
 struct VirtualResolutionData
 {
 	Resolution NearestResolution;
+	float ScreenWidth, ScreenHeight;
+	float Scaling;
 };
 
 VirtualResolutionData* VirtualResolution::m_data = nullptr;
@@ -26,7 +32,7 @@ void VirtualResolution::Shutdown()
 	m_data = nullptr;
 }
 
-void VirtualResolution::Init(int screenHeight)
+void VirtualResolution::Init(int screenWidth, int screenHeight)
 {
 #undef DEFINE_RESOLUTION
 #define DEFINE_RESOLUTION(r) if (screenHeight >= r) m_data->NearestResolution = Resolution::R ## r; else
@@ -36,6 +42,20 @@ void VirtualResolution::Init(int screenHeight)
 		// else... the resolution is too small, but we'll give it a shot...
 		m_data->NearestResolution = Resolution::R640;
 	}
+
+	m_data->ScreenWidth = (float)screenWidth;
+	m_data->ScreenHeight = (float)screenHeight;
+	m_data->Scaling = m_data->ScreenHeight / VirtualHeight;
+}
+
+Nxna::Vector2 VirtualResolution::ConvertVirtualToScreen(Nxna::Vector2 virtualPosition)
+{
+	Nxna::Vector2 result = {
+		(virtualPosition.X + VirtualWidth * 0.5f) * m_data->Scaling,
+		(virtualPosition.Y + VirtualHeight * 0.5f) * m_data->Scaling
+	};
+
+	return result;
 }
 
 bool VirtualResolution::InjectNearestResolution(const char* source, char* destination, uint32 destinationLength)

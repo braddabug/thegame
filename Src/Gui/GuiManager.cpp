@@ -5,7 +5,9 @@
 #include "../FileSystem.h"
 #include "../Logging.h"
 #include "../Content/ContentManager.h"
+#include "../VirtualResolution.h"
 #include "../iniparse.h"
+
 
 namespace Gui
 {
@@ -13,10 +15,12 @@ namespace Gui
 	{
 		CursorInfo Cursors[(int)CursorType::LAST];
 		bool CursorsActive[(int)CursorType::LAST];
+
+		SpriteBatchHelper Sprites;
 	};
 
 	GuiManagerData* GuiManager::m_data = nullptr;
-	PlatformInfo* GuiManager::m_platform = nullptr;
+	PlatformInfo* GuiManager::m_platform = nullptr; 
 
 	bool GuiManager::SetGlobalData(GuiManagerData** data, PlatformInfo* platform)
 	{
@@ -26,6 +30,7 @@ namespace Gui
 		{
 			*data = (GuiManagerData*)g_memory->AllocTrack(sizeof(GuiManagerData), __FILE__, __LINE__);
 			memset(*data, 0, sizeof(GuiManagerData));
+			new (&(*data)->Sprites) SpriteBatchHelper();
 			m_data = *data;
 		}
 		else
@@ -38,7 +43,34 @@ namespace Gui
 
 	void GuiManager::Shutdown()
 	{
+		m_data->Sprites.~SpriteBatchHelper();
 		g_memory->FreeTrack(m_data, __FILE__, __LINE__);
+	}
+
+	SpriteBatchHelper* GuiManager::GetSprites()
+	{
+		return &m_data->Sprites;
+	}
+
+	void GuiManager::DrawSpeech(Nxna::Vector2 virtualPosition, const char* text)
+	{
+		auto screenPosition = VirtualResolution::ConvertVirtualToScreen(virtualPosition);
+		auto font = TextPrinter::GetFont(FontType::Default);
+		auto screenSize = TextPrinter::MeasureString(font, text);
+
+		screenPosition.X -= screenSize.X * 0.5f;
+		screenPosition.Y -= screenSize.Y * 0.5f;
+
+		const float shadowOffset = 1.0f;
+
+		TextPrinter::PrintScreen(&m_data->Sprites, screenPosition.X + shadowOffset, screenPosition.Y + shadowOffset, font, text, NXNA_GET_PACKED_COLOR_RGB_BYTES(0,0,0));
+		TextPrinter::PrintScreen(&m_data->Sprites, screenPosition.X, screenPosition.Y, font, text);
+	}
+
+	void GuiManager::Render()
+	{
+		m_data->Sprites.Render();
+		m_data->Sprites.Reset();
 	}
 
 	struct CursorLoadInfo

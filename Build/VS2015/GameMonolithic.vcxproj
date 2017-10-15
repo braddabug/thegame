@@ -44,6 +44,7 @@
     <ClInclude Include="..\..\Src\JobQueue.h" />
     <ClInclude Include="..\..\Src\Logging.h" />
     <ClInclude Include="..\..\Src\MyNxna2.h" />
+    <ClInclude Include="..\..\Src\SpriteBatchHelper.h" />
     <ClInclude Include="..\..\Src\Tweener.h" />
     <ClInclude Include="..\..\Src\Utils.h" />
     <ClInclude Include="..\..\Src\VirtualResolution.h" />

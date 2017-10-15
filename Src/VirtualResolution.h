@@ -25,7 +25,9 @@ public:
 	static void SetGlobalData(VirtualResolutionData** data);
 	static void Shutdown();
 
-	static void Init(int screenHeight);
+	static void Init(int screenWidth, int screenHeight);
+
+	static Nxna::Vector2 ConvertVirtualToScreen(Nxna::Vector2 virtualPosition);
 
 	static bool InjectNearestResolution(const char* source, char* destination, uint32 destinationLength);
 };
