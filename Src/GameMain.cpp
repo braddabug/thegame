@@ -14,6 +14,7 @@
 #include "Graphics/DrawUtils.h"
 #include "Content/ContentManager.h"
 #include "Audio/AudioEngine.h"
+#include "Audio/SoundManager.h"
 #include "Game/SceneManager.h"
 #include "Game/CharacterManager.h"
 #include "Game/ScriptManager.h"
@@ -77,6 +78,7 @@ void LibLoaded(GlobalData* data, bool initial)
 	Gui::GuiManager::SetGlobalData(&data->GuiData, g_platform);
 	VirtualResolution::SetGlobalData(&data->ResolutionData);
 	Audio::AudioEngine::SetGlobalData(&data->Audio);
+	Audio::SoundManager::SetGlobalData(&data->SoundData);
 	SpriteBatchHelper::SetGlobalData(&data->SpriteBatch);
 	Gui::TextPrinter::SetGlobalData(&data->TextPrinter);
 	Gui::Console::SetGlobalData(&data->ConsoleData);
@@ -132,6 +134,7 @@ int Init(WindowInfo* window)
 
 	if (Audio::AudioEngine::Init() == false)
 		return -1;
+	Audio::SoundManager::Init();
 
 	Content::ContentManager::QueueGroupLoad(Utils::CalcHash("global"), false);
 	Content::ContentManager::QueueGroupLoad(Utils::CalcHash("scene"), false);
@@ -165,6 +168,7 @@ void Shutdown()
 	VirtualResolution::Shutdown();
 	JobQueue::Shutdown(true);
 
+	Audio::SoundManager::Shutdown();
 	Audio::AudioEngine::Shutdown();
 
 	Gui::TextPrinter::Shutdown();

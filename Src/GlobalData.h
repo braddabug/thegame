@@ -80,6 +80,11 @@ struct PlatformInfo
 	void (*SetCursor)(CursorInfo* cursor);
 };
 
+namespace Audio
+{
+	struct SoundManagerData;
+}
+
 struct GlobalData
 {
 	Globals* Global;
@@ -107,6 +112,7 @@ struct GlobalData
 	Game::CharacterManagerData* CharacterData;
 	Game::ScriptManagerData* ScriptData;
 	Utils::StopwatchData* StopwatchData;
+	Audio::SoundManagerData* SoundData;
 };
 
 

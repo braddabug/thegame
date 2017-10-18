@@ -53,7 +53,7 @@ namespace Audio
 		void SetPositionRel(Source* source, float x, float y, float z);
 		void SetPositionRel(Source* source, float* position3f);
 
-		static void Play(Source* source);
+		static void Play(Source* source, bool loop);
 		void Pause(Source* source);
 		void Stop(Source* stop);
 	};

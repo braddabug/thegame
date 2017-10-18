@@ -174,6 +174,7 @@ namespace Audio
 		if (source != (uint32)-1)
 		{
 			// TODO: set some defaults on the source
+			alSourcei(m_data->Sources[source].ALSource, AL_LOOPING, 0);
 
 			m_data->SourceOwnershipState[source] = SourceOwnership::Owned;
 			return &m_data->Sources[source];
@@ -214,8 +215,9 @@ namespace Audio
 		}
 	}
 
-	void AudioEngine::Play(Source* source)
+	void AudioEngine::Play(Source* source, bool loop)
 	{
+		alSourcei(source->ALSource, AL_LOOPING, loop ? 1 : 0);
 		alSourcePlay(source->ALSource);
 	}
 }

@@ -30,6 +30,7 @@
 #include "Content/ContentLoader.cpp"
 #include "Content/ContentManager.cpp"
 #include "Audio/AudioEngine.cpp"
+#include "Audio/SoundManager.cpp"
 #include "Game/SceneManager.cpp"
 #include "Game/CharacterManager.cpp"
 #include "Game/ScriptManager.cpp"

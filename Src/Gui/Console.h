@@ -1,6 +1,8 @@
 #ifndef GUI_CONSOLE_H
 #define GUI_CONSOLE_H
 
+#include "../Common.h"
+
 class SpriteBatchHelper;
 struct LogData;
 struct ConsoleCommand;
