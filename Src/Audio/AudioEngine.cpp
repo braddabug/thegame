@@ -220,4 +220,17 @@ namespace Audio
 		alSourcei(source->ALSource, AL_LOOPING, loop ? 1 : 0);
 		alSourcePlay(source->ALSource);
 	}
+
+	SourceState AudioEngine::GetState(Source* source)
+	{
+		int value;
+		alGetSourcei(source->ALSource, AL_SOURCE_STATE, &value);
+
+		switch (value)
+		{
+		case AL_PLAYING: return SourceState::Playing;
+		case AL_PAUSED: return SourceState::Paused;
+		default: return SourceState::Stopped;
+		}
+	}
 }

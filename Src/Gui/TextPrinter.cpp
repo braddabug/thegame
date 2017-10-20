@@ -33,7 +33,7 @@ namespace Gui
 	bool TextPrinter::Init(Nxna::Graphics::GraphicsDevice* device)
 	{
 		return createFont(device, "Content/Fonts/DroidSans.ttf", 20, 32, 127, '?', &m_data->DefaultFont) &&
-			createFont(device, "Content/Fonts/Inconsolata-Regular.ttf", 16, 32, 255, '?', &m_data->ConsoleFont);
+			createFont(device, "Content/Fonts/Inconsolata-Regular.ttf", 13, 32, 255, '?', &m_data->ConsoleFont);
 	}
 
 	void TextPrinter::Shutdown()
@@ -132,8 +132,8 @@ namespace Gui
 			sprites[i].Source[2] = characterInfo.SrcW;
 			sprites[i].Source[3] = characterInfo.SrcH;
 
-			sprites[i].Destination[0] = cursorX + characterInfo.XOffset;
-			sprites[i].Destination[1] = y + characterInfo.YOffset;
+			sprites[i].Destination[0] = roundf(cursorX + characterInfo.XOffset);
+			sprites[i].Destination[1] = roundf(y + characterInfo.YOffset);
 			sprites[i].Destination[2] = characterInfo.ScreenW;
 			sprites[i].Destination[3] = characterInfo.ScreenH;
 

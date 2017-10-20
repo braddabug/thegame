@@ -189,6 +189,7 @@ float cameraYaw = 0;
 
 void Tick(float elapsed)
 {
+	Audio::SoundManager::Step();
 	JobQueue::Tick();
 
 	g_device->ClearColor(0, 0, 0, 0);

@@ -28,6 +28,13 @@ namespace Audio
 	struct Source;
 	struct AudioEngineData;
 
+	enum class SourceState
+	{
+		Stopped,
+		Playing,
+		Paused
+	};
+
 	class AudioEngine
 	{
 		static AudioEngineData* m_data;
@@ -56,6 +63,8 @@ namespace Audio
 		static void Play(Source* source, bool loop);
 		void Pause(Source* source);
 		void Stop(Source* stop);
+
+		static SourceState GetState(Source* source);
 	};
 }
 

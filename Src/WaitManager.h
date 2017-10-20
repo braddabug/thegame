@@ -3,12 +3,11 @@
 
 #include <vector>
 #include <cstddef>
+#include "Common.h"
 
-struct WaitManagerData
-{
-	// when checksum is even (or 0) that means it's dead, otherwise alive (in use)
-	std::vector<uint16> Checksums;
-};
+struct WaitManagerData;
+
+typedef uint32 WaitHandle;
 
 class WaitManager
 {
@@ -22,12 +21,19 @@ public:
 		Done
 	};
 
-	static const int INVALID_WAIT = -1;
+	static const WaitHandle INVALID_WAIT = (WaitHandle)-1;
 
-	static int CreateWait();
+	static void SetGlobalData(WaitManagerData** data);
+	static void Shutdown();
+	static void Reset();
 
-	static WaitStatus GetWaitStatus(int wait);
+	static WaitHandle CreateWait();
 
-	static void SetWaitDone(int wait);
+	static WaitStatus GetWaitStatus(WaitHandle wait);
+
+	static void SetWaitDone(WaitHandle wait);
 };
+
+#define WAIT_GET_INDEX(w) (w & 0xffff) 
+
 #endif // WAITMANAGER_H

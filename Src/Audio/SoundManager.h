@@ -1,6 +1,8 @@
 #ifndef AUDIO_SOUNDMANAGER_H
 #define AUDIO_SOUNDMANAGER_H
 
+#include "WaitManager.h"
+
 namespace Audio
 {
 	struct SoundManagerData;
@@ -23,15 +25,24 @@ namespace Audio
 		static void SetGlobalData(SoundManagerData** data);
 		static void Init();
 		static void Shutdown();
+		static void Step();
 
-		static uint32 Play(uint32 nameHash, Channel channel, PlayFlag flags);
-		static uint32 PlayGroup(const char* groupName, Channel channel, PlayFlag flags);
-		static void ReleaseHandle(uint32 handle);
+		static void PlayOnce(uint32 nameHash, Channel channel);
+		static void PlayGroupOnce(const char* groupName, Channel channel);
+
+		static Source* GetSource(uint32 nameHash, Channel channel);
+		static Source* GetSourceFromGroup(const char* groupName, Channel channel);
+		static void ReleaseSource(Source* source);
 		
-		static void Resume(uint32 handle);
-		static void Pause(uint32 handle);
-		static void Stop(uint32 handle);
+		static WaitHandle Play(Source* source, bool wait);
+		static void PlayLooped(Source* source);
+		static void Pause(Source* source);
+		static void Resume(Source* source);
+		static void Stop(Source* source);
 
+		static SoundManagerData* GetData() { return m_data; }
+
+		
 	};
 }
 

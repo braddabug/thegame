@@ -19,17 +19,81 @@ namespace Audio
 			uint32 FirstFileIndex;
 			uint32 NumFiles;
 		}* Groups;
+
+		struct
+		{
+			static const uint32 Capacity = 100;
+			Source* Sources[Capacity];
+			WaitHandle Waits[Capacity];
+			Channel Channels[Capacity];
+
+			int Add(Source* source, Channel channel)
+			{
+				int index = (intptr_t)source % Capacity;
+
+				for (uint32 i = 0; i < Capacity; i++)
+				{
+					int i2 = (i + index) % Capacity;
+					if (Sources[i2] == nullptr)
+					{
+						Sources[i2] = source;
+						Channels[i2] = channel;
+						Waits[i2] = WaitManager::INVALID_WAIT;
+						return i2;
+					}
+				}
+
+				// we must be out of space :(
+				return -1;
+			}
+
+			int Find(Source* source)
+			{
+				int index = (intptr_t)source % Capacity;
+
+				for (uint32 i = 0; i < Capacity; i++)
+				{
+					uint32 i2 = (i + index) % Capacity;
+					if (Sources[i2] == source)
+					{
+						return i2;
+					}
+					else if (Sources[i2] == nullptr)
+					{
+						// we found an empty source before the matching handle, therefore
+						// that sound is not in our collection.
+						return -1;
+					}
+				}
+
+				return -1;
+			}
+		} Playing;
 	};
 
 	void cmdPlay(const char* param)
 	{
 		uint32 fileHash = Utils::CalcHash(param);
-		SoundManager::Play(fileHash, Channel::SoundEffects, PLAYFLAG_NONE);
+		SoundManager::PlayOnce(fileHash, Channel::SoundEffects);
 	}
 
 	void cmdPlayGroup(const char* param)
 	{
-		SoundManager::PlayGroup(param, Channel::SoundEffects, PLAYFLAG_NONE);
+		SoundManager::PlayGroupOnce(param, Channel::SoundEffects);
+	}
+
+	void cmdSoundSourceCount(const char* param)
+	{
+		auto data = SoundManager::GetData();
+
+		uint32 count = 0;
+		for (uint32 i = 0; i < data->Playing.Capacity; i++)
+		{
+			if (data->Playing.Sources[i] != nullptr)
+				count++;
+		}
+
+		WriteLog(LogSeverityType::Normal, LogChannelType::ConsoleOutput, "%u sound sources active (%u free)", count, data->Playing.Capacity - count);
 	}
 
 	SoundManagerData* SoundManager::m_data = nullptr;
@@ -39,6 +103,7 @@ namespace Audio
 		if ((*data) == nullptr)
 		{
 			*data = (SoundManagerData*)g_memory->AllocAndKeep(sizeof(SoundManagerData), __FILE__, __LINE__);
+			memset(*data, 0, sizeof(SoundManagerData));
 		}
 
 		m_data = *data;
@@ -46,14 +111,15 @@ namespace Audio
 
 	void SoundManager::Init()
 	{
-		ConsoleCommand cmd[2] = {
+		ConsoleCommand cmd[3] = {
 			{ "play", cmdPlay },
-			{ "playgroup", cmdPlayGroup }
+			{ "playgroup", cmdPlayGroup },
+			{ "sound_source_count", cmdSoundSourceCount }
 		};
 
-		Gui::Console::AddCommands(cmd, 2);
+		Gui::Console::AddCommands(cmd, 3);
 
-		// TODO: load sound group info
+		// load sound group info
 		ini_context ctx;
 		ini_item item;
 
@@ -141,40 +207,71 @@ namespace Audio
 		m_data = nullptr;
 	}
 
-	uint32 SoundManager::Play(uint32 nameHash, Channel channel, PlayFlag flags)
+	void SoundManager::Step()
+	{
+		for (uint32 i = 0; i < m_data->Playing.Capacity; i++)
+		{
+			if (m_data->Playing.Sources[i] != nullptr)
+			{
+				if (m_data->Playing.Waits[i] != WaitManager::INVALID_WAIT)
+				{
+					// check to see if this is done waiting
+					if (AudioEngine::GetState(m_data->Playing.Sources[i]) == SourceState::Stopped)
+					{
+						WaitManager::SetWaitDone(m_data->Playing.Waits[i]);
+						m_data->Playing.Waits[i] = WaitManager::INVALID_WAIT;
+					}
+				}
+			}
+		}
+	}
+
+	void SoundManager::PlayOnce(uint32 nameHash, Channel channel)
+	{
+		auto src = GetSource(nameHash, channel);
+		if (src != nullptr)
+		{
+			Play(src, false);
+			ReleaseSource(src);
+		}
+	}
+
+	void SoundManager::PlayGroupOnce(const char* groupName, Channel channel)
+	{
+		auto src = GetSourceFromGroup(groupName, channel);
+		if (src != nullptr)
+		{
+			Play(src, false);
+			ReleaseSource(src);
+		}
+	}
+
+	Source* SoundManager::GetSource(uint32 nameHash, Channel channel)
 	{
 		auto buffer = Content::ContentManager::Get(nameHash, Content::ResourceType::Audio);
 		if (buffer == nullptr)
 		{
 			WriteLog(LogSeverityType::Error, LogChannelType::ConsoleOutput, "Unable to find audio file with hash %u", nameHash);
-			return (uint32)-1;
+			return nullptr;
 		}
 
 		auto src = AudioEngine::GetFreeSource(channel, false);
 		if (src == nullptr)
 		{
 			WriteLog(LogSeverityType::Error, LogChannelType::ConsoleOutput, "Unable to get a free source");
-			return (uint32)-1;
+			return nullptr;
 		}
 
-		bool loop = (flags & PLAYFLAG_LOOP) == PLAYFLAG_LOOP;
-		bool getHandle = (flags & PLAYFLAG_GET_HANDLE) == PLAYFLAG_GET_HANDLE;
-		bool startPaused = (flags & PLAYFLAG_START_PAUSED) == PLAYFLAG_START_PAUSED;
-
 		AudioEngine::SetBuffer(src, (Buffer*)buffer);
-		AudioEngine::ReleaseSourceWhenFinishedPlaying(src);
-		AudioEngine::Play(src, loop);
 
 		Content::ContentManager::Release(buffer);
 
-		// TODO: return a handle that the consumer can use to control the sound.
-		// It'll be a WaitHandle that we can use as a key to a hash table to get the
-		// original source. Once the source is done then we trigger the wait handle so
-		// all observers will know the sound has finished.
-		return (uint32)-1;
+		m_data->Playing.Add(src, channel);
+
+		return src;
 	}
 
-	uint32 SoundManager::PlayGroup(const char* groupName, Channel channel, PlayFlag flags)
+	Source* SoundManager::GetSourceFromGroup(const char* groupName, Channel channel)
 	{
 		uint32 groupHash = Utils::CalcHash(groupName);
 
@@ -187,11 +284,49 @@ namespace Audio
 				uint32 dice = rand() % m_data->Groups[i].NumFiles;
 				uint32 fileHash = m_data->FileHashes[m_data->Groups[i].FirstFileIndex + dice];
 
-				return Play(fileHash, channel, flags);
+				return GetSource(fileHash, channel);
 			}
 		}
 
-		// still here? we failed :(
-		return (uint32)-1;
+		return nullptr;
+	}
+
+	void SoundManager::ReleaseSource(Source* source)
+	{
+		AudioEngine::ReleaseSource(source);
+
+		auto index = m_data->Playing.Find(source);
+		if (index >= 0)
+		{
+			m_data->Playing.Sources[index] = nullptr;
+			
+			if (m_data->Playing.Waits[index] != WaitManager::INVALID_WAIT)
+				WaitManager::SetWaitDone(m_data->Playing.Waits[index]);
+		}
+	}
+
+	WaitHandle SoundManager::Play(Source* source, bool wait)
+	{
+		AudioEngine::Play(source, false);
+
+		if (wait && AudioEngine::GetState(source) == SourceState::Playing)
+		{
+			auto index = m_data->Playing.Find(source);
+			if (index >= 0)
+			{
+				auto wait = WaitManager::CreateWait();
+
+				m_data->Playing.Waits[index] = wait;
+
+				return wait;
+			}
+		}
+
+		return WaitManager::INVALID_WAIT;
+	}
+
+	void SoundManager::PlayLooped(Source* source)
+	{
+		AudioEngine::Play(source, true);
 	}
 }

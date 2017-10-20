@@ -1,39 +1,62 @@
 #include "WaitManager.h"
 
+struct WaitManagerData
+{
+	static const uint32 Capacity = 1000;
+
+	// when checksum is even (or 0) that means it's dead, otherwise alive (in use)
+	uint16 Checksums[Capacity];
+};
+
 WaitManagerData* WaitManager::m_data = nullptr;
 
-int WaitManager::CreateWait()
+void WaitManager::SetGlobalData(WaitManagerData** data)
 {
-	for (size_t i = 0; i < m_data->Checksums.size(); i++)
+	if (*data == nullptr)
+	{
+		*data = (WaitManagerData*)g_memory->AllocAndKeep(sizeof(WaitManagerData), __FILE__, __LINE__);
+		memset(*data, 0, sizeof(WaitManagerData));
+	}
+	m_data = *data;
+}
+
+void WaitManager::Shutdown()
+{
+	g_memory->FreeTrack(m_data->Checksums, __FILE__, __LINE__);
+	g_memory->FreeTrack(m_data, __FILE__, __LINE__);
+	m_data = nullptr;
+}
+
+void WaitManager::Reset()
+{
+	memcpy(m_data, 0, sizeof(WaitManagerData));
+}
+
+WaitHandle WaitManager::CreateWait()
+{
+	for (size_t i = 0; i < m_data->Capacity; i++)
 	{
 		if ((m_data->Checksums[i] & 1) == 0)
 		{
 			// it's dead, so we can grab it
 			m_data->Checksums[i]++;
-			int wait = (m_data->Checksums[i] << 16) | (i & 0xffff);
+			WaitHandle wait = (m_data->Checksums[i] << 16) | (i & 0xffff);
 
 			return wait;
 		}
 	}
 
-	// make sure we don't create too many
-	if (m_data->Checksums.size() == 0xffff - 1)
-		return INVALID_WAIT;
-
-	// still here? insert a new spot
-	m_data->Checksums.push_back(1);
-	int wait = (1 << 16) | ((m_data->Checksums.size() - 1) & 0xffff);
-	return wait;
+	return INVALID_WAIT;
 }
 
-WaitManager::WaitStatus WaitManager::GetWaitStatus(int wait)
+WaitManager::WaitStatus WaitManager::GetWaitStatus(WaitHandle wait)
 {
-	int index = wait & 0xffff;
+	uint32 index = WAIT_GET_INDEX(wait);
 
-	if (index >= (int)m_data->Checksums.size())
+	if (index >= WaitManagerData::Capacity)
 		return WaitStatus::Done;
 
-	int checksum = (wait & 0xffff0000) >> 16;
+	uint32 checksum = (wait & 0xffff0000) >> 16;
 
 	if (m_data->Checksums[index] == checksum)
 		return WaitStatus::Waiting;
@@ -41,14 +64,14 @@ WaitManager::WaitStatus WaitManager::GetWaitStatus(int wait)
 	return WaitStatus::Done;
 }
 
-void WaitManager::SetWaitDone(int wait)
+void WaitManager::SetWaitDone(WaitHandle wait)
 {
-	int index = wait & 0xffff;
+	uint32 index = WAIT_GET_INDEX(wait);
 
-	if (index >= (int)m_data->Checksums.size())
+	if (index >= WaitManagerData::Capacity)
 		return;
 
-	int checksum = (wait & 0xffff0000) >> 16;
+	uint32 checksum = (wait & 0xffff0000) >> 16;
 
 	if (m_data->Checksums[index] == checksum)
 		m_data->Checksums[index]++;
