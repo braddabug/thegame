@@ -221,6 +221,21 @@ namespace Audio
 		alSourcePlay(source->ALSource);
 	}
 
+	void AudioEngine::Pause(Source* source)
+	{
+		alSourcePause(source->ALSource);
+	}
+
+	void AudioEngine::Resume(Source* source)
+	{
+		alSourcePlay(source->ALSource);
+	}
+
+	void AudioEngine::Stop(Source* source)
+	{
+		alSourceStop(source->ALSource);
+	}
+
 	SourceState AudioEngine::GetState(Source* source)
 	{
 		int value;

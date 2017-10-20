@@ -329,4 +329,26 @@ namespace Audio
 	{
 		AudioEngine::Play(source, true);
 	}
+
+	void SoundManager::Pause(Source* source)
+	{
+		AudioEngine::Pause(source);
+	}
+
+	void SoundManager::Resume(Source* source)
+	{
+		AudioEngine::Resume(source);
+	}
+	
+	void SoundManager::Stop(Source* source)
+	{
+		AudioEngine::Stop(source);
+
+		auto index = m_data->Playing.Find(source);
+		if (index >= 0)
+		{
+			WaitManager::SetWaitDone(m_data->Playing.Waits[index]);
+			m_data->Playing.Waits[index] = WaitManager::INVALID_WAIT;
+		}
+	}
 }
