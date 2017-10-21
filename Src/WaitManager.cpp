@@ -29,7 +29,7 @@ void WaitManager::Shutdown()
 
 void WaitManager::Reset()
 {
-	memcpy(m_data, 0, sizeof(WaitManagerData));
+	memset(m_data, 0, sizeof(WaitManagerData));
 }
 
 WaitHandle WaitManager::CreateWait()

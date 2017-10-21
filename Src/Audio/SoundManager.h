@@ -1,7 +1,7 @@
 #ifndef AUDIO_SOUNDMANAGER_H
 #define AUDIO_SOUNDMANAGER_H
 
-#include "WaitManager.h"
+#include "../WaitManager.h"
 
 namespace Audio
 {

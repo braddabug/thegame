@@ -20,7 +20,7 @@ namespace Audio
 			uint32 NumFiles;
 		}* Groups;
 
-		struct
+		struct PlayingInfo
 		{
 			static const uint32 Capacity = 100;
 			Source* Sources[Capacity];
