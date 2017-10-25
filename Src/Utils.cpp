@@ -47,6 +47,23 @@ namespace Utils
 		return hash;
 	}
 
+	uint32 CalcHashI(const char* str, size_t length)
+	{
+		// this is djb2: http://www.cse.yorku.ca/~oz/hash.html
+		uint32 hash = 5381;
+
+		for (size_t i = 0; i < length; i++)
+		{
+			auto value = str[i];
+			if (value >= 'a' && value <= 'z')
+				value -= 'a' - 'A';
+
+			hash = ((hash << 5) + hash) + value; /* hash * 33 + c */
+		}
+
+		return hash;
+	}
+
 
 	struct StopwatchData
 	{
@@ -148,6 +165,30 @@ namespace Utils
 		return (unsigned int)(GetElapsedTicks() * m_info.numer / m_info.denom / 1000000);
 #else
 		return (unsigned int)(GetElapsedTicks() / 1000000);
+#endif
+	}
+
+	void CopyString(char* destination, const char* source, uint32 destLength)
+	{
+#ifdef _WIN32
+		strncpy_s(destination, destLength, source, destLength);
+		destination[destLength - 1] = 0;
+#else
+		strncpy(destination, source, destLength);
+		destination[destLength - 1] = 0;
+#endif
+	}
+
+	void CopyString(char* destination, const char* source, uint32 destLength, uint32 sourceLength)
+	{
+		uint32 len = destLength < sourceLength ? destLength : sourceLength;
+
+#ifdef _WIN32
+		strncpy_s(destination, destLength, source, len);
+		destination[len - 1] = 0;
+#else
+		strncpy(destination, source, len);
+		destination[len - 1] = 0;
 #endif
 	}
 }

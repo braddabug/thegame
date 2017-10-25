@@ -183,6 +183,8 @@ public:
 
 	Nxna::Graphics::SpriteBatchSprite* AddSprites(uint32 count = 1)
 	{
+		if (count == 0) return nullptr;
+
 		m_sprites.resize(m_sprites.size() + count);
 		return &m_sprites.back() - count + 1;
 	}

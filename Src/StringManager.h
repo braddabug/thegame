@@ -11,10 +11,15 @@ class StringManager
 
 public:
 	static void SetGlobalData(StringManagerData** data);
+	static void Shutdown();
 
-	static PersistantString Create(const char* source);
-	static void Acquire(PersistantString string);
-	static void Release(PersistantString string);
+	static void Init(const char* languageCode, const char* regionCode);
+
+	static const char* GetLocalizedText(const char* key);
+	static const char* GetLocalizedText(uint32 keyHash);
+	static const char* GetLocalizedTextFromHandle(uint32 handle);
+	static uint32 GetHandle(const char* key);
+	static uint32 GetHandle(uint32 keyHash);
 };
 
 #endif // STRINGMANAGER_H

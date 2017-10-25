@@ -103,6 +103,8 @@ int Init(WindowInfo* window)
 	};
 	FileSystem::SetSearchPaths(searchPaths, 1);
 
+	StringManager::Init("en", "us");
+
 	if (Content::ContentManager::LoadManifest(window->ScreenHeight) == false)
 	{
 		WriteLog(LogSeverityType::Error, LogChannelType::Unknown, "Unable to load manifest file");
@@ -169,6 +171,7 @@ void Shutdown()
 	VirtualResolution::Shutdown();
 	JobQueue::Shutdown(true);
 	WaitManager::Shutdown();
+	StringManager::Shutdown();
 
 	Audio::SoundManager::Shutdown();
 	Audio::AudioEngine::Shutdown();
@@ -294,7 +297,7 @@ void Tick(float elapsed)
 
 
 	Gui::Console::Draw(Gui::GuiManager::GetSprites(), g_log);
-	Gui::GuiManager::DrawSpeech(Nxna::Vector2::Zero, "This is a test of speech text");
+	Gui::GuiManager::DrawSpeech(Nxna::Vector2::Zero, StringManager::GetLocalizedText("KEY"));
 
 	Gui::GuiManager::Render();
 

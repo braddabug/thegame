@@ -32,6 +32,22 @@ namespace Utils
 		return hash;
 	}
 
+	constexpr uint32 CalcHashI(const char *str)
+	{
+		// this is djb2: http://www.cse.yorku.ca/~oz/hash.html
+		uint32 hash = 5381;
+		int c = 0;
+
+		while (c = *str++)
+		{
+			if (c >= 'a' && c <= 'z')
+				c -= 'a' - 'A';
+			hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+		}
+
+		return hash;
+	}
+
 	template<typename T, size_t size>
 	class HashTable
 	{
@@ -149,6 +165,9 @@ namespace Utils
 	private:
 		void getFrequency();
 	};
+
+	void CopyString(char* destination, const char* source, uint32 destLength);
+	void CopyString(char* destination, const char* source, uint32 destLength, uint32 sourceLength);
 }
 
 #endif // UTILS_H

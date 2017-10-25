@@ -54,6 +54,8 @@ namespace Gui
 
 	void GuiManager::DrawSpeech(Nxna::Vector2 virtualPosition, const char* text)
 	{
+		if (text == nullptr) return;
+
 		auto screenPosition = VirtualResolution::ConvertVirtualToScreen(virtualPosition);
 		auto font = TextPrinter::GetFont(FontType::Default);
 		auto screenSize = TextPrinter::MeasureString(font, text);
@@ -205,7 +207,7 @@ namespace Gui
 
 				CursorInfo* cursor = &m_data->Cursors[(int)loadData->Cursors[i].Type];
 
-				if (g_platform->CreateCursor(bmp->Width, bmp->Height, loadData->Cursors[i].HotX * bmp->Width, loadData->Cursors[i].HotY * bmp->Height, bmp->Pixels, cursor) == false)
+				if (g_platform->CreateCursor(bmp->Width, bmp->Height, (uint32)(loadData->Cursors[i].HotX * bmp->Width), (uint32)(loadData->Cursors[i].HotY * bmp->Height), bmp->Pixels, cursor) == false)
 				{
 					WriteLog(LogSeverityType::Error, LogChannelType::Content, "Error when trying to create cursor");
 					return false;
