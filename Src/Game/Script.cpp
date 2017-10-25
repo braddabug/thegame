@@ -36,7 +36,14 @@ uint32 GetVerbs(uint32 sceneID, uint32 nounHash, VerbInfo* verbs, uint32 maxVerb
 
 void DoAction(uint32 nounHash, uint32 verbHash, uint32 actionHash)
 {
+	Game::CoroutineParams params;
+	params.Store(0, nounHash);
+	params.Store(1, verbHash);
+
     switch(actionHash) {
-    case Utils::CalcHash("Speak"): Speak(nounHash, verbHash); break;
+    case Utils::CalcHash("Speak"): 
+	{
+		Game::ScriptManager::BeginCoroutine(Speak, &params, sizeof(Game::CoroutineParams)); break;
+	}
     }
 }

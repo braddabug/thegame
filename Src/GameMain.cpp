@@ -71,6 +71,7 @@ void LibLoaded(GlobalData* data, bool initial)
 	// we always expect the log data to be created
 	g_log = data->Log;
 
+	WaitManager::SetGlobalData(&data->WaitData);
 	Utils::Stopwatch::SetGlobalData(&data->StopwatchData);
 	FileSystem::SetGlobalData(&data->FileSystem);
 	StringManager::SetGlobalData(&data->StringData);
@@ -167,6 +168,7 @@ void Shutdown()
 
 	VirtualResolution::Shutdown();
 	JobQueue::Shutdown(true);
+	WaitManager::Shutdown();
 
 	Audio::SoundManager::Shutdown();
 	Audio::AudioEngine::Shutdown();
@@ -191,6 +193,8 @@ void Tick(float elapsed)
 {
 	Audio::SoundManager::Step();
 	JobQueue::Tick();
+
+	Game::ScriptManager::RunAllScripts();
 
 	g_device->ClearColor(0, 0, 0, 0);
 	g_device->ClearDepthStencil(true, true, 1.0f, 0);

@@ -26,6 +26,7 @@ namespace Audio
 			Source* Sources[Capacity];
 			WaitHandle Waits[Capacity];
 			Channel Channels[Capacity];
+			bool ReleaseWhenStopped[Capacity];
 
 			int Add(Source* source, Channel channel)
 			{
@@ -213,13 +214,22 @@ namespace Audio
 		{
 			if (m_data->Playing.Sources[i] != nullptr)
 			{
-				if (m_data->Playing.Waits[i] != WaitManager::INVALID_WAIT)
+				if (m_data->Playing.Waits[i] != WaitManager::INVALID_WAIT ||
+					m_data->Playing.ReleaseWhenStopped[i])
 				{
 					// check to see if this is done waiting
 					if (AudioEngine::GetState(m_data->Playing.Sources[i]) == SourceState::Stopped)
 					{
-						WaitManager::SetWaitDone(m_data->Playing.Waits[i]);
-						m_data->Playing.Waits[i] = WaitManager::INVALID_WAIT;
+						if (m_data->Playing.Waits[i] != WaitManager::INVALID_WAIT)
+						{
+							WaitManager::SetWaitDone(m_data->Playing.Waits[i]);
+							m_data->Playing.Waits[i] = WaitManager::INVALID_WAIT;
+						}
+
+						if (m_data->Playing.ReleaseWhenStopped[i])
+						{
+							ReleaseSource(m_data->Playing.Sources[i]);
+						}
 					}
 				}
 			}
@@ -302,6 +312,15 @@ namespace Audio
 			
 			if (m_data->Playing.Waits[index] != WaitManager::INVALID_WAIT)
 				WaitManager::SetWaitDone(m_data->Playing.Waits[index]);
+		}
+	}
+
+	void SoundManager::ReleaseSourceWhenFinishedPlaying(Source* source)
+	{
+		auto index = m_data->Playing.Find(source);
+		if (index >= 0)
+		{
+			m_data->Playing.ReleaseWhenStopped[index] = true;
 		}
 	}
 

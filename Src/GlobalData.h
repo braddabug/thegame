@@ -58,6 +58,7 @@ struct MemoryManager;
 struct PlatformInfo;
 struct FileSystemData;
 struct VirtualResolutionData;
+struct WaitManagerData;
 
 namespace Utils
 {
@@ -95,6 +96,7 @@ struct GlobalData
 	FileSystemData* FileSystem;
 	StringManagerData* StringData;
 	VirtualResolutionData* ResolutionData;
+	WaitManagerData* WaitData;
 	Nxna::Graphics::GraphicsDevice* Device;
 	Nxna::Input::InputState* Input;
 	Audio::AudioEngineData* Audio;

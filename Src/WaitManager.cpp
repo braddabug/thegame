@@ -22,7 +22,6 @@ void WaitManager::SetGlobalData(WaitManagerData** data)
 
 void WaitManager::Shutdown()
 {
-	g_memory->FreeTrack(m_data->Checksums, __FILE__, __LINE__);
 	g_memory->FreeTrack(m_data, __FILE__, __LINE__);
 	m_data = nullptr;
 }

@@ -33,6 +33,7 @@ namespace Audio
 		static Source* GetSource(uint32 nameHash, Channel channel);
 		static Source* GetSourceFromGroup(const char* groupName, Channel channel);
 		static void ReleaseSource(Source* source);
+		static void ReleaseSourceWhenFinishedPlaying(Source* source);
 		
 		static WaitHandle Play(Source* source, bool wait);
 		static void PlayLooped(Source* source);
