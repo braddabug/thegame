@@ -143,6 +143,7 @@ doit:
 		goto doit;
 	}
 
+	{
 	// calculate the total length of all the strings
 	uint32 stringsLength = 0;
 	for (uint32 i = 0; i < StringManagerData::Capacity; i++)
@@ -169,6 +170,7 @@ doit:
 			stringCursor[length[i]] = 0;
 			stringCursor += length[i] + 1;
 		}
+	}
 	}
 
 done:
