@@ -14,7 +14,7 @@ void cmdReloadStrings(const char* param)
 struct StringManagerData
 {
 	static const uint32 Capacity = 1000;
-	uint32 Handles[Capacity];
+	StringHandle Handles[Capacity];
 	const char* Strings[Capacity];
 
 	char* StringMemory;
@@ -190,16 +190,16 @@ const char* StringManager::GetLocalizedText(const char* key)
 	return GetLocalizedText(hash);
 }
 
-const char* StringManager::GetLocalizedText(uint32 handle)
+const char* StringManager::GetLocalizedText(uint32 keyHash)
 {
-	int index = m_data->Find(handle);
+	int index = m_data->Find(keyHash);
 	if (index >= 0)
 		return m_data->Strings[index];
 
 	return nullptr;
 }
 
-const char* StringManager::GetLocalizedTextFromHandle(uint32 handle)
+const char* StringManager::GetLocalizedTextFromHandle(StringHandle handle)
 {
 	if (handle < StringManagerData::Capacity)
 		return m_data->Strings[handle];
@@ -207,13 +207,13 @@ const char* StringManager::GetLocalizedTextFromHandle(uint32 handle)
 	return nullptr;
 }
 
-uint32 StringManager::GetHandle(const char* key)
+StringHandle StringManager::GetHandle(const char* key)
 {
 	auto hash = Utils::CalcHashI(key);
 	return GetHandle(hash);
 }
 
-uint32 StringManager::GetHandle(uint32 keyHash)
+StringHandle StringManager::GetHandle(uint32 keyHash)
 {
 	return (uint32)m_data->Find(keyHash);
 }

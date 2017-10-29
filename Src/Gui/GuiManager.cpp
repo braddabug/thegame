@@ -52,16 +52,26 @@ namespace Gui
 		return &m_data->Sprites;
 	}
 
+
+
 	void GuiManager::DrawSpeech(Nxna::Vector2 virtualPosition, const char* text)
+	{
+		auto screenPosition = VirtualResolution::ConvertVirtualToScreen(virtualPosition);
+		DrawSpeechScreen(screenPosition, text);
+	}
+
+	void GuiManager::DrawSpeechScreen(Nxna::Vector2 screenPosition, const char* text)
 	{
 		if (text == nullptr) return;
 
-		auto screenPosition = VirtualResolution::ConvertVirtualToScreen(virtualPosition);
 		auto font = TextPrinter::GetFont(FontType::Default);
 		auto screenSize = TextPrinter::MeasureString(font, text);
 
 		screenPosition.X -= screenSize.X * 0.5f;
 		screenPosition.Y -= screenSize.Y * 0.5f;
+
+		screenPosition.X = roundf(screenPosition.X);
+		screenPosition.Y = roundf(screenPosition.Y);
 
 		const float shadowOffset = 1.0f;
 

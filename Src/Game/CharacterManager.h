@@ -26,6 +26,7 @@ namespace Game
 		static uint32 GetEgo() { return 0; }
 		static void Idle(uint32 character);
 		static void Idle(uint32 character, float faceDirection);
+		static WaitHandle Say(uint32 character, StringHandle text, bool wait);
 	private:
 		static void updateTransform();
 	};

@@ -326,6 +326,9 @@ namespace Audio
 
 	WaitHandle SoundManager::Play(Source* source, bool wait)
 	{
+		if (source == nullptr)
+			return WaitManager::INVALID_WAIT;
+
 		AudioEngine::Play(source, false);
 
 		if (wait && AudioEngine::GetState(source) == SourceState::Playing)

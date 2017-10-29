@@ -40,6 +40,7 @@ namespace Gui
 		static SpriteBatchHelper* GetSprites();
 
 		static void DrawSpeech(Nxna::Vector2 virtualPosition, const char* text);
+		static void DrawSpeechScreen(Nxna::Vector2 screenPosition, const char* text);
 
 		static void Render();
 

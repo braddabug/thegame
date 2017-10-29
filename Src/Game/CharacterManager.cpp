@@ -30,6 +30,13 @@ namespace Game
 		};
 	};
 
+	struct CharacterSpeech
+	{
+		StringHandle Text;
+		float Elapsed;
+		WaitHandle Wait;
+	};
+
 	struct CharacterManagerData
 	{
 		static const uint32 MaxCharacters = 10;
@@ -41,6 +48,7 @@ namespace Game
 		float Rotations[MaxCharacters];
 		float Scales[MaxCharacters];
 		CharacterBrain Brains[MaxCharacters];
+		CharacterSpeech Speech[MaxCharacters];
 
 		int EgoIndex;
 	};
@@ -239,6 +247,30 @@ namespace Game
 
 				Graphics::Model::UpdateAABB(m_data->Models[i].Model->BoundingBox, m_data->Models[i].Transform, m_data->Models[i].AABB);
 			}
+
+			if (m_data->Speech[i].Text != StringManager::InvalidHandle)
+			{
+				m_data->Speech[i].Elapsed += 0.01f; // TODO
+
+				if (m_data->Speech[i].Elapsed > 5.0f)
+				{
+					m_data->Speech[i].Text = StringManager::InvalidHandle;
+					WaitManager::SetWaitDone(m_data->Speech[i].Wait);
+				}
+				else
+				{
+					auto text = StringManager::GetLocalizedTextFromHandle(m_data->Speech[i].Text);
+
+					auto transform = *modelview;
+					auto position = m_data->Positions[i];
+					position.Y += 20.0f;
+
+					auto screen = m_device->GetViewport().Project(position, transform);
+					auto screen2 = Nxna::Vector2(screen.X, screen.Y);
+
+					Gui::GuiManager::DrawSpeechScreen(screen2, text);
+				}
+			}
 		}
 	}
 
@@ -259,5 +291,25 @@ namespace Game
 
 			m_data->Brains[character].Idle.GoalRotation = faceDirection;
 		}
+	}
+
+	WaitHandle CharacterManager::Say(uint32 character, StringHandle text, bool wait)
+	{
+		if (character < CharacterManagerData::MaxCharacters)
+		{
+			WaitManager::SetWaitDone(m_data->Speech[character].Wait);
+
+			m_data->Speech[character].Elapsed = 0;
+			m_data->Speech[character].Text = text;
+			
+			if (wait)
+				m_data->Speech[character].Wait = WaitManager::CreateWait();
+			else
+				m_data->Speech[character].Wait = WaitManager::INVALID_WAIT;
+
+			return m_data->Speech[character].Wait;
+		}
+
+		return WaitManager::INVALID_WAIT;
 	}
 }

@@ -175,10 +175,14 @@ namespace Game
 		Audio::SoundManager::ReleaseSourceWhenFinishedPlaying(group);
 		params->Store(2, wait);
 
+		params->Store(3, Game::CharacterManager::Say(0, StringManager::GetHandle("default"), true));
+
 		CR_STEP(context)
 
-		auto wait = params->GetU(2);
-		if (WaitManager::GetWaitStatus(wait) == WaitManager::WaitStatus::Waiting)
+		auto wait1 = params->GetU(2);
+		auto wait2 = params->GetU(3);
+		if (WaitManager::GetWaitStatus(wait1) == WaitManager::WaitStatus::Waiting ||
+			WaitManager::GetWaitStatus(wait2) == WaitManager::WaitStatus::Waiting)
 			CR_YIELD;
 
 		LOG("Speak action done!");
