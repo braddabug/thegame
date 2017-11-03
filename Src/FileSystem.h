@@ -48,7 +48,8 @@ public:
 	static const char* GetFilenameByHash(uint32 hash);
 
 	static bool Open(const char* path, File* file);
-	static bool Open(uint32 hash, File* file);
+    static bool OpenKnown(const char* path, File* file);
+	static bool OpenKnown(uint32 hash, File* file);
 	static void Close(File* file);
 	static bool IsOpen(File* file);
 
@@ -69,9 +70,15 @@ public:
 		return file->Memory;
 	}
 
-	static void* OpenAndMap(uint32 hash, File* file)
+    static void* OpenAndMapKnown(const char* path, File* file)
+    {
+        uint32 hash = Utils::CalcHash(path);
+        return OpenAndMapKnown(hash, file);
+    }
+
+	static void* OpenAndMapKnown(uint32 hash, File* file)
 	{
-		if (FileSystem::Open(hash, file) == false)
+		if (FileSystem::OpenKnown(hash, file) == false)
 			return nullptr;
 
 		if (FileSystem::MapFile(file) == nullptr)

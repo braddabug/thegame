@@ -185,7 +185,13 @@ bool FileSystem::Open(const char* path, File* file)
 
 #ifndef LIGHTMAPPER
 
-bool FileSystem::Open(uint32 hash, File* file)
+bool FileSystem::OpenKnown(const char* name, File* file)
+{
+    uint32 hash = Utils::CalcHash(name);
+    return OpenKnown(hash, file);
+}
+
+bool FileSystem::OpenKnown(uint32 hash, File* file)
 {
 	FileInfo* info;
 	if (m_data->Files.GetPtr(hash, &info))
