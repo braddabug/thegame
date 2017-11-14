@@ -138,6 +138,65 @@ namespace Utils
 			m_count = 0;
 			memset(m_active, 0, sizeof(m_active));
 		}
+
+		
+	};
+
+	class HashTableUtils
+	{
+	public:
+		template<typename T>
+		static bool Reserve(uint32 hash, uint32* hashes, T* values, bool* active, uint32 tableSize, uint32* index)
+		{
+			if (tableSize == 0)
+				return false;
+
+			uint32 ix = hash % tableSize;
+
+			for (uint32 i = 0; i < tableSize; i++)
+			{
+				uint32 finalIndex = (ix + i) % tableSize;
+				if (active[finalIndex] == false)
+				{
+					hashes[finalIndex] = hash;
+					active[finalIndex] = true;
+
+					if (index) *index = finalIndex;
+
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		template<typename T>
+		static bool Find(uint32 hash, const uint32* hashes, const T* values, const bool* active, uint32 tableSize, uint32* index)
+		{
+			if (tableSize == 0)
+				return false;
+			 
+			uint32 ix = hash % tableSize;
+
+			for (uint32 i = 0; i < tableSize; i++)
+			{
+				uint32 finalIndex = (ix + i) % tableSize;
+				if (hashes[finalIndex] == hash)
+				{
+					if (active[finalIndex] == true)
+					{
+						*index = finalIndex;
+						return true;
+					}
+					else
+					{
+						return false;
+					}
+				}
+			}
+
+			return false;
+		}
 	};
 
 	struct StopwatchData;

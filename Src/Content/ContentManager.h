@@ -15,21 +15,32 @@ namespace Content
 	
 	struct ContentManagerData;
 
+	enum ContentLoadFlags
+	{
+		ContentLoadFlags_None = 0,
+
+		ContentLoadFlags_Scene = 1,        // marks this content as associated with the current scene. Content is "global" otherwise.
+
+		ContentLoadFlags_DontFixup = 2,    // don't try to load a resolution or local-specific version of the file. Load exactly what is specified.
+
+		ContentLoadFlags_PreloadOnly = 4,  // only get the resource if it's already loaded. Don't try to load from disk.
+		ContentLoadFlags_DontPreload = 8,  // don't add the file to the "preload" list.
+	};
+
 	class ContentManager
 	{
 		static ContentManagerData* m_data;
 
 	public:
 		static void SetGlobalData(ContentManagerData** data, Nxna::Graphics::GraphicsDevice* device);
-		
-		static bool LoadManifest(uint32 screenHeight);
-		static int QueueGroupLoad(uint32 nameHash, bool forceReload);
-		static int QueueGroupUnload(uint32 nameHash);
+		static bool Init(uint32 screenHeight, LocaleCode language, LocaleCode region);
+		static void Shutdown();
 
-		static bool BeginLoad();
-		static bool PendingLoads(uint32* pending, uint32* success, uint32* error);
+		// TODO: implement these
+		static int PreloadGlobal();
+		static int PreloadScene(uint32 sceneID);
 
-		static void* Get(uint32 hash, ResourceType type);
+		static void* Get(uint32 hash, ResourceType type, ContentLoadFlags flags = ContentLoadFlags::ContentLoadFlags_None);
 		static void Release(void* content);
 		
 		static bool GetResourceInfo(ResourceType type, uint32* size, uint32* alignment);

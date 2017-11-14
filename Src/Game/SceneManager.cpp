@@ -167,7 +167,7 @@ namespace Game
 		memset(result, 0, sizeof(SceneDesc));
 
 		File f;
-		if (FileSystem::OpenAndMap(sceneFile, &f) == false)
+		if (FileSystem::OpenAndMapKnown(sceneFile, &f) == false)
 		{
 			LOG_ERROR("Unable to open scene file %s", sceneFile);
 			return false;

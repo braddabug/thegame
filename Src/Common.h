@@ -2,6 +2,7 @@
 #define COMMON_H
 
 #include <cstdint>
+#include <cstring>
 
 typedef char int8;
 typedef unsigned char uint8;
@@ -15,6 +16,17 @@ typedef uint64_t uint64;
 // PersitantString means the string will live long enough for the function receiving it to
 // do what it needs to do. No copy is made.
 typedef const char* PersistantString;
+
+union LocaleCode
+{
+	char Code[2];
+	uint16 NumericCode;
+
+	LocaleCode(const char* code)
+	{
+		memcpy(Code, code, 2);
+	}
+};
 
 #ifdef _WIN32
 #define P_OUT_OPTIONAL _Out_opt_

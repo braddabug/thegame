@@ -103,9 +103,12 @@ int Init(WindowInfo* window)
 	};
 	FileSystem::SetSearchPaths(searchPaths, 1);
 
-	StringManager::Init("en", "us");
+	LocaleCode en("en");
+	LocaleCode us("us");
 
-	if (Content::ContentManager::LoadManifest(window->ScreenHeight) == false)
+	StringManager::Init(en.Code, us.Code);
+
+	if (Content::ContentManager::Init(window->ScreenHeight, en, us) == false)
 	{
 		WriteLog(LogSeverityType::Error, LogChannelType::Unknown, "Unable to load manifest file");
 		return -1;
@@ -139,13 +142,14 @@ int Init(WindowInfo* window)
 		return -1;
 	Audio::SoundManager::Init();
 
-	Content::ContentManager::QueueGroupLoad(Utils::CalcHash("global"), false);
-	Content::ContentManager::QueueGroupLoad(Utils::CalcHash("scene"), false);
-	Content::ContentManager::BeginLoad();
-	while (Content::ContentManager::PendingLoads(nullptr, nullptr, nullptr)) {}
+	//Content::ContentManager::QueueGroupLoad(Utils::CalcHash("global"), false);
+	//Content::ContentManager::QueueGroupLoad(Utils::CalcHash("scene"), false);
+	//Content::ContentManager::BeginLoad();
+	//while (Content::ContentManager::PendingLoads(nullptr, nullptr, nullptr)) {}
+
 
 	Gui::GuiManager::SetCursor(Gui::CursorType::Pointer);
-	Game::SceneManager::CreateScene("Content/Scenes/scene.txt");
+	Game::SceneManager::CreateScene("Scenes/scene.txt");
 
 	return 0;
 }
