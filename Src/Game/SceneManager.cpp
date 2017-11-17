@@ -24,6 +24,11 @@ namespace Game
 		SceneLightDesc Lights[SceneDesc::MaxLights];
 		uint32 NumLights;
 
+		Graphics::Bitmap* WalkMap;
+		Nxna::Graphics::Texture2D WalkMapTexture;
+		int WalkMapXOffset;
+		int WalkMapZOffset;
+
 		int SelectedModelIndex;
 	};
 
@@ -42,6 +47,22 @@ namespace Game
 
 		m_device = device;
 		m_data = *data;
+	}
+
+	void cmdLoadScene(const char* arg)
+	{
+		if (SceneManager::CreateScene(arg))
+			WriteLog(LogSeverityType::Normal, LogChannelType::ConsoleOutput, "Loaded scene %s", arg);
+		else
+			WriteLog(LogSeverityType::Error, LogChannelType::ConsoleOutput, "Unable to load scene %s", arg);
+	}
+
+	void SceneManager::Init()
+	{
+		ConsoleCommand cmd;
+		cmd.Callback = cmdLoadScene;
+		cmd.Command = "load_scene";
+		Gui::Console::AddCommands(&cmd, 1);
 	}
 
 	void SceneManager::Shutdown()
@@ -100,6 +121,19 @@ namespace Game
 		for (uint32 i = 0; i < desc->NumLights; i++)
 		{
 			m_data->Lights[i] = desc->Lights[i];
+		}
+
+		// load the walk map
+		{
+			m_data->WalkMap = (Graphics::Bitmap*)Content::ContentManager::Get(Utils::CalcHash(desc->WalkMap), Content::ResourceType::Bitmap);
+
+			if (m_data->WalkMap != nullptr)
+			{
+				Graphics::TextureLoader::ConvertBitmapToTexture(m_data->WalkMap, &m_data->WalkMapTexture);
+			}
+
+			m_data->WalkMapXOffset = desc->WalkMapX;
+			m_data->WalkMapZOffset = desc->WalkMapZ;
 		}
 
 		CharacterManager::Reset();
@@ -524,8 +558,14 @@ namespace Game
 					float color[4] = { m_data->Lights[i].Point.Color[0], m_data->Lights[i].Point.Color[1], m_data->Lights[i].Point.Color[2], 1.0f };
 					Graphics::DrawUtils::DrawSphere(m_data->Lights[i].Point.Position, 1.0f, modelview, color);
 					break;
-				}		
 				}
+				}
+			}
+
+			if (m_data->WalkMap != nullptr)
+			{
+				float center[] = { m_data->WalkMapXOffset, 2.0f, m_data->WalkMapZOffset };
+				Graphics::DrawUtils::DrawQuadY(center, m_data->WalkMap->Width, m_data->WalkMap->Height, &m_data->WalkMapTexture, modelview);
 			}
 		}
 	}

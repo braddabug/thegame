@@ -26,6 +26,11 @@ namespace Graphics
 		Nxna::Graphics::VertexBuffer SphereVertices;
 		Nxna::Graphics::IndexBuffer SphereIndices;
 
+		static const uint32 NumPlaneVertices = 4;
+		static const uint32 NumPlaneIndices = 6;
+		Nxna::Graphics::VertexBuffer PlaneVertices;
+		Nxna::Graphics::IndexBuffer PlaneIndices;
+
 		bool Initialized;
 	};
 
@@ -119,6 +124,43 @@ namespace Graphics
 		static void Draw2DRect(SpriteBatchHelper* sbh, float x, float y, float w, float h, Nxna::Color color)
 		{
 			sbh->Draw(&m_data->SolidWhite, 1, 1, x, y, w, h, color);
+		}
+
+		static void DrawQuadY(float center[3], float xSize, float zSize, Nxna::Graphics::Texture2D* texture, Nxna::Matrix* modelviewprojection)
+		{
+			if (m_data->Initialized == false) init();
+
+			Nxna::Matrix scalem, positionm, rotationm, transform;
+			scalem = Nxna::Matrix::Identity;
+			Nxna::Matrix::CreateScale(xSize, zSize, 1.0f, scalem);
+			Nxna::Matrix::CreateRotationX(1.5708f, rotationm);
+			Nxna::Matrix::CreateTranslation(center[0], center[1], center[2], positionm);
+
+			transform = scalem * rotationm * positionm * *modelviewprojection;
+
+			m_data->Device->UpdateConstantBuffer(m_data->Transform, transform.C, sizeof(Nxna::Matrix));
+			m_data->Device->SetConstantBuffer(m_data->Transform, 0);
+
+			float color[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+			m_data->Device->UpdateConstantBuffer(m_data->Color, color, sizeof(float) * 4);
+			m_data->Device->SetConstantBuffer(m_data->Color, 1);
+
+			m_data->Device->SetVertexBuffer(&m_data->PlaneVertices, 0, sizeof(float) * 5);
+			m_data->Device->SetIndices(m_data->PlaneIndices);
+
+			Nxna::Graphics::ShaderPipeline* shader;
+			if (texture == nullptr)
+				shader = ShaderLibrary::GetShader(ShaderType::BasicWhite);
+			else
+			{
+				shader = ShaderLibrary::GetShader(ShaderType::BasicTextured);
+				m_data->Device->BindTexture(texture, 0);
+			}
+
+			m_data->Device->SetShaderPipeline(shader);
+
+			m_data->Device->DrawIndexed(Nxna::Graphics::PrimitiveType::TriangleList, 0, 0, DrawUtilsData::NumPlaneVertices, 0, DrawUtilsData::NumPlaneIndices);
+
 		}
 
 	private:
@@ -251,6 +293,36 @@ namespace Graphics
 				ibd.InitialData = indices;
 				ibd.InitialDataByteCount = sizeof(indices);
 				if (m_data->Device->CreateIndexBuffer(&ibd, &m_data->SphereIndices) != Nxna::NxnaResult::Success)
+					return false;
+			}
+
+			// setup plane
+			{
+				float vertices[] = {
+					-1.0f, -1.0f, 0,  0, 0,
+					1.0f, -1.0f, 0,  1, 0,
+					1.0f, 1.0f, 0, 1, 1,
+					-1.0f, 1.0f, 0, 0, 1
+				};
+
+				uint16 indices[] = {
+					0, 1, 2,
+					0, 2, 3
+				};
+
+				Nxna::Graphics::VertexBufferDesc vbd = {};
+				vbd.ByteLength = sizeof(vertices);
+				vbd.InitialDataByteCount = sizeof(vertices);
+				vbd.InitialData = vertices;
+				if (m_data->Device->CreateVertexBuffer(&vbd, &m_data->PlaneVertices) != Nxna::NxnaResult::Success)
+					return false;
+
+				Nxna::Graphics::IndexBufferDesc ibd = {};
+				ibd.ElementSize = Nxna::Graphics::IndexElementSize::SixteenBits;
+				ibd.NumElements = sizeof(indices) / 2;
+				ibd.InitialData = indices;
+				ibd.InitialDataByteCount = sizeof(indices);
+				if (m_data->Device->CreateIndexBuffer(&ibd, &m_data->PlaneIndices) != Nxna::NxnaResult::Success)
 					return false;
 			}
 

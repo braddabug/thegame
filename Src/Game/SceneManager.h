@@ -161,6 +161,7 @@ namespace Game
 	public:
 
 		static void SetGlobalData(SceneManagerData** data, Nxna::Graphics::GraphicsDevice* device);
+		static void Init();
 		static void Shutdown();
 
 		static bool CreateScene(SceneDesc* desc);

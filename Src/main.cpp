@@ -177,8 +177,8 @@ struct CommandLineOptions
 void ParseCommandLineOptions(int argc, char* argv[], CommandLineOptions* result)
 {
 	// first set the defaults
-	result->ScreenWidth = 640;
-	result->ScreenHeight = 480;
+	result->ScreenWidth = 800;
+	result->ScreenHeight = 600;
 	result->MultisampleLevel = 16;
 
 	for (int i = 1; i < argc; i++)
