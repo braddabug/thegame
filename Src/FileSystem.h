@@ -28,7 +28,8 @@ class FileSystem
 
 	struct FileInfo
 	{
-		const char* Filename;
+		const char* DiskFilename;
+		char Filename[64];
 	};
 
 	static FileSystemData* m_data;
@@ -45,7 +46,12 @@ public:
 	};
 
 	static void SetSearchPaths(SearchPathInfo* paths, uint32 numPaths);
+	static uint32 GetNumFiles();
+
+	static const char* GetDiskFilenameByHash(uint32 hash);
 	static const char* GetFilenameByHash(uint32 hash);
+	static const char* GetDiskFilenameByIndex(uint32 index);
+	static const char* GetFilenameByIndex(uint32 index);
 
 	static bool Open(const char* path, File* file);
     static bool OpenKnown(const char* path, File* file);

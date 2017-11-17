@@ -125,7 +125,7 @@ namespace Audio
 		ini_item item;
 
 		File f;
-		if (FileSystem::OpenAndMap("Content/Audio/groups.txt", &f) == nullptr)
+		if (FileSystem::OpenAndMapKnown("Audio/groups.txt", &f) == nullptr)
 		{
 			WriteLog(LogSeverityType::Error, LogChannelType::Content, "Unable to open Audio/groups.txt. Audio will be disabled.");
 			return;

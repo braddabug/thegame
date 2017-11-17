@@ -145,8 +145,7 @@ namespace Utils
 	class HashTableUtils
 	{
 	public:
-		template<typename T>
-		static bool Reserve(uint32 hash, uint32* hashes, T* values, bool* active, uint32 tableSize, uint32* index)
+		static bool Reserve(uint32 hash, uint32* hashes, bool* active, uint32 tableSize, uint32* index)
 		{
 			if (tableSize == 0)
 				return false;
@@ -170,8 +169,7 @@ namespace Utils
 			return false;
 		}
 
-		template<typename T>
-		static bool Find(uint32 hash, const uint32* hashes, const T* values, const bool* active, uint32 tableSize, uint32* index)
+		static bool Find(uint32 hash, const uint32* hashes, const bool* active, uint32 tableSize, uint32* index)
 		{
 			if (tableSize == 0)
 				return false;
@@ -226,7 +224,8 @@ namespace Utils
 	};
 
 	void CopyString(char* destination, const char* source, uint32 destLength);
-	void CopyString(char* destination, const char* source, uint32 destLength, uint32 sourceLength);
+	char* CopyString(char* destination, const char* source, uint32 destLength, uint32 sourceLength);
+	void ConcatString(char* destination, const char* source, uint32 destLength);
 }
 
 #endif // UTILS_H

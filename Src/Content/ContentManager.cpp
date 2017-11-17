@@ -56,6 +56,14 @@ namespace Content
 		struct
 		{
 			static const uint32 MaxFiles = 1000;
+			uint32 SourceHash[MaxFiles];
+			uint32 DestHash[MaxFiles];
+			bool Active[MaxFiles];
+		} SubstitutionTable;
+
+		struct
+		{
+			static const uint32 MaxFiles = 1000;
 			ResourceFile Files[MaxFiles];
 			uint32 Hashes[MaxFiles];
 			bool Active[MaxFiles];
@@ -105,6 +113,77 @@ namespace Content
 		m_data->Language = language;
 		m_data->Region = region;
 
+		// look for localized or res-dependant versions of files
+		{
+			char res[6];
+			if (VirtualResolution::InjectNearestResolution("r%", res, 6) == false)
+				return false;
+
+			char locale[6];
+			memcpy(locale, language.Code, 2);
+			if (region.NumericCode != 0)
+			{
+				locale[2] = '-';
+				memcpy(locale + 3, region.Code, 2);
+				locale[5] = 0;
+			}
+				
+			const char* filename;
+			uint32 i = 0;
+			while ((filename = FileSystem::GetFilenameByIndex(i++)) != nullptr)
+			{
+				uint32 originalHash = Utils::CalcHash(filename);
+				
+				uint32 index;
+				if (Utils::HashTableUtils::Reserve(originalHash, m_data->SubstitutionTable.SourceHash, m_data->SubstitutionTable.Active, m_data->SubstitutionTable.MaxFiles, &index) == false)
+						return false;
+				m_data->SubstitutionTable.DestHash[index] = originalHash;
+
+				char buffer[256];
+
+				auto dot = strrchr(filename, '.');
+				auto end = Utils::CopyString(buffer, filename, 256, dot - filename + 1);
+
+				// look for res-dependant
+				Utils::ConcatString(buffer, res, 256);
+				Utils::ConcatString(buffer, dot, 256);
+
+				uint32 hash = Utils::CalcHash(buffer);
+				if (FileSystem::GetFilenameByHash(hash) != nullptr)
+				{
+					// add to the list of substitutions
+					m_data->SubstitutionTable.DestHash[index] = hash;
+				}
+				end[0] = 0;
+
+				// look for localized
+				Utils::ConcatString(buffer, locale, 256);
+				Utils::ConcatString(buffer, dot, 256);
+
+				hash = Utils::CalcHash(buffer);
+				if (FileSystem::GetFilenameByHash(hash) != nullptr)
+				{
+					// add to the list of substitutions
+					m_data->SubstitutionTable.DestHash[index] = hash;
+				}
+				end[0] = 0;
+
+				// look for res-dependant and localized
+				Utils::ConcatString(buffer, res, 256);
+				Utils::ConcatString(buffer, ".", 256);
+				Utils::ConcatString(buffer, locale, 256);
+				Utils::ConcatString(buffer, dot, 256);
+
+				hash = Utils::CalcHash(buffer);
+				if (FileSystem::GetFilenameByHash(hash) != nullptr)
+				{
+					// add to the list of substitutions
+					m_data->SubstitutionTable.DestHash[index] = hash;
+				}
+				end[0] = 0;
+			}
+		}
+
 		return true;
 	}
 
@@ -117,7 +196,17 @@ namespace Content
 	void* ContentManager::Get(uint32 hash, ResourceType type, ContentLoadFlags flags)
 	{
 		uint32 finalIndex;
-		if (Utils::HashTableUtils::Find<Content::ResourceFile>(hash, m_data->FileHashTable.Hashes, m_data->FileHashTable.Files, m_data->FileHashTable.Active, m_data->FileHashTable.MaxFiles, &finalIndex))
+
+		// see if we need to look for a substituted (localized or res-dependant) version
+		if ((flags & ContentLoadFlags_DontFixup) == 0)
+		{
+			if (Utils::HashTableUtils::Find(hash, m_data->SubstitutionTable.SourceHash, m_data->SubstitutionTable.Active, m_data->SubstitutionTable.MaxFiles, &finalIndex))
+			{
+				hash = m_data->SubstitutionTable.DestHash[finalIndex];
+			}
+		}
+
+		if (Utils::HashTableUtils::Find(hash, m_data->FileHashTable.Hashes, m_data->FileHashTable.Active, m_data->FileHashTable.MaxFiles, &finalIndex))
 		{
 			m_data->FileHashTable.Files[finalIndex].RefCount++;
 			return m_data->FileHashTable.Files[finalIndex].Data;
@@ -134,7 +223,7 @@ namespace Content
 			return nullptr;
 
 		uint32 index;
-		if (Utils::HashTableUtils::Reserve<ResourceFile>(hash, m_data->FileHashTable.Hashes, m_data->FileHashTable.Files, m_data->FileHashTable.Active, m_data->FileHashTable.MaxFiles, &index) == false)
+		if (Utils::HashTableUtils::Reserve(hash, m_data->FileHashTable.Hashes, m_data->FileHashTable.Active, m_data->FileHashTable.MaxFiles, &index) == false)
 			return nullptr;
 
 		m_data->FileHashTable.Files[index].Data = g_memory->AllocTrack(size, __FILE__, __LINE__);
@@ -208,53 +297,53 @@ namespace Content
 			return false;
 
 #ifdef _MSC_VER
-			// make sure all ResourceTypes are explicitly handled
+		// make sure all ResourceTypes are explicitly handled
 #pragma warning(push, 4)
 #pragma warning(error: 4061 4062)
 #endif
-			switch (type)
-			{
-			case ResourceType::Cursor:
-			{
-				*size = sizeof(CursorInfo);
-				*alignment = sizeof(CursorInfo);
-				return true;
-			}
-			case ResourceType::Font:
-			{
-				*size = sizeof(Gui::Font);
-				*alignment = alignof(Gui::Font);
-				return true;
-			}
-			case ResourceType::Model:
-			{
-				*size = sizeof(Graphics::Model);
-				*alignment = alignof(Graphics::Model);
-				return true;
-			}
-			case ResourceType::Texture2D:
-			{
-				*size = sizeof(Nxna::Graphics::Texture2D);
-				*alignment = alignof(Nxna::Graphics::Texture2D);
-				return true;
-			}
-			case ResourceType::Bitmap:
-			{
-				*size = sizeof(Graphics::Bitmap);
-				*alignment = alignof(Graphics::Bitmap);
-				return true;
-			}
-			case ResourceType::Audio:
-			{
-				*size = sizeof(Audio::Buffer);
-				*alignment = alignof(Audio::Buffer);
-				return true;
-			}
-			case ResourceType::LAST:
-			{
-				return false;
-			}
-			}
+		switch (type)
+		{
+		case ResourceType::Cursor:
+		{
+			*size = sizeof(CursorInfo);
+			*alignment = sizeof(CursorInfo);
+			return true;
+		}
+		case ResourceType::Font:
+		{
+			*size = sizeof(Gui::Font);
+			*alignment = alignof(Gui::Font);
+			return true;
+		}
+		case ResourceType::Model:
+		{
+			*size = sizeof(Graphics::Model);
+			*alignment = alignof(Graphics::Model);
+			return true;
+		}
+		case ResourceType::Texture2D:
+		{
+			*size = sizeof(Nxna::Graphics::Texture2D);
+			*alignment = alignof(Nxna::Graphics::Texture2D);
+			return true;
+		}
+		case ResourceType::Bitmap:
+		{
+			*size = sizeof(Graphics::Bitmap);
+			*alignment = alignof(Graphics::Bitmap);
+			return true;
+		}
+		case ResourceType::Audio:
+		{
+			*size = sizeof(Audio::Buffer);
+			*alignment = alignof(Audio::Buffer);
+			return true;
+		}
+		case ResourceType::LAST:
+		{
+			return false;
+		}
+		}
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif

@@ -53,7 +53,7 @@ namespace Graphics
 		if (params->Phase == Content::LoaderPhase::AsyncLoad)
 		{
 			int w, h, d;
-			auto filename = FileSystem::GetFilenameByHash(params->FilenameHash);
+			auto filename = FileSystem::GetDiskFilenameByHash(params->FilenameHash);
 			if (filename == nullptr)
 			{
 				LOG_ERROR("Unable to get filename for texture with hash %u", params->FilenameHash);

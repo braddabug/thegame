@@ -27,7 +27,11 @@
 
 struct FileSystemData
 {
-	Utils::HashTable<FileSystem::FileInfo, FileSystem::MaxFiles * 4 / 3> Files;
+	static const uint32 MaxFiles = FileSystem::MaxFiles * 4 / 3;
+	uint32 FileNameHashes[MaxFiles];
+	FileSystem::FileInfo Files[MaxFiles];
+	bool FileActive[MaxFiles];
+	uint32 NumFiles;
 };
 
 FileSystemData* FileSystem::m_data;
@@ -125,9 +129,12 @@ void FileSystem::searchPathRecursive(const char* root, const char* path, uint32 
 			strcat(pathAndName, file.name);
 #endif
 
-			FileInfo info;
-			info.Filename = name;
-			m_data->Files.Add(Utils::CalcHash(pathAndName), info);
+
+			uint32 index;
+			Utils::HashTableUtils::Reserve(Utils::CalcHash(pathAndName), m_data->FileNameHashes, m_data->FileActive, m_data->MaxFiles, &index);
+			m_data->Files[index].DiskFilename = name;
+			Utils::CopyString(m_data->Files[index].Filename, pathAndName, 64);
+			m_data->NumFiles++;
 		}
 
 		tfDirNext(&dir);
@@ -143,16 +150,66 @@ void FileSystem::SetSearchPaths(SearchPathInfo* paths, uint32 numPaths)
 		searchPathRecursive(paths[i].Path, "", paths[i].MaxDepth - 1);
 	}
 
-	LOG("%u files added to search path", m_data->Files.GetCount());
+	LOG("%u files added to search path", m_data->NumFiles);
 }
 #endif
 
+uint32 FileSystem::GetNumFiles()
+{
+	return m_data->NumFiles;
+}
+
+const char* FileSystem::GetDiskFilenameByHash(uint32 hash)
+{
+	uint32 index;
+	if (Utils::HashTableUtils::Find(hash, m_data->FileNameHashes, m_data->FileActive, m_data->MaxFiles, &index))
+	{
+		return m_data->Files[index].DiskFilename;
+	}
+
+	return nullptr;
+}
+
 const char* FileSystem::GetFilenameByHash(uint32 hash)
 {
-	FileInfo* info;
-	if (m_data->Files.GetPtr(hash, &info))
+	uint32 index;
+	if (Utils::HashTableUtils::Find(hash, m_data->FileNameHashes, m_data->FileActive, m_data->MaxFiles, &index))
 	{
-		return info->Filename;
+		return m_data->Files[index].Filename;
+	}
+
+	return nullptr;
+}
+
+const char* FileSystem::GetFilenameByIndex(uint32 index)
+{
+	uint32 count = 0;
+	for (uint32 i = 0; i < m_data->MaxFiles; i++)
+	{
+		if (m_data->FileActive[i])
+		{
+			if (count == index)
+				return m_data->Files[i].Filename;
+
+			count++;
+		}
+	}
+
+	return nullptr;
+}
+
+const char* FileSystem::GetDiskFilenameByIndex(uint32 index)
+{
+	uint32 count = 0;
+	for (uint32 i = 0; i < m_data->MaxFiles; i++)
+	{
+		if (m_data->FileActive[i])
+		{
+			if (count == index)
+				return m_data->Files[i].DiskFilename;
+
+			count++;
+		}
 	}
 
 	return nullptr;
@@ -193,10 +250,10 @@ bool FileSystem::OpenKnown(const char* name, File* file)
 
 bool FileSystem::OpenKnown(uint32 hash, File* file)
 {
-	FileInfo* info;
-	if (m_data->Files.GetPtr(hash, &info))
+	uint32 index;
+	if (Utils::HashTableUtils::Find(hash, m_data->FileNameHashes, m_data->FileActive, m_data->MaxFiles, &index))
 	{
-		return Open(info->Filename, file);
+		return Open(m_data->Files[index].DiskFilename, file);
 	}
 
 	return false;

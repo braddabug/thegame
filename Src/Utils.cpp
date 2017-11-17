@@ -170,25 +170,41 @@ namespace Utils
 
 	void CopyString(char* destination, const char* source, uint32 destLength)
 	{
-#ifdef _WIN32
-		strncpy_s(destination, destLength, source, destLength);
-		destination[destLength - 1] = 0;
-#else
-		strncpy(destination, source, destLength);
-		destination[destLength - 1] = 0;
-#endif
-	}
-
-	void CopyString(char* destination, const char* source, uint32 destLength, uint32 sourceLength)
-	{
-		uint32 len = destLength < sourceLength ? destLength : sourceLength;
+		uint32 len = destLength - 1;
 
 #ifdef _WIN32
 		strncpy_s(destination, destLength, source, len);
-		destination[len - 1] = 0;
+		destination[len] = 0;
 #else
 		strncpy(destination, source, len);
-		destination[len - 1] = 0;
+		destination[len] = 0;
 #endif
+	}
+
+	char* CopyString(char* destination, const char* source, uint32 destLength, uint32 sourceLength)
+	{
+		uint32 len = destLength - 1 < sourceLength ? destLength - 1 : sourceLength;
+
+#ifdef _WIN32
+		strncpy_s(destination, destLength, source, len);
+		destination[len] = 0;
+#else
+		strncpy(destination, source, len);
+		destination[len] = 0;
+#endif
+
+		return destination + len;
+	}
+
+	void ConcatString(char* destination, const char* source, uint32 destLength)
+	{
+		for (uint32 i = 0; i < destLength - 1 && *source != 0; i++)
+		{
+			if (destination[i] == 0)
+			{
+				destination[i] = *(source++);
+				destination[i + 1] = 0;
+			}
+		}
 	}
 }

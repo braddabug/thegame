@@ -94,8 +94,9 @@ bool VirtualResolution::InjectNearestResolution(const char* source, char* destin
 		else
 		{
 			destination[destCursor++] = source[sourceCursor++];
-			destination[destCursor] = 0;
 		}
+		
+		destination[destCursor] = 0;
 	}
 
 	return false;

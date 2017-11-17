@@ -14,7 +14,7 @@ namespace Audio
 			if (params->Phase == Content::LoaderPhase::AsyncLoad)
 			{
 				File f;
-				auto filename = FileSystem::GetFilenameByHash(params->FilenameHash);
+				auto filename = FileSystem::GetDiskFilenameByHash(params->FilenameHash);
 				if (FileSystem::OpenAndMap(filename, &f) == nullptr)
 				{
 					params->State = Content::ContentState::NotFound;

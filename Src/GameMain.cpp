@@ -108,12 +108,6 @@ int Init(WindowInfo* window)
 
 	StringManager::Init(en.Code, us.Code);
 
-	if (Content::ContentManager::Init(window->ScreenHeight, en, us) == false)
-	{
-		WriteLog(LogSeverityType::Error, LogChannelType::Unknown, "Unable to load manifest file");
-		return -1;
-	}
-
 	Nxna::Graphics::GraphicsDeviceDesc gdesc = {};
 	gdesc.Type = Nxna::Graphics::GraphicsDeviceType::OpenGl41;
 	gdesc.ScreenWidth = window->ScreenWidth;
@@ -122,9 +116,17 @@ int Init(WindowInfo* window)
 		return -1;
 
 	g_device->SetMessageCallback(msg);
+	
+	VirtualResolution::Init(window->ScreenWidth, window->ScreenHeight);
 
 	Nxna::Graphics::Viewport vp(0, 0, (float)window->ScreenWidth, (float)window->ScreenHeight);
 	g_device->SetViewport(vp);
+
+	if (Content::ContentManager::Init(window->ScreenHeight, en, us) == false)
+	{
+		WriteLog(LogSeverityType::Error, LogChannelType::Unknown, "Unable to load manifest file");
+		return -1;
+	}
 
 	if (Gui::TextPrinter::Init(g_device) == false)
 	{
@@ -132,7 +134,6 @@ int Init(WindowInfo* window)
 		return -1;
 	}
 
-	VirtualResolution::Init(window->ScreenWidth, window->ScreenHeight);
 	SpriteBatchHelper::Init(g_device);
 
 	if (Graphics::ShaderLibrary::LoadCoreShaders() == false)
@@ -141,6 +142,7 @@ int Init(WindowInfo* window)
 	if (Audio::AudioEngine::Init() == false)
 		return -1;
 	Audio::SoundManager::Init();
+	Game::SceneManager::Init();
 
 	//Content::ContentManager::QueueGroupLoad(Utils::CalcHash("global"), false);
 	//Content::ContentManager::QueueGroupLoad(Utils::CalcHash("scene"), false);
