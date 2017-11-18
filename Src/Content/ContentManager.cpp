@@ -53,7 +53,7 @@ namespace Content
 		ResourceFileGroup Groups[MaxGroups];
 		uint32 NumGroups;
 
-		struct
+		struct _SubstitutionTable
 		{
 			static const uint32 MaxFiles = 1000;
 			uint32 SourceHash[MaxFiles];
@@ -61,7 +61,7 @@ namespace Content
 			bool Active[MaxFiles];
 		} SubstitutionTable;
 
-		struct
+		struct _FileHashTable
 		{
 			static const uint32 MaxFiles = 1000;
 			ResourceFile Files[MaxFiles];
@@ -69,7 +69,7 @@ namespace Content
 			bool Active[MaxFiles];
 		} FileHashTable;
 
-		struct
+		struct _PreloadTable
 		{
 			uint32 NumFiles;
 			uint32 NumGroups;
