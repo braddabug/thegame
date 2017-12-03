@@ -26,11 +26,22 @@ namespace Audio
 		ALCdevice* Device;
 		ALCcontext* Context;
 
-		static const uint32 MaxSources = 128;
+		static const uint32 MaxSources = 120;
+		static const uint32 MaxStreamingSources = 8;
+		static const uint32 MaxStreamingBuffers = 3;
 		uint32 NumSources;
 		uint32 NumStreamingSources;
 		Source Sources[MaxSources];
+		Source StreamingSources[MaxStreamingSources];
 		SourceOwnership SourceOwnershipState[MaxSources];
+		SourceOwnership StreamingSourceOwnershipState[MaxStreamingSources];
+
+		struct
+		{
+			uint32 SampleRate;
+			uint32 NumChannels;
+			ALuint Buffers[MaxStreamingBuffers];
+		} StreamingSourceBufferInfo[MaxStreamingSources];
 	};
 
 	AudioEngineData* AudioEngine::m_data = nullptr;
@@ -39,7 +50,8 @@ namespace Audio
 	{
 		if (*data == nullptr)
 		{
-			*data = NewObject<AudioEngineData>(__FILE__, __LINE__);
+			*data = (AudioEngineData*)g_memory->AllocTrack(sizeof(AudioEngineData), __FILE__, __LINE__);
+			memset(*data, 0, sizeof(AudioEngineData));
 		}
 
 		m_data = *data;
@@ -67,28 +79,49 @@ namespace Audio
 		m_data->NumStreamingSources = 0;
 		memset(m_data->SourceOwnershipState, 0, sizeof(m_data->SourceOwnershipState));
 		alGetError();
-		for (uint32 i = 0; i < AudioEngineData::MaxSources; i++)
-		{
-			m_data->Sources[i].Index = i;
-			m_data->Sources[i].Streaming = false;
 
-			alGenSources(1, &m_data->Sources[i].ALSource);
+		uint32 totalSourceCount = 0;
+		const uint32 maxTotalSources = AudioEngineData::MaxSources + AudioEngineData::MaxStreamingSources;
+		ALuint sources[maxTotalSources];
+
+		for (uint32 i = 0; i < maxTotalSources; i++)
+		{
+			alGenSources(1, &sources[i]);
 			if (alGetError() == AL_NO_ERROR)
-				m_data->NumSources++;
+				totalSourceCount++;
 			else
 				break;
 		}
 
-		if (m_data->NumSources < 10)
+		if (totalSourceCount < 10)
 		{
 			LOG_ERROR("OpenAL was only able to create %d sources, which is not enough", m_data->NumSources);
 			return false;
 		}
 
-		// designate some of the sources we just created as streaming ones
-		m_data->NumStreamingSources = m_data->NumSources / 10;
+		m_data->NumStreamingSources = totalSourceCount / 10;
+		if (m_data->NumStreamingSources > AudioEngineData::MaxStreamingSources) m_data->NumStreamingSources = AudioEngineData::MaxStreamingSources;
+		m_data->NumSources = totalSourceCount - m_data->NumStreamingSources;
+		
+		assert(m_data->NumSources <= AudioEngineData::MaxSources);
+		for (uint32 i = 0; i < m_data->NumSources; i++)
+		{
+			m_data->Sources[i].Index = i;
+			m_data->Sources[i].Streaming = false;
+			m_data->Sources[i].ALSource = sources[i];
+		}
 
-		LOG("OpenAL initialized with %d sources", m_data->NumSources);
+		assert(m_data->NumStreamingSources <= AudioEngineData::MaxStreamingSources);
+		for (uint32 i = 0; i < m_data->NumStreamingSources; i++)
+		{
+			m_data->StreamingSources[i].Index = i;
+			m_data->StreamingSources[i].Streaming = true;
+			m_data->StreamingSources[i].ALSource = sources[m_data->NumSources + i];
+
+			alGenBuffers(AudioEngineData::MaxStreamingBuffers, m_data->StreamingSourceBufferInfo[i].Buffers);
+		}
+
+		LOG("OpenAL initialized with %d sources (%d streaming)", totalSourceCount, m_data->NumStreamingSources);
 
 		return true;
 	}
@@ -131,10 +164,43 @@ namespace Audio
 		}
 		if (format == 0)
 			return false;
-		
+
 		alGenBuffers(1, &buffer->ALBuffer);
 
-		alBufferData(buffer->ALBuffer, format, desc->Data, desc->DataByteLength, desc->SampleRate);
+		buffer->Internal.NumChannels = desc->NumChannels;
+		buffer->Internal.SampleRate = desc->SampleRate;
+		buffer->Internal.SampleBitSize = desc->SampleBitSize;
+
+		if (desc->Data != nullptr)
+			return WriteToBuffer(buffer, desc->Data, desc->DataByteLength);
+
+		return true;
+	}
+
+	bool AudioEngine::WriteToBuffer(Buffer* buffer, const uint8* data, uint32 length)
+	{
+		if (data == nullptr)
+			return false;
+
+		ALenum format = 0;
+		if (buffer->Internal.SampleBitSize == 8)
+		{
+			if (buffer->Internal.NumChannels == 1)
+				format = AL_FORMAT_MONO8;
+			else if (buffer->Internal.NumChannels == 2)
+				format = AL_FORMAT_STEREO8;
+		}
+		else if (buffer->Internal.SampleBitSize == 16)
+		{
+			if (buffer->Internal.NumChannels == 1)
+				format = AL_FORMAT_MONO16;
+			else if (buffer->Internal.NumChannels == 2)
+				format = AL_FORMAT_STEREO16;
+		}
+		if (format == 0)
+			return false;
+
+		alBufferData(buffer->ALBuffer, format, data, length, buffer->Internal.SampleRate);
 
 		return true;
 	}
@@ -144,43 +210,23 @@ namespace Audio
 		alDeleteBuffers(1, &buffer->ALBuffer);
 	}
 
-	Source* AudioEngine::GetFreeSource(Channel channel, bool streaming)
+	Source* AudioEngine::GetFreeSource(Channel channel)
 	{
-		uint32 start = streaming ? 0 : m_data->NumStreamingSources;
-		uint32 length = streaming ? m_data->NumStreamingSources : m_data->NumSources - m_data->NumStreamingSources;
+		return getFreeSource(channel, false);
+	}
 
-		uint32 source = (uint32)-1;
+	Source* AudioEngine::GetFreeStreamingSource(Channel channel, uint32 sampleRate, uint32 numChannels)
+	{
+		auto source = getFreeSource(channel, true);
 
-		for (uint32 i = start; i < length; i++)
+		// remember the sample rate and channel count
+		if (source != nullptr)
 		{
-			if (m_data->SourceOwnershipState[i] == SourceOwnership::Released)
-			{
-				source = i;
-				break;
-			}
-			else if (m_data->SourceOwnershipState[i] == SourceOwnership::ReleaseWhenFinished)
-			{
-				ALint state;
-				alGetSourcei(m_data->Sources[i].ALSource, AL_SOURCE_STATE, &state);
-
-				if (state != AL_PLAYING)
-				{
-					source = i;
-					break;
-				}
-			}
+			m_data->StreamingSourceBufferInfo[source->Index].NumChannels = numChannels;
+			m_data->StreamingSourceBufferInfo[source->Index].SampleRate = sampleRate;
 		}
 
-		if (source != (uint32)-1)
-		{
-			// TODO: set some defaults on the source
-			alSourcei(m_data->Sources[source].ALSource, AL_LOOPING, 0);
-
-			m_data->SourceOwnershipState[source] = SourceOwnership::Owned;
-			return &m_data->Sources[source];
-		}
-
-		return nullptr;
+		return source;
 	}
 
 	void AudioEngine::ReleaseSource(Source* source)
@@ -207,12 +253,55 @@ namespace Audio
 		}
 	}
 
-	void AudioEngine::StreamBuffer(Source* source, Buffer* buffer)
+	bool AudioEngine::StreamingSourceNeedsData(Source* source)
 	{
-		if (source != nullptr && buffer != nullptr)
+		if (source == nullptr || source->Streaming == false)
+			return false;
+
+		ALint state, total, processed;
+
+		alGetSourcei(source->ALSource, AL_SOURCE_STATE, &state);
+		if (state == AL_INITIAL)
 		{
-			alSourceQueueBuffers(source->ALSource, 1, &buffer->ALBuffer);
+			// if initial then no buffers are considered processed, which isn't helpful, is it?
+			alGetSourcei(source->ALSource, AL_BUFFERS_QUEUED, &total);
+
+			return total < AudioEngineData::MaxStreamingBuffers;
 		}
+
+		alGetSourcei(source->ALSource, AL_BUFFERS_PROCESSED, &processed);
+
+		return processed > 0;
+	}
+
+	void AudioEngine::StreamToSource(Source* source, uint8* data, uint32 dataLength)
+	{
+		if (source == nullptr || source->Streaming == false || source->Index >= m_data->NumStreamingSources)
+			return;
+
+		ALint state;
+		ALuint buffer;
+
+		alGetSourcei(source->ALSource, AL_SOURCE_STATE, &state);
+		if (state == AL_INITIAL)
+		{
+			ALint total;
+			alGetSourcei(source->ALSource, AL_BUFFERS_QUEUED, &total);
+			if (total < AudioEngineData::MaxStreamingBuffers)
+			{
+				buffer = m_data->StreamingSourceBufferInfo[source->Index].Buffers[total];
+			}
+		}
+		else
+		{
+			alSourceUnqueueBuffers(source->ALSource, 1, &buffer);
+		}
+
+		// fill the buffer
+		auto format = GetALFormat(m_data->StreamingSourceBufferInfo[source->Index].NumChannels, 16);
+		alBufferData(buffer, format, data, dataLength, m_data->StreamingSourceBufferInfo[source->Index].SampleRate);
+
+		alSourceQueueBuffers(source->ALSource, 1, &buffer);
 	}
 
 	void AudioEngine::Play(Source* source, bool loop)
@@ -247,5 +336,94 @@ namespace Audio
 		case AL_PAUSED: return SourceState::Paused;
 		default: return SourceState::Stopped;
 		}
+	}
+
+#ifdef SOUND_ENGINE_OPENAL
+	uint32 AudioEngine::GetALSource(Source* source)
+	{
+		return source->ALSource;
+	}
+
+	int AudioEngine::GetALFormat(int numChannels, int bitsPerSample)
+	{
+		ALenum format = 0;
+		if (bitsPerSample == 8)
+		{
+			if (numChannels == 1)
+				format = AL_FORMAT_MONO8;
+			else if (numChannels == 2)
+				format = AL_FORMAT_STEREO8;
+		}
+		else if (bitsPerSample == 16)
+		{
+			if (numChannels == 1)
+				format = AL_FORMAT_MONO16;
+			else if (numChannels == 2)
+				format = AL_FORMAT_STEREO16;
+		}
+
+		return format;
+	}
+#endif
+
+	Source* AudioEngine::getFreeSource(Channel channel, bool streaming)
+	{
+		uint32 length = streaming ? m_data->NumStreamingSources : m_data->NumSources;
+
+		SourceOwnership* ownership = streaming ? m_data->StreamingSourceOwnershipState : m_data->SourceOwnershipState;
+		Source* sources = streaming ? m_data->StreamingSources : m_data->Sources;
+
+		uint32 source = (uint32)-1;
+
+		for (uint32 i = 0; i < length; i++)
+		{
+			if (ownership[i] == SourceOwnership::Released)
+			{
+				source = i;
+				break;
+			}
+			else if (ownership[i] == SourceOwnership::ReleaseWhenFinished)
+			{
+				ALint state;
+				alGetSourcei(sources[i].ALSource, AL_SOURCE_STATE, &state);
+
+				if (state != AL_PLAYING)
+				{
+					source = i;
+					break;
+				}
+			}
+		}
+
+		if (source != (uint32)-1)
+		{
+			// TODO: set some defaults on the source
+
+			// unqueue all buffers
+			alSourceStop(sources[source].ALSource);
+
+			ALint processed;
+			alGetSourcei(sources[source].ALSource, AL_BUFFERS_PROCESSED, &processed);
+			for (int i = 0; i < processed; i++)
+			{
+				ALuint buffer;
+				alSourceUnqueueBuffers(sources[source].ALSource, 1, &buffer);
+			}
+
+#ifndef NDEBUG
+			// make sure that NO buffers are in the queue
+			ALint total;
+			alGetSourcei(sources[source].ALSource, AL_BUFFERS_QUEUED, &total);
+			assert(total == 0);
+#endif
+
+			alSourceRewind(sources[source].ALSource); // make sure it's always AL_INITIAL
+			alSourcei(sources[source].ALSource, AL_LOOPING, 0);
+
+			ownership[source] = SourceOwnership::Owned;
+			return &sources[source];
+		}
+
+		return nullptr;
 	}
 }

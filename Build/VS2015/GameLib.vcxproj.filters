@@ -19,6 +19,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\Src\Build.cpp" />
+    <ClCompile Include="..\..\Src\Audio\stb_vorbis.c">
+      <Filter>Audio</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Gui">
@@ -26,6 +29,9 @@
     </Filter>
     <Filter Include="Graphics">
       <UniqueIdentifier>{b569ecc5-e53b-44f1-8c9b-4db54ddc296e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Audio">
+      <UniqueIdentifier>{ba8f01c8-7ff3-42d2-8508-549707fba89b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

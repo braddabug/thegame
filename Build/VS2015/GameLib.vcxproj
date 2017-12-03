@@ -94,7 +94,8 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(ProjectDir)../../Libs/Nxna;$(ProjectDir)../../Libs/OpenAL/Windows/include</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_WINDLL;GAME_ENABLE_HOTLOAD;GAME_ENABLE_HOTLOAD_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDLL;SOUND_ENGINE_OPENAL;GAME_ENABLE_HOTLOAD;GAME_ENABLE_HOTLOAD_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <AdditionalDependencies>OpenGL32.lib;OpenAL32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -137,6 +138,7 @@
     <ClInclude Include="..\..\Src\SpriteBatchHelper.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Src\Audio\stb_vorbis.c" />
     <ClCompile Include="..\..\Src\Build.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

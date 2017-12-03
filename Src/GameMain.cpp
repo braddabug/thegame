@@ -15,6 +15,7 @@
 #include "Content/ContentManager.h"
 #include "Audio/AudioEngine.h"
 #include "Audio/SoundManager.h"
+#include "Audio/SongPlayer.h"
 #include "Game/SceneManager.h"
 #include "Game/CharacterManager.h"
 #include "Game/ScriptManager.h"
@@ -71,6 +72,7 @@ void LibLoaded(GlobalData* data, bool initial)
 	// we always expect the log data to be created
 	g_log = data->Log;
 
+	Gui::Console::SetGlobalData(&data->ConsoleData);
 	WaitManager::SetGlobalData(&data->WaitData);
 	Utils::Stopwatch::SetGlobalData(&data->StopwatchData);
 	FileSystem::SetGlobalData(&data->FileSystem);
@@ -80,9 +82,9 @@ void LibLoaded(GlobalData* data, bool initial)
 	VirtualResolution::SetGlobalData(&data->ResolutionData);
 	Audio::AudioEngine::SetGlobalData(&data->Audio);
 	Audio::SoundManager::SetGlobalData(&data->SoundData);
+	Audio::SongPlayer::SetGlobalData(&data->SongData);
 	SpriteBatchHelper::SetGlobalData(&data->SpriteBatch);
 	Gui::TextPrinter::SetGlobalData(&data->TextPrinter);
-	Gui::Console::SetGlobalData(&data->ConsoleData);
 	Content::ContentManager::SetGlobalData(&data->ContentData, g_device);
 	Content::ContentLoader::SetGlobalData(&data->ContentLData, g_device);
 	Graphics::Model::SetGlobalData(&data->ModelData);
@@ -141,6 +143,7 @@ int Init(WindowInfo* window)
 
 	if (Audio::AudioEngine::Init() == false)
 		return -1;
+	Audio::SongPlayer::Init();
 	Audio::SoundManager::Init();
 	Game::SceneManager::Init();
 
@@ -179,6 +182,7 @@ void Shutdown()
 	WaitManager::Shutdown();
 	StringManager::Shutdown();
 
+	Audio::SongPlayer::Shutdown();
 	Audio::SoundManager::Shutdown();
 	Audio::AudioEngine::Shutdown();
 
@@ -201,6 +205,7 @@ float cameraYaw = 0;
 void Tick(float elapsed)
 {
 	Audio::SoundManager::Step();
+	Audio::SongPlayer::Tick();
 	JobQueue::Tick();
 
 	Game::ScriptManager::RunAllScripts();

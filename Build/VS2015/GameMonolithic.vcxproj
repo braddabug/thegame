@@ -19,10 +19,16 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Src\Audio\stb_vorbis.c" />
     <ClCompile Include="..\..\Src\Build.cpp" />
+    <ClCompile Include="..\..\Src\HashStringManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Src\Audio\AudioEngine.h" />
+    <ClInclude Include="..\..\Src\Audio\AudioLoader.h" />
+    <ClInclude Include="..\..\src\Audio\SongPlayer.h" />
+    <ClInclude Include="..\..\Src\Audio\SoundManager.h" />
+    <ClInclude Include="..\..\Src\Common.h" />
     <ClInclude Include="..\..\Src\ConsoleCommand.h" />
     <ClInclude Include="..\..\Src\Content\ContentLoader.h" />
     <ClInclude Include="..\..\src\Content\ContentManager.h" />
@@ -41,13 +47,16 @@
     <ClInclude Include="..\..\Src\Gui\stb_rect_pack.h" />
     <ClInclude Include="..\..\Src\Gui\stb_truetype.h" />
     <ClInclude Include="..\..\Src\Gui\TextPrinter.h" />
+    <ClInclude Include="..\..\Src\HashStringManager.h" />
     <ClInclude Include="..\..\Src\JobQueue.h" />
     <ClInclude Include="..\..\Src\Logging.h" />
     <ClInclude Include="..\..\Src\MyNxna2.h" />
     <ClInclude Include="..\..\Src\SpriteBatchHelper.h" />
+    <ClInclude Include="..\..\Src\StringManager.h" />
     <ClInclude Include="..\..\Src\Tweener.h" />
     <ClInclude Include="..\..\Src\Utils.h" />
     <ClInclude Include="..\..\Src\VirtualResolution.h" />
+    <ClInclude Include="..\..\Src\WaitManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Src\Game\Verbs.inc" />
@@ -135,8 +144,9 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(ProjectDir)../../Libs/SDL/Windows/include;$(ProjectDir)../../Libs/Nxna;$(ProjectDir)../../Libs/OpenAL/Windows/include</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>ENABLE_FREETYPEx;SDL_HEADER=&lt;SDL.h&gt;;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SOUND_ENGINE_OPENAL;ENABLE_FREETYPE;SDL_HEADER=&lt;SDL.h&gt;;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <PostBuildEvent>
       <Command>xcopy /y "$(ProjectDir)..\..\Libs\SDL\Windows\lib\x64\SDL2.dll" "$(OutDir)"</Command>

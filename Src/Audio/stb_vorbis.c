@@ -1,3 +1,5 @@
+#define STB_VORBIS_NO_STDIO
+
 // Ogg Vorbis audio decoder - v1.11 - public domain
 // http://nothings.org/stb_vorbis/
 //

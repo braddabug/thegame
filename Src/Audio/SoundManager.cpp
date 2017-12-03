@@ -265,7 +265,7 @@ namespace Audio
 			return nullptr;
 		}
 
-		auto src = AudioEngine::GetFreeSource(channel, false);
+		auto src = AudioEngine::GetFreeSource(channel);
 		if (src == nullptr)
 		{
 			WriteLog(LogSeverityType::Error, LogChannelType::ConsoleOutput, "Unable to get a free source");

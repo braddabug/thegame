@@ -30,6 +30,7 @@ namespace Graphics
 namespace Audio
 {
 	struct AudioEngineData;
+	struct SongPlayerData;
 }
 
 namespace Game
@@ -115,6 +116,7 @@ struct GlobalData
 	Game::ScriptManagerData* ScriptData;
 	Utils::StopwatchData* StopwatchData;
 	Audio::SoundManagerData* SoundData;
+	Audio::SongPlayerData* SongData;
 };
 
 

@@ -7,7 +7,8 @@ namespace Audio
 {
 	enum class Channel
 	{
-		SoundEffects
+		SoundEffects,
+		Music
 	};
 
 	struct BufferDesc
@@ -23,6 +24,13 @@ namespace Audio
 	struct Buffer
 	{
 		uint32 ALBuffer;
+
+		struct
+		{
+			uint32 NumChannels;
+			uint32 SampleRate;
+			uint32 SampleBitSize;
+		} Internal;
 	};
 
 	struct Source;
@@ -45,14 +53,18 @@ namespace Audio
 		static void Shutdown();
 
 		static bool CreateBuffer(const BufferDesc* desc, Buffer* buffer);
+		static bool WriteToBuffer(Buffer* buffer, const uint8* data, uint32 length);
 		static void DestroyBuffer(Buffer* buffer);
 
-		static Source* GetFreeSource(Channel channel, bool streaming);
+		static Source* GetFreeSource(Channel channel);
+		static Source* GetFreeStreamingSource(Channel channel, uint32 sampleRate, uint32 numChannels);
 		static void ReleaseSource(Source* source);
 		static void ReleaseSourceWhenFinishedPlaying(Source* source);
 
 		static void SetBuffer(Source* source, Buffer* buffer);
-		static void StreamBuffer(Source* source, Buffer* buffer);
+
+		static bool StreamingSourceNeedsData(Source* source);
+		static void StreamToSource(Source* source, uint8* data, uint32 dataLength);
 
 		void SetPosition(Source* source, float x, float y, float z);
 		void SetPosition(Source* source, float* position3f);
@@ -66,6 +78,14 @@ namespace Audio
 		static void Stop(Source* stop);
 
 		static SourceState GetState(Source* source);
+
+#ifdef SOUND_ENGINE_OPENAL
+		static uint32 GetALSource(Source* source);
+		static int GetALFormat(int numChannels, int bitsPerSample);
+#endif
+
+	private:
+		static Source* getFreeSource(Channel channel, bool streaming);
 	};
 }
 

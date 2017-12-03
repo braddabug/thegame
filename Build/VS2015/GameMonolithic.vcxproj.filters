@@ -2,6 +2,10 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="..\..\Src\Build.cpp" />
+    <ClCompile Include="..\..\Src\HashStringManager.cpp" />
+    <ClCompile Include="..\..\Src\Audio\stb_vorbis.c">
+      <Filter>Audio</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Src\GameMain.h" />
@@ -59,7 +63,20 @@
       <Filter>Audio</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Src\VirtualResolution.h" />
+    <ClInclude Include="..\..\Src\HashStringManager.h" />
     <ClInclude Include="..\..\Src\SpriteBatchHelper.h" />
+    <ClInclude Include="..\..\Src\Audio\SoundManager.h">
+      <Filter>Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Src\Audio\AudioLoader.h">
+      <Filter>Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Src\WaitManager.h" />
+    <ClInclude Include="..\..\Src\StringManager.h" />
+    <ClInclude Include="..\..\Src\Common.h" />
+    <ClInclude Include="..\..\src\Audio\SongPlayer.h">
+      <Filter>Audio</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Gui">
