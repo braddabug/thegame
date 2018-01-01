@@ -73,6 +73,11 @@ void LocalShutdown(Nxna::Graphics::GraphicsDevice* device, SpriteBatchData* sbd,
 	GAME_LIB_CALL(Shutdown)();
 }
 
+void LocalTickFixed(Nxna::Graphics::GraphicsDevice* device, SpriteBatchData* sbd, Gui::TextPrinterData* tpd, float elapsed)
+{
+	GAME_LIB_CALL(TickFixed)(elapsed);
+}
+
 void LocalTick(Nxna::Graphics::GraphicsDevice* device, SpriteBatchData* sbd, Gui::TextPrinterData* tpd, float elapsed)
 {
 	GAME_LIB_CALL(Tick)(elapsed);
@@ -336,18 +341,25 @@ int main(int argc, char* argv[])
 	}
 
 	uint32 prevTicks = SDL_GetTicks();
+	uint32 prevTicksFixed = prevTicks;
 	while (true)
 	{
-		uint32 elapsedTicks = SDL_GetTicks();
-		float elapsedTime = (elapsedTicks - prevTicks) / 1000.0f;
-		prevTicks = elapsedTicks;
-
 		{
 			ExternalEvent ee = {};
 			ee.Type = ExternalEventType::FrameStart;
 			LocalHandleEvent(ee);
 		}
 
+		// fixed update
+		{
+			uint32 elapsedTicks = SDL_GetTicks();
+			float elapsedTime = (elapsedTicks - prevTicks) / 1000.0f;
+			prevTicksFixed = elapsedTicks;
+			
+			LocalTickFixed(&device, &sbd, &td, elapsedTime);
+		}
+		
+		// get input
 		SDL_Event e;
 		while (SDL_PollEvent(&e))
 		{
@@ -422,7 +434,14 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		LocalTick(&device, &sbd, &td, elapsedTime);
+		// non-fixed update
+		{
+			uint32 elapsedTicks = SDL_GetTicks();
+			float elapsedTime = (elapsedTicks - prevTicks) / 1000.0f;
+			prevTicks = elapsedTicks;
+
+			LocalTick(&device, &sbd, &td, elapsedTime);
+		}
 
 		SDL_GL_SwapWindow(window);
 	}
