@@ -2,12 +2,13 @@
 #include "GlobalData.h"
 #include "Logging.h"
 #include "StringManager.h"
+#include "HashStringManager.h"
 #include "SpriteBatchHelper.h"
 #include "VirtualResolution.h"
 #include "Gui/TextPrinter.h"
 #include "Gui/Console.h"
 #include "Gui/GuiManager.h"
-#include "FileSystem.h"
+#include "FileFinder.h"
 #include "Graphics/Model.h"
 #include "Graphics/TextureLoader.h"
 #include "Graphics/ShaderLibrary.h"
@@ -75,8 +76,9 @@ void LibLoaded(GlobalData* data, bool initial)
 	Gui::Console::SetGlobalData(&data->ConsoleData);
 	WaitManager::SetGlobalData(&data->WaitData);
 	Utils::Stopwatch::SetGlobalData(&data->StopwatchData);
-	FileSystem::SetGlobalData(&data->FileSystem);
+	FileFinder::SetGlobalData(&data->FileSystem);
 	StringManager::SetGlobalData(&data->StringData);
+	HashStringManager::SetGlobalData(&data->HashStringData);
 	JobQueue::SetGlobalData(&data->JobQueue);
 	Gui::GuiManager::SetGlobalData(&data->GuiData, g_platform);
 	VirtualResolution::SetGlobalData(&data->ResolutionData);
@@ -100,10 +102,10 @@ int Init(WindowInfo* window)
 {
 	g_globals->DevMode = true;
 
-	FileSystem::SearchPathInfo searchPaths[] = {
-		{ "Content/", 10 }
+	FileFinder::SearchPathInfo searchPaths[] = {
+		{ "Content/" }
 	};
-	FileSystem::SetSearchPaths(searchPaths, 1);
+	FileFinder::SetSearchPaths(searchPaths, 1);
 
 	LocaleCode en("en");
 	LocaleCode us("us");
@@ -201,6 +203,10 @@ Nxna::Vector3 cameraPosition(0, 50.0f, 100);
 float cameraPitch = -0.5f;
 float cameraYaw = 0;
 
+void TickFixed(float elapsed)
+{
+
+}
 
 void Tick(float elapsed)
 {

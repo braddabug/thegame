@@ -5,6 +5,7 @@
 
 struct SpriteBatchData;
 struct StringManagerData;
+struct HashStringManagerData;
 
 namespace Gui
 {
@@ -57,7 +58,7 @@ struct LogData;
 struct JobQueueData;
 struct MemoryManager;
 struct PlatformInfo;
-struct FileSystemData;
+struct FileFinderData;
 struct VirtualResolutionData;
 struct WaitManagerData;
 
@@ -94,8 +95,9 @@ struct GlobalData
 	PlatformInfo* Platform;
 	LogData* Log;
 	JobQueueData* JobQueue;
-	FileSystemData* FileSystem;
+	FileFinderData* FileSystem;
 	StringManagerData* StringData;
+	HashStringManagerData* HashStringData;
 	VirtualResolutionData* ResolutionData;
 	WaitManagerData* WaitData;
 	Nxna::Graphics::GraphicsDevice* Device;

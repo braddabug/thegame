@@ -16,6 +16,14 @@ namespace Graphics
 		LAST
 	};
 
+	enum class BlendType
+	{
+		Opaque,
+		Transparent,
+
+		LAST
+	};
+
 	class ShaderLibrary
 	{
 		static ShaderLibraryData* m_data;
@@ -27,6 +35,7 @@ namespace Graphics
 		static bool LoadCoreShaders();
 
 		static Nxna::Graphics::ShaderPipeline* GetShader(ShaderType type);
+		static Nxna::Graphics::BlendState* GetBlending(BlendType type);
 
 	private:
 		static bool createShader(const uint8* vertexBytecode, size_t sizeOfVertexBytecode, const uint8* pixelBytecode, size_t sizeOfPixelBytecode, Nxna::Graphics::InputElement* elements, int numElements, Nxna::Graphics::ShaderPipeline* result);

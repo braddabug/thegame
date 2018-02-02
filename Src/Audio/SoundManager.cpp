@@ -124,8 +124,8 @@ namespace Audio
 		ini_context ctx;
 		ini_item item;
 
-		File f;
-		if (FileSystem::OpenAndMapKnown("Audio/groups.txt", &f) == nullptr)
+		FoundFile f;
+		if (FileFinder::OpenAndMap("Audio/groups.txt", &f) == false)
 		{
 			WriteLog(LogSeverityType::Error, LogChannelType::Content, "Unable to open Audio/groups.txt. Audio will be disabled.");
 			return;
@@ -196,7 +196,7 @@ namespace Audio
 			}
 		}
 
-		FileSystem::Close(&f);
+		FileFinder::Close(&f);
 	}
 
 	void SoundManager::Shutdown()

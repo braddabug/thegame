@@ -2,10 +2,11 @@
 #include "../Graphics/Bitmap.h"
 #include "../MemoryManager.h"
 #include "../GlobalData.h"
-#include "../FileSystem.h"
+#include "../FileFinder.h"
 #include "../Logging.h"
 #include "../Content/ContentManager.h"
 #include "../VirtualResolution.h"
+#include "../HashStringManager.h"
 #include "../iniparse.h"
 
 
@@ -103,15 +104,15 @@ namespace Gui
 	{
 		if (params->Phase == Content::LoaderPhase::AsyncLoad)
 		{
-			auto filename = FileSystem::GetFilenameByHash(params->FilenameHash);
+			auto filename = HashStringManager::Get(params->FilenameHash, HashStringManager::HashStringType::File);
 			if (filename == nullptr)
 			{
 				LOG_ERROR("Unable to get filename for texture with hash %u", params->FilenameHash);
 				return false;
 			}
 
-			File f;
-			if (FileSystem::OpenAndMap(filename, &f) == nullptr)
+			FoundFile f;
+			if (FileFinder::OpenAndMap(filename, &f) == false)
 			{
 				LOG_ERROR("Unable to open cursor file %s", filename);
 				return false;
@@ -185,7 +186,7 @@ namespace Gui
 						char imageFileBuffer[256];
 						VirtualResolution::InjectNearestResolution(image, imageFileBuffer, 256);
 
-						loadData->Cursors[cursorCount].ImageFileHash = Utils::CalcHash(imageFileBuffer);
+						loadData->Cursors[cursorCount].ImageFileHash = HashStringManager::Set(HashStringManager::HashStringType::File, imageFileBuffer);
 
 						cursorCount++;
 					}
@@ -194,7 +195,7 @@ namespace Gui
 				goto parse;
 			}
 
-			FileSystem::Close(&f);
+			FileFinder::Close(&f);
 
 			return true;
 		}

@@ -53,7 +53,7 @@ namespace Graphics
 		if (params->Phase == Content::LoaderPhase::AsyncLoad)
 		{
 			int w, h, d;
-			auto filename = FileSystem::GetDiskFilenameByHash(params->FilenameHash);
+			auto filename = HashStringManager::Get(params->FilenameHash, HashStringManager::HashStringType::File);
 			if (filename == nullptr)
 			{
 				LOG_ERROR("Unable to get filename for texture with hash %u", params->FilenameHash);
@@ -62,7 +62,18 @@ namespace Graphics
 				return false;
 			}
 
-			auto img = stbi_load(filename, &w, &h, &d, 4);
+			FoundFile f;
+			if (FileFinder::OpenAndMap(filename, &f) == false)
+			{
+				LOG_ERROR("Unable to open texture %s", filename);
+
+				params->State = Content::ContentState::NotFound;
+				return false;
+			}
+
+			auto img = stbi_load_from_memory((unsigned char*)f.Memory, f.FileSize, &w, &h, &d, 4);
+
+			FileFinder::Close(&f);
 
 			if (img == nullptr)
 			{

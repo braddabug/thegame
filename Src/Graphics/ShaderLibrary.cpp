@@ -8,6 +8,7 @@ namespace Graphics
 		Nxna::Graphics::GraphicsDevice* Device;
 
 		Nxna::Graphics::ShaderPipeline Shaders[(int)ShaderType::LAST];
+		Nxna::Graphics::BlendState Blending[(int)BlendType::LAST];
 	};
 
 	ShaderLibraryData* ShaderLibrary::m_data = nullptr;
@@ -108,12 +109,30 @@ namespace Graphics
 				return false;
 		}
 
+		// create blending
+		Nxna::Graphics::BlendStateDesc blend1 = NXNA_BLENDSTATEDESC_DEFAULT;
+		if (m_data->Device->CreateBlendState(&blend1, &m_data->Blending[0]) != Nxna::NxnaResult::Success)
+			return false;
+		Nxna::Graphics::BlendStateDesc blend2 = {};
+		blend2.RenderTarget[0].BlendingEnabled = true;
+		blend2.RenderTarget[0].ColorSourceBlend = Nxna::Graphics::Blend::One;
+		blend2.RenderTarget[0].AlphaSourceBlend = Nxna::Graphics::Blend::One;
+		blend2.RenderTarget[0].ColorDestinationBlend = Nxna::Graphics::Blend::InverseSourceAlpha;
+		blend2.RenderTarget[0].AlphaDestinationBlend = Nxna::Graphics::Blend::InverseSourceAlpha;
+		if (m_data->Device->CreateBlendState(&blend2, &m_data->Blending[1]) != Nxna::NxnaResult::Success)
+			return false;
+
 		return true;
 	}
 
 	Nxna::Graphics::ShaderPipeline* ShaderLibrary::GetShader(ShaderType type)
 	{
 		return &m_data->Shaders[(int)type];
+	}
+
+	Nxna::Graphics::BlendState* ShaderLibrary::GetBlending(BlendType type)
+	{
+		return &m_data->Blending[(int)type];
 	}
 
 	bool ShaderLibrary::createShader(const uint8* vertexBytecode, size_t sizeOfVertexBytecode, const uint8* pixelBytecode, size_t sizeOfPixelBytecode, Nxna::Graphics::InputElement* elements, int numElements, Nxna::Graphics::ShaderPipeline* result)

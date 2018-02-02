@@ -30,7 +30,7 @@ namespace Graphics
 
 		uint32 NumTextures;
 		static const uint32 MAX_TEXTURES = 10;
-		uint32 Textures[MAX_TEXTURES];
+		StringRef Textures[MAX_TEXTURES];
 
 		uint32 VertexStride;
 		uint32 NumVertices;

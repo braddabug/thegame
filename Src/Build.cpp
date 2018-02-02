@@ -16,10 +16,12 @@
 #include "Logging.cpp"
 #include "StringManager.cpp"
 #include "FileSystem.cpp"
+#include "FileFinder.cpp"
 #include "SpriteBatchHelper.cpp"
 #include "WaitManager.cpp"
 #include "JobQueue.cpp"
 #include "VirtualResolution.cpp"
+#include "HashStringManager.cpp"
 #include "Gui/TextPrinter.cpp"
 #include "Gui/Console.cpp"
 #include "Gui/GuiManager.cpp"
@@ -35,6 +37,7 @@
 #include "Game/SceneManager.cpp"
 #include "Game/CharacterManager.cpp"
 #include "Game/ScriptManager.cpp"
+#include "Game/NavMesh.cpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "Graphics/tiny_obj_loader.h"

@@ -13,6 +13,8 @@ typedef unsigned int uint32;
 typedef int64_t int64;
 typedef uint64_t uint64;
 
+typedef uint64 StringRef;
+
 // PersitantString means the string will live long enough for the function receiving it to
 // do what it needs to do. No copy is made.
 typedef const char* PersistantString;

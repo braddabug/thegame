@@ -167,6 +167,7 @@ namespace Game
 		static bool CreateScene(SceneDesc* desc);
 		static bool CreateScene(const char* sceneFile);
 		static bool LoadSceneDesc(const char* sceneFile, SceneDesc* result);
+		static bool LoadNavMesh(const char* nav);
 
 		static uint32 GetSceneID();
 

@@ -66,6 +66,7 @@ namespace Content
 			static const uint32 MaxFiles = 1000;
 			ResourceFile Files[MaxFiles];
 			uint32 Hashes[MaxFiles];
+			StringRef Filenames[MaxFiles];
 			bool Active[MaxFiles];
 		} FileHashTable;
 
@@ -102,9 +103,16 @@ namespace Content
 			memset(*data, 0, sizeof(ContentManagerData));
 		}
 
-
-
 		m_data = *data;
+	}
+
+	void cmdReload(const char* arg)
+	{
+		if (ContentManager::ReloadAll() == false)
+		{
+			LOG_ERROR("Fatal error while trying to reload content");
+			exit(-1);
+		}
 	}
 
 	bool ContentManager::Init(uint32 screenHeight, LocaleCode language, LocaleCode region)
@@ -113,6 +121,7 @@ namespace Content
 		m_data->Language = language;
 		m_data->Region = region;
 
+#if 0
 		// look for localized or res-dependant versions of files
 		{
 			char res[6];
@@ -183,6 +192,12 @@ namespace Content
 				end[0] = 0;
 			}
 		}
+#endif
+		// add the "reload" console command
+		ConsoleCommand cmd = {};
+		cmd.Command = "reload";
+		cmd.Callback = cmdReload;
+		Gui::Console::AddCommands(&cmd, 1);
 
 		return true;
 	}
@@ -193,10 +208,11 @@ namespace Content
 	}
 
 
-	void* ContentManager::Get(uint32 hash, ResourceType type, ContentLoadFlags flags)
+	void* ContentManager::Get(StringRef filename, ResourceType type, ContentLoadFlags flags)
 	{
 		uint32 finalIndex;
 
+#if 0
 		// see if we need to look for a substituted (localized or res-dependant) version
 		if ((flags & ContentLoadFlags_DontFixup) == 0)
 		{
@@ -205,6 +221,11 @@ namespace Content
 				hash = m_data->SubstitutionTable.DestHash[finalIndex];
 			}
 		}
+#endif
+		auto path = HashStringManager::Get(filename, HashStringManager::HashStringType::File);
+		if (path == nullptr) return nullptr;
+
+		auto hash = Utils::CalcHash(path);
 
 		if (Utils::HashTableUtils::Find(hash, m_data->FileHashTable.Hashes, m_data->FileHashTable.Active, m_data->FileHashTable.MaxFiles, &finalIndex))
 		{
@@ -226,30 +247,15 @@ namespace Content
 		if (Utils::HashTableUtils::Reserve(hash, m_data->FileHashTable.Hashes, m_data->FileHashTable.Active, m_data->FileHashTable.MaxFiles, &index) == false)
 			return nullptr;
 
+		m_data->FileHashTable.Filenames[index] = filename;
 		m_data->FileHashTable.Files[index].Data = g_memory->AllocTrack(size, __FILE__, __LINE__);
 
-		ContentLoaderParams p = {};
-		p.Phase = LoaderPhase::AsyncLoad;
-		p.Type = type;
-		p.Destination = m_data->FileHashTable.Files[index].Data;
-		p.FilenameHash = hash;
-		p.LoaderParam = loader->LoaderParam;
-		p.LocalDataStorage = (uint8*)g_memory->AllocTrack(ContentLoaderParams::LocalDataStorageSize, __FILE__, __LINE__);
+		if (load(filename, type, loader, index))
+			return m_data->FileHashTable.Files[index].Data;
 
-		if (loader->LoaderFunc(&p))
-		{
-			p.Phase = LoaderPhase::MainThread;
-			if (loader->LoaderFunc(&p))
-			{
-				p.Phase = LoaderPhase::Fixup;
-				m_data->FileHashTable.Files[index].State = LoadState::QueuedForFixup;
-
-				if (loader->LoaderFunc(&p))
-				{
-					return p.Destination;
-				}
-			}
-		}
+		// still here? Well, we tried.
+		g_memory->FreeTrack(m_data->FileHashTable.Files[index].Data, __FILE__, __LINE__);
+		m_data->FileHashTable.Active[index] = false;
 
 		return nullptr;
 	}
@@ -289,6 +295,39 @@ namespace Content
 
 		WriteLog(LogSeverityType::Warning, LogChannelType::Content, "Trying to release content, but content wasn't found");
 		*/
+	}
+
+	bool ContentManager::ReloadAll()
+	{
+		for (uint32 i = 0; i < ContentManagerData::_FileHashTable::MaxFiles; i++)
+		{
+			if (m_data->FileHashTable.Active[i])
+			{
+				auto type = m_data->FileHashTable.Files[i].Type;
+				auto loader = ContentLoader::FindLoader(type);
+
+				if (loader == nullptr)
+				{
+					LOG_ERROR("Unable to find loader for file with hash %u during reload. Ignoring.", m_data->FileHashTable.Hashes[i]);
+					continue;
+				}
+
+				if (loader->UnloaderFunc(m_data->FileHashTable.Files[i].Data) == false)
+				{
+					LOG_ERROR("Unable to unload file with hash %u during reload. Ignoring.", m_data->FileHashTable.Hashes[i]);
+					continue;
+				}
+
+				if (load(m_data->FileHashTable.Filenames[i], type, loader, i) == false)
+				{
+					// uh oh, we can't really recover from this!
+					LOG_ERROR("Unable to reload file with hash %u!", m_data->FileHashTable.Hashes[i]);
+					return false;
+				}
+			}
+		}
+
+		return true;
 	}
 
 	bool ContentManager::GetResourceInfo(ResourceType type, uint32* size, uint32* alignment)
@@ -349,6 +388,36 @@ namespace Content
 #endif
 
 		// keep the compiler happy
+		return false;
+	}
+
+	bool ContentManager::load(StringRef filename, ResourceType type, Loader* loader, uint32 destIndex)
+	{
+		ContentLoaderParams p = {};
+		p.Phase = LoaderPhase::AsyncLoad;
+		p.Type = type;
+		p.Destination = m_data->FileHashTable.Files[destIndex].Data;
+		p.FilenameHash = filename;
+		p.LoaderParam = loader->LoaderParam;
+		p.LocalDataStorage = (uint8*)g_memory->AllocTrack(ContentLoaderParams::LocalDataStorageSize, __FILE__, __LINE__);
+
+		if (loader->LoaderFunc(&p))
+		{
+			p.Phase = LoaderPhase::MainThread;
+			if (loader->LoaderFunc(&p))
+			{
+				p.Phase = LoaderPhase::Fixup;
+				m_data->FileHashTable.Files[destIndex].State = LoadState::QueuedForFixup;
+
+				if (loader->LoaderFunc(&p))
+				{
+					m_data->FileHashTable.Files[destIndex].State = LoadState::Loaded;
+					return true;
+				}
+			}
+		}
+
+		m_data->FileHashTable.Files[destIndex].State = LoadState::Error;
 		return false;
 	}
 }

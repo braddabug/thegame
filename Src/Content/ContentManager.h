@@ -40,13 +40,17 @@ namespace Content
 		static int PreloadGlobal();
 		static int PreloadScene(uint32 sceneID);
 
-		static void* Get(uint32 hash, ResourceType type, ContentLoadFlags flags = ContentLoadFlags::ContentLoadFlags_None);
+		static void* Get(StringRef filename, ResourceType type, ContentLoadFlags flags = ContentLoadFlags::ContentLoadFlags_None);
 		static void Release(void* content);
+
+		static bool ReloadAll();
 		
 		static bool GetResourceInfo(ResourceType type, uint32* size, uint32* alignment);
 
 	private:
 		static ContentLoader* findLoader(LoaderType type);
+
+		static bool load(StringRef hash, ResourceType type, Loader* loader, uint32 destIndex);
 	};
 }
 

@@ -76,7 +76,7 @@ namespace Content
 		// input
 		LoaderPhase Phase;
 		ResourceType Type;
-		uint32 FilenameHash;
+		StringRef FilenameHash;
 		void* LoaderParam;
 		JobHandle Job;
 

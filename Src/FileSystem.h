@@ -36,26 +36,7 @@ class FileSystem
 
 public:
 
-	static void SetGlobalData(FileSystemData** data);
-	static void Shutdown();
-
-	struct SearchPathInfo
-	{
-		const char* Path;
-		uint32 MaxDepth;
-	};
-
-	static void SetSearchPaths(SearchPathInfo* paths, uint32 numPaths);
-	static uint32 GetNumFiles();
-
-	static const char* GetDiskFilenameByHash(uint32 hash);
-	static const char* GetFilenameByHash(uint32 hash);
-	static const char* GetDiskFilenameByIndex(uint32 index);
-	static const char* GetFilenameByIndex(uint32 index);
-
 	static bool Open(const char* path, File* file);
-    static bool OpenKnown(const char* path, File* file);
-	static bool OpenKnown(uint32 hash, File* file);
 	static void Close(File* file);
 	static bool IsOpen(File* file);
 
@@ -76,28 +57,6 @@ public:
 		return file->Memory;
 	}
 
-    static void* OpenAndMapKnown(const char* path, File* file)
-    {
-        uint32 hash = Utils::CalcHash(path);
-        return OpenAndMapKnown(hash, file);
-    }
-
-	static void* OpenAndMapKnown(uint32 hash, File* file)
-	{
-		if (FileSystem::OpenKnown(hash, file) == false)
-			return nullptr;
-
-		if (FileSystem::MapFile(file) == nullptr)
-		{
-			FileSystem::Close(file);
-			return nullptr;
-		}
-
-		return file->Memory;
-	}
-
-private:
-	static void searchPathRecursive(const char* root, const char* path, uint32 depth);
 };
 
 #endif // FILESYSTEM_H

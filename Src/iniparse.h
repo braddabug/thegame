@@ -74,6 +74,11 @@ bool ini_value_equals(ini_context* ctx, ini_item* item, const char* value);
 bool ini_key_copy(ini_context* ctx, ini_item* item, char* destination, int maxLength);
 bool ini_value_copy(ini_context* ctx, ini_item* item, char* destination, int maxLength);
 
+int ini_value_nth(ini_context* ctx, ini_item* item, int index, int* start, int* end);
+bool ini_value_copy_nth(ini_context* ctx, ini_item* item, int index, char* destination, int maxLength);
+int ini_value_int_nth(ini_context* ctx, ini_item* item, int index, int* result);
+int ini_value_float_nth(ini_context* ctx, ini_item* item, int index, float* result);
+
 #endif // INIPARSE_H
 
 #ifdef INIPARSE_IMPLEMENTATION
@@ -322,6 +327,108 @@ bool ini_value_copy(ini_context* ctx, ini_item* item, char* destination, int max
 	}
 
 	return ini_copy(ctx, item->keyvalue.value_start, item->keyvalue.value_end, destination, maxLength);
+}
+
+int ini_value_nth(ini_context* ctx, ini_item* item, int index, int* start, int* end)
+{
+	if (ctx == nullptr || item == nullptr)
+	{
+		return ini_result_error;
+	}
+
+	// find the start
+	int s = item->keyvalue.value_start;
+	for (int i = 0; i < index; i++)
+	{
+		while (s < item->keyvalue.value_end && ctx->source[s] != ',')
+			s++;
+
+		s++;
+	}
+
+	// find the end
+	int e = s;
+	while (e < item->keyvalue.value_end && ctx->source[e] != ',')
+		e++;
+
+	if (*start) *start = s;
+	if (*end) *end = e;
+
+	return ini_result_success;
+}
+
+bool ini_value_copy_nth(ini_context* ctx, ini_item* item, int index, char* destination, int maxLength)
+{
+	if (destination == nullptr || maxLength == 0)
+		return false;
+
+	int start, end;
+	if (ini_value_nth(ctx, item, index, &start, &end) != ini_result_success)
+		return false;
+
+	return ini_copy(ctx, start, end, destination, maxLength);
+}
+
+int ini_value_int_nth(ini_context* ctx, ini_item* item, int index, int* result)
+{
+	if (ctx == nullptr || item == nullptr || item->type != ini_itemtype::keyvalue)
+		return ini_result_error;
+
+	const int bufferLen = 20;
+	char buffer[bufferLen];
+	
+	{
+		int start, end;
+		int r = ini_value_nth(ctx, item, index, &start, &end);
+		if (r != ini_result_success)
+			return r;
+
+
+		int len = end - start;
+		if (len >= bufferLen) len = bufferLen - 1;
+		INIPARSE_MEMCPY(buffer, ctx->source + start, len);
+		buffer[len] = 0;
+	}
+
+	char* end;
+	int value = INIPARSE_STRTOL(buffer, &end, 10);
+
+	if (value == 0 && end == buffer)
+		return ini_result_error;
+
+	*result = value;
+	return ini_result_success;
+}
+
+int ini_value_float_nth(ini_context* ctx, ini_item* item, int index, float* result)
+{
+	if (ctx == nullptr || item == nullptr || item->type != ini_itemtype::keyvalue)
+		return ini_result_error;
+
+	const int bufferLen = 20;
+	char buffer[bufferLen];
+
+	{
+		int start, end;
+		int r = ini_value_nth(ctx, item, index, &start, &end);
+		if (r != ini_result_success)
+			return r;
+
+
+		int len = end - start;
+		if (len >= bufferLen) len = bufferLen - 1;
+		INIPARSE_MEMCPY(buffer, ctx->source + start, len);
+		buffer[len] = 0;
+	}
+
+	char* end;
+	float value = INIPARSE_STRTOF(buffer, &end);
+
+	if (value == 0 && end == buffer)
+		return ini_result_error;
+
+	*result = value;
+	return ini_result_success;
 }
 
 #endif // INIPARSE_IMPLEMENTATION

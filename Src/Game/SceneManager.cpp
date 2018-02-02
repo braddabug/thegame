@@ -1,5 +1,6 @@
 #include "SceneManager.h"
 #include "CharacterManager.h"
+#include "NavMesh.h"
 #include "../FileSystem.h"
 #include "../Graphics/Model.h"
 #include "../Graphics/DrawUtils.h"
@@ -14,7 +15,7 @@ namespace Game
 		uint32 SceneID;
 
 		uint32 NumModels;
-		uint32 ModelNameHash[SceneDesc::MaxModels];
+		StringRef ModelNameHash[SceneDesc::MaxModels];
 		uint32 ModelNounHash[SceneDesc::MaxModels];
 		Nxna::Matrix ModelTransforms[SceneDesc::MaxModels];
 		Graphics::Model* Models[SceneDesc::MaxModels];
@@ -30,6 +31,8 @@ namespace Game
 		int WalkMapZOffset;
 
 		int SelectedModelIndex;
+
+		NavMesh Navigation;
 	};
 
 	SceneManagerData* SceneManager::m_data = nullptr;
@@ -57,12 +60,21 @@ namespace Game
 			WriteLog(LogSeverityType::Error, LogChannelType::ConsoleOutput, "Unable to load scene %s", arg);
 	}
 
+	void cmdLoadNav(const char* arg)
+	{
+		if (SceneManager::LoadNavMesh(arg) == false)
+			WriteLog(LogSeverityType::Error, LogChannelType::ConsoleOutput, "Unable to load nav mesh %s", arg);
+		else
+			WriteLog(LogSeverityType::Normal, LogChannelType::ConsoleOutput, "Loaded nav mesh %s", arg);
+	}
+
 	void SceneManager::Init()
 	{
-		ConsoleCommand cmd;
-		cmd.Callback = cmdLoadScene;
-		cmd.Command = "load_scene";
-		Gui::Console::AddCommands(&cmd, 1);
+		ConsoleCommand cmd[] = {
+			{ "load_scene", cmdLoadScene },
+			{ "load_nav", cmdLoadNav }
+		};
+		Gui::Console::AddCommands(cmd, 2);
 	}
 
 	void SceneManager::Shutdown()
@@ -84,7 +96,7 @@ namespace Game
 			if (desc->Models[i].Name == nullptr)
 				m_data->ModelNameHash[i] = 0;
 			else
-				m_data->ModelNameHash[i] = Utils::CalcHash(desc->Models[i].File);
+				m_data->ModelNameHash[i] = HashStringManager::Set(HashStringManager::HashStringType::File, desc->Models[i].File);
 
 			m_data->ModelNounHash[i] = desc->Models[i].NounHash;
 
@@ -102,13 +114,13 @@ namespace Game
 			{
 				if (desc->Models[i].Diffuse[j][0] != 0)
 				{
-					m_data->Models[i]->Textures[m_data->Models[i]->NumTextures] = Utils::CalcHash(desc->Models[i].Diffuse[j]);
+					m_data->Models[i]->Textures[m_data->Models[i]->NumTextures] = HashStringManager::Set(HashStringManager::HashStringType::File, desc->Models[i].Diffuse[j]);
 					m_data->Models[i]->Meshes[j].DiffuseTextureIndex = m_data->Models[i]->NumTextures;
 					m_data->Models[i]->NumTextures++;
 				}
 				if (desc->Models[i].Lightmap[j][0] != 0)
 				{
-					m_data->Models[i]->Textures[m_data->Models[i]->NumTextures] = Utils::CalcHash(desc->Models[i].Lightmap[j]);
+					m_data->Models[i]->Textures[m_data->Models[i]->NumTextures] = HashStringManager::Set(HashStringManager::HashStringType::File, desc->Models[i].Lightmap[j]);
 					m_data->Models[i]->Meshes[j].LightmapTextureIndex = m_data->Models[i]->NumTextures;
 					m_data->Models[i]->NumTextures++;
 				}
@@ -125,12 +137,10 @@ namespace Game
 
 		// load the walk map
 		{
-			m_data->WalkMap = (Graphics::Bitmap*)Content::ContentManager::Get(Utils::CalcHash(desc->WalkMap), Content::ResourceType::Bitmap);
+			// TODO: rather than using a walk-map, use nav-meshes.
+			// https://github.com/recastnavigation/recastnavigation
 
-			if (m_data->WalkMap != nullptr)
-			{
-				Graphics::TextureLoader::ConvertBitmapToTexture(m_data->WalkMap, &m_data->WalkMapTexture);
-			}
+			NavMesh::Load(HashStringManager::Set(HashStringManager::HashStringType::File, desc->WalkMap), &m_data->Navigation);
 
 			m_data->WalkMapXOffset = desc->WalkMapX;
 			m_data->WalkMapZOffset = desc->WalkMapZ;
@@ -139,7 +149,7 @@ namespace Game
 		CharacterManager::Reset();
 		for (uint32 i = 0; i < desc->NumCharacters; i++)
 		{
-			auto model = (Graphics::Model*)Content::ContentManager::Get(Utils::CalcHash(desc->Characters[i].ModelFile), Content::ResourceType::Model);
+			auto model = (Graphics::Model*)Content::ContentManager::Get(HashStringManager::Set(HashStringManager::HashStringType::File, desc->Characters[i].ModelFile), Content::ResourceType::Model);
 			if (model == nullptr)
 			{
 				LOG_ERROR("Unable to add character model %s to scene", desc->Characters[i].ModelFile);
@@ -152,7 +162,7 @@ namespace Game
 			{
 				if (desc->Characters[i].Diffuse[j][0] != 0)
 				{
-					model->Textures[model->NumTextures] = Utils::CalcHash(desc->Characters[i].Diffuse[j]);
+					model->Textures[model->NumTextures] = HashStringManager::Set(HashStringManager::HashStringType::File, desc->Characters[i].Diffuse[j]);
 					model->Meshes[j].DiffuseTextureIndex = model->NumTextures;
 					model->NumTextures++;
 				}
@@ -168,7 +178,7 @@ namespace Game
 			{
 				if (desc->Characters[i].Diffuse[j][0] != 0)
 				{
-					model->Textures[model->NumTextures] = Utils::CalcHash(desc->Characters[i].Diffuse[j]);
+					model->Textures[model->NumTextures] = HashStringManager::Set(HashStringManager::HashStringType::File, desc->Characters[i].Diffuse[j]);
 					model->Meshes[j].DiffuseTextureIndex = model->NumTextures;
 					model->NumTextures++;
 				}
@@ -200,8 +210,8 @@ namespace Game
 	{
 		memset(result, 0, sizeof(SceneDesc));
 
-		File f;
-		if (FileSystem::OpenAndMapKnown(sceneFile, &f) == false)
+		FoundFile f;
+		if (FileFinder::OpenAndMap(sceneFile, &f) == false)
 		{
 			LOG_ERROR("Unable to open scene file %s", sceneFile);
 			return false;
@@ -407,11 +417,17 @@ namespace Game
 		}
 
 	end:
-		FileSystem::Close(&f);
+		FileFinder::Close(&f);
 
 		return success;
 	}
 	
+	bool SceneManager::LoadNavMesh(const char* nav)
+	{
+		auto f = HashStringManager::Set(HashStringManager::HashStringType::File, nav);
+		return NavMesh::Load(f, &m_data->Navigation);
+	}
+
 	uint32 SceneManager::GetSceneID()
 	{
 		return m_data->SceneID;
@@ -562,11 +578,13 @@ namespace Game
 				}
 			}
 
-			if (m_data->WalkMap != nullptr)
+			/*if (m_data->WalkMap != nullptr)
 			{
 				float center[] = { m_data->WalkMapXOffset, 2.0f, m_data->WalkMapZOffset };
 				Graphics::DrawUtils::DrawQuadY(center, m_data->WalkMap->Width, m_data->WalkMap->Height, &m_data->WalkMapTexture, modelview);
-			}
+			}*/
+
+			m_data->Navigation.Render(g_device, modelview);
 		}
 	}
 }
